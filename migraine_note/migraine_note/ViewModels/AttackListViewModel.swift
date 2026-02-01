@@ -1,0 +1,187 @@
+//
+//  AttackListViewModel.swift
+//  migraine_note
+//
+//  Created on 2026-02-01.
+//  管理发作记录列表的数据和筛选功能
+//
+
+import Foundation
+import SwiftUI
+import SwiftData
+
+@Observable
+class AttackListViewModel {
+    // MARK: - Properties
+    
+    /// 搜索文本
+    var searchText: String = ""
+    
+    /// 筛选选项
+    var filterOption: FilterOption = .all
+    
+    /// 排序选项
+    var sortOption: SortOption = .dateDescending
+    
+    /// 选中的疼痛强度范围
+    var selectedIntensityRange: ClosedRange<Int>? = nil
+    
+    /// 选中的日期范围
+    var selectedDateRange: DateRange? = nil
+    
+    // MARK: - Enums
+    
+    enum FilterOption: String, CaseIterable {
+        case all = "全部"
+        case thisWeek = "本周"
+        case thisMonth = "本月"
+        case last3Months = "近3个月"
+        case custom = "自定义"
+        
+        var systemImage: String {
+            switch self {
+            case .all: return "calendar"
+            case .thisWeek: return "calendar.badge.clock"
+            case .thisMonth: return "calendar.circle"
+            case .last3Months: return "calendar.badge.plus"
+            case .custom: return "calendar.badge.exclamationmark"
+            }
+        }
+    }
+    
+    enum SortOption: String, CaseIterable {
+        case dateDescending = "最新优先"
+        case dateAscending = "最早优先"
+        case intensityDescending = "疼痛强度降序"
+        case durationDescending = "持续时间降序"
+        
+        var systemImage: String {
+            switch self {
+            case .dateDescending: return "arrow.down"
+            case .dateAscending: return "arrow.up"
+            case .intensityDescending: return "exclamationmark.3"
+            case .durationDescending: return "clock.arrow.circlepath"
+            }
+        }
+    }
+    
+    struct DateRange {
+        let start: Date
+        let end: Date
+    }
+    
+    // MARK: - Methods
+    
+    /// 获取筛选后的记录
+    func filteredAttacks(_ attacks: [AttackRecord]) -> [AttackRecord] {
+        var filtered = attacks
+        
+        // 应用日期筛选
+        filtered = applyDateFilter(to: filtered)
+        
+        // 应用搜索
+        if !searchText.isEmpty {
+            filtered = filtered.filter { attack in
+                // 搜索症状
+                let symptomMatch = attack.symptoms.contains { symptom in
+                    symptom.name.localizedCaseInsensitiveContains(searchText)
+                }
+                
+                // 搜索诱因
+                let triggerMatch = attack.triggers.contains { trigger in
+                    trigger.name.localizedCaseInsensitiveContains(searchText)
+                }
+                
+                // 搜索用药
+                let medicationMatch = attack.medicationLogs.contains { log in
+                    log.medication?.name.localizedCaseInsensitiveContains(searchText) ?? false
+                }
+                
+                return symptomMatch || triggerMatch || medicationMatch
+            }
+        }
+        
+        // 应用疼痛强度筛选
+        if let intensityRange = selectedIntensityRange {
+            filtered = filtered.filter { attack in
+                intensityRange.contains(attack.painIntensity)
+            }
+        }
+        
+        // 应用排序
+        filtered = sortAttacks(filtered)
+        
+        return filtered
+    }
+    
+    /// 应用日期筛选
+    private func applyDateFilter(to attacks: [AttackRecord]) -> [AttackRecord] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch filterOption {
+        case .all:
+            return attacks
+            
+        case .thisWeek:
+            let weekAgo = calendar.date(byAdding: .day, value: -7, to: now)!
+            return attacks.filter { $0.startTime >= weekAgo }
+            
+        case .thisMonth:
+            let monthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
+            return attacks.filter { $0.startTime >= monthAgo }
+            
+        case .last3Months:
+            let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!
+            return attacks.filter { $0.startTime >= threeMonthsAgo }
+            
+        case .custom:
+            if let dateRange = selectedDateRange {
+                return attacks.filter { attack in
+                    attack.startTime >= dateRange.start && attack.startTime <= dateRange.end
+                }
+            }
+            return attacks
+        }
+    }
+    
+    /// 排序记录
+    private func sortAttacks(_ attacks: [AttackRecord]) -> [AttackRecord] {
+        switch sortOption {
+        case .dateDescending:
+            return attacks.sorted { $0.startTime > $1.startTime }
+            
+        case .dateAscending:
+            return attacks.sorted { $0.startTime < $1.startTime }
+            
+        case .intensityDescending:
+            return attacks.sorted { $0.painIntensity > $1.painIntensity }
+            
+        case .durationDescending:
+            return attacks.sorted { $0.durationOrElapsed > $1.durationOrElapsed }
+        }
+    }
+    
+    /// 重置所有筛选
+    func resetFilters() {
+        searchText = ""
+        filterOption = .all
+        sortOption = .dateDescending
+        selectedIntensityRange = nil
+        selectedDateRange = nil
+    }
+    
+    /// 删除记录
+    func deleteAttack(_ attack: AttackRecord, from context: ModelContext) {
+        context.delete(attack)
+        try? context.save()
+    }
+    
+    /// 批量删除记录
+    func deleteAttacks(_ attacks: [AttackRecord], from context: ModelContext) {
+        for attack in attacks {
+            context.delete(attack)
+        }
+        try? context.save()
+    }
+}
