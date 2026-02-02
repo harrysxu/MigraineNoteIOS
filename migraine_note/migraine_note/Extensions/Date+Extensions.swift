@@ -90,4 +90,22 @@ extension Date {
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
         return formatter.string(from: self)
     }
+    
+    /// 简洁日期格式：MM.dd HH:mm
+    func briefDateTime() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "MM.dd HH:mm"
+        return formatter.string(from: self)
+    }
+    
+    /// 获取年份：yyyy
+    var year: Int {
+        return Calendar.current.component(.year, from: self)
+    }
+    
+    /// 年份标题：yyyy年
+    func yearTitle() -> String {
+        return "\(year)年"
+    }
 }

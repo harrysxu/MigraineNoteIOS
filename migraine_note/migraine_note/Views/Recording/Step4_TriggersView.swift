@@ -12,8 +12,6 @@ struct Step4_TriggersView: View {
     @Bindable var viewModel: RecordingViewModel
     @Environment(\.modelContext) private var modelContext
     
-    @State private var customTrigger: String = ""
-    @State private var showCustomInput: Bool = false
     @State private var suggestedTriggers: [String] = []
     
     // 查询所有诱因标签（仅显示未隐藏的）
@@ -37,36 +35,6 @@ struct Step4_TriggersView: View {
             // 各类诱因
             ForEach(TriggerCategory.allCases, id: \.self) { category in
                 triggerSection(for: category)
-            }
-            
-            // 自定义诱因
-            InfoCard {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Button {
-                        showCustomInput.toggle()
-                    } label: {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text("添加自定义诱因")
-                            Spacer()
-                            Image(systemName: showCustomInput ? "chevron.up" : "chevron.down")
-                        }
-                        .font(.subheadline)
-                        .foregroundStyle(Color.accentPrimary)
-                    }
-                    
-                    if showCustomInput {
-                        HStack {
-                            TextField("输入诱因名称", text: $customTrigger)
-                                .textFieldStyle(.roundedBorder)
-                            
-                            Button("添加") {
-                                addCustomTrigger()
-                            }
-                            .disabled(customTrigger.trimmingCharacters(in: .whitespaces).isEmpty)
-                        }
-                    }
-                }
             }
             
             // 已选择的诱因
@@ -206,6 +174,17 @@ struct Step4_TriggersView: View {
                                 )
                             )
                         }
+                        
+                        // 添加自定义诱因
+                        AddCustomLabelChip(
+                            category: .trigger,
+                            subcategory: category.rawValue
+                        ) { newLabel in
+                            viewModel.selectedTriggers.append(newLabel)
+                            // 添加触觉反馈
+                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            impact.impactOccurred()
+                        }
                     }
                 }
             }
@@ -222,15 +201,6 @@ struct Step4_TriggersView: View {
         case .lifestyle: return "🏃"
         case .tcm: return "🌿"
         }
-    }
-    
-    private func addCustomTrigger() {
-        let trigger = customTrigger.trimmingCharacters(in: .whitespaces)
-        guard !trigger.isEmpty, !viewModel.selectedTriggers.contains(trigger) else { return }
-        
-        viewModel.selectedTriggers.append(trigger)
-        customTrigger = ""
-        showCustomInput = false
     }
 }
 

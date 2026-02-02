@@ -41,9 +41,11 @@ class RecordingViewModel {
     var customNonPharmacological: [String] = []
     
     private let modelContext: ModelContext
+    private var weatherManager: WeatherManager?
     
-    init(modelContext: ModelContext, editingAttack: AttackRecord? = nil) {
+    init(modelContext: ModelContext, editingAttack: AttackRecord? = nil, weatherManager: WeatherManager? = nil) {
         self.modelContext = modelContext
+        self.weatherManager = weatherManager
         if let attack = editingAttack {
             self.isEditMode = true
             self.currentAttack = attack
@@ -107,7 +109,7 @@ class RecordingViewModel {
     
     // MARK: - 保存记录
     
-    func saveRecording() throws {
+    func saveRecording() async throws {
         let attack: AttackRecord
         
         if isEditMode, let existingAttack = currentAttack {
@@ -129,11 +131,29 @@ class RecordingViewModel {
                 modelContext.delete(medLog)
             }
             attack.medications.removeAll()
+            
+            // 清除旧的天气数据
+            if let oldWeather = attack.weatherSnapshot {
+                modelContext.delete(oldWeather)
+                attack.weatherSnapshot = nil
+            }
         } else {
             // 新建模式：创建新记录
             attack = currentAttack ?? AttackRecord(startTime: startTime)
             if currentAttack == nil {
                 modelContext.insert(attack)
+            }
+        }
+        
+        // 获取天气数据（仅在新建记录或编辑时刷新）
+        if let weatherManager = weatherManager {
+            do {
+                let weatherSnapshot = try await weatherManager.fetchCurrentWeather()
+                modelContext.insert(weatherSnapshot)
+                attack.weatherSnapshot = weatherSnapshot
+            } catch {
+                print("获取天气数据失败: \(error.localizedDescription)")
+                // 天气数据获取失败不影响保存
             }
         }
         
@@ -213,6 +233,7 @@ class RecordingViewModel {
             reset()
         }
     }
+    
     
     // MARK: - 步骤导航
     

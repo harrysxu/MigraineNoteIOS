@@ -13,12 +13,29 @@ class HomeViewModel {
     var streakDays: Int = 0
     var ongoingAttack: AttackRecord?
     var recentAttacks: [AttackRecord] = []
+    var currentWeather: WeatherSnapshot?
+    var weatherError: String?
+    var isRefreshingWeather: Bool = false
     
     private let modelContext: ModelContext
+    private let weatherManager: WeatherManager
     
-    init(modelContext: ModelContext) {
+    init(modelContext: ModelContext, weatherManager: WeatherManager = WeatherManager()) {
         self.modelContext = modelContext
+        self.weatherManager = weatherManager
         loadData()
+        
+        // 检查位置权限状态
+        if let authError = weatherManager.authorizationError {
+            weatherError = convertErrorToUserFriendlyMessage(authError)
+        } else if !weatherManager.isAuthorized {
+            weatherManager.requestLocationAuthorization()
+        }
+        
+        // 加载天气数据
+        Task {
+            await loadWeatherData()
+        }
     }
     
     func loadData() {
@@ -49,7 +66,8 @@ class HomeViewModel {
     
     private func calculateStreak() {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
         
         // 获取所有发作记录，按日期排序
         let descriptor = FetchDescriptor<AttackRecord>(
@@ -61,38 +79,133 @@ class HomeViewModel {
             return
         }
         
-        // 如果今天有发作，streak为0
-        if let lastAttack = allAttacks.first {
-            let lastAttackDay = calendar.startOfDay(for: lastAttack.startTime)
-            if lastAttackDay == today {
+        // 只考虑 startTime <= 当前时间的记录，过滤掉未来的记录
+        let pastAttacks = allAttacks.filter { $0.startTime <= now }
+        
+        // 如果没有任何过去的记录，显示 0 天
+        guard !pastAttacks.isEmpty else {
+            streakDays = 0
+            return
+        }
+        
+        // 找到最近的记录
+        if let lastAttack = pastAttacks.first {
+            // 如果最近的记录还在进行中（没有结束时间），显示发作中
+            if lastAttack.endTime == nil {
                 streakDays = 0
+                // 注意：界面会通过 ongoingAttack 属性显示"发作进行中"状态
+                return
+            }
+            
+            // 如果有结束时间，从结束时间计算到今天的天数差
+            if let endTime = lastAttack.endTime {
+                let endDay = calendar.startOfDay(for: endTime)
+                
+                // 如果结束日期是今天，显示 0 天
+                if endDay == today {
+                    streakDays = 0
+                    return
+                }
+                
+                // 计算从结束日期到今天的天数
+                let daysSinceEnd = calendar.dateComponents([.day], from: endDay, to: today).day ?? 0
+                streakDays = daysSinceEnd
                 return
             }
         }
         
-        // 计算连续无头痛天数
-        var streak = 0
-        var checkDate = today
-        
-        for attack in allAttacks {
-            let attackDay = calendar.startOfDay(for: attack.startTime)
-            let daysDiff = calendar.dateComponents([.day], from: attackDay, to: checkDate).day ?? 0
-            
-            if daysDiff == 0 {
-                // 这一天有发作，停止计数
-                break
-            } else {
-                // 继续累加
-                streak = daysDiff
-                checkDate = attackDay
-            }
-        }
-        
-        streakDays = streak
+        streakDays = 0
     }
     
     func refreshData() {
         loadData()
+        Task {
+            await loadWeatherData()
+        }
+    }
+    
+    // MARK: - 天气数据
+    
+    private func loadWeatherData(forceRefresh: Bool = false) async {
+        if forceRefresh {
+            isRefreshingWeather = true
+        }
+        
+        // 先检查权限状态
+        if !weatherManager.isAuthorized {
+            if let authError = weatherManager.authorizationError {
+                weatherError = convertErrorToUserFriendlyMessage(authError)
+            } else {
+                weatherError = "请在设置中开启定位权限"
+            }
+            currentWeather = nil
+            isRefreshingWeather = false
+            return
+        }
+        
+        do {
+            // 确保有位置信息
+            if weatherManager.currentLocation == nil {
+                weatherManager.requestLocation()
+                // 等待位置更新
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 1秒
+                
+                // 如果还是没有位置，抛出错误
+                if weatherManager.currentLocation == nil {
+                    throw WeatherError.locationNotAvailable
+                }
+            }
+            
+            currentWeather = try await weatherManager.fetchCurrentWeather(forceRefresh: forceRefresh)
+            weatherError = nil
+        } catch {
+            // 将技术性错误转换为用户友好的提示
+            weatherError = convertErrorToUserFriendlyMessage(error)
+            currentWeather = nil
+        }
+        
+        isRefreshingWeather = false
+    }
+    
+    /// 将错误转换为用户友好的提示信息
+    private func convertErrorToUserFriendlyMessage(_ error: Error) -> String {
+        // 检查是否是自定义的天气错误
+        if let weatherError = error as? WeatherError {
+            switch weatherError {
+            case .locationNotAvailable:
+                return "请在设置中开启定位权限"
+            case .dataNotAvailable:
+                return "请检查网络连接"
+            case .historicalDataNotAvailable:
+                return "历史数据暂时不可用"
+            case .locationPermissionDenied:
+                return "请在设置中开启定位权限"
+            case .networkError:
+                return "请检查网络连接"
+            }
+        }
+        
+        // 检查错误描述中的关键词
+        let errorDescription = error.localizedDescription.lowercased()
+        
+        if errorDescription.contains("location") || errorDescription.contains("位置") {
+            return "请在设置中开启定位权限"
+        } else if errorDescription.contains("network") || errorDescription.contains("网络") || 
+                  errorDescription.contains("internet") || errorDescription.contains("connection") {
+            return "请检查网络连接"
+        } else if errorDescription.contains("authorization") || errorDescription.contains("权限") ||
+                  errorDescription.contains("denied") || errorDescription.contains("拒绝") {
+            return "请在设置中开启定位权限"
+        } else {
+            return "天气数据暂时不可用，请稍后重试"
+        }
+    }
+    
+    /// 刷新天气数据
+    func refreshWeather() {
+        Task {
+            await loadWeatherData(forceRefresh: true)
+        }
     }
     
     // MARK: - 快速记录管理

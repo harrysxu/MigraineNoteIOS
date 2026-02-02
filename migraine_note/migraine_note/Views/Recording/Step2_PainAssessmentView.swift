@@ -27,9 +27,9 @@ struct Step2_PainAssessmentView: View {
             }
             .padding(.horizontal, 4)
             
-            // 圆形疼痛强度滑块
+            // 横向疼痛强度滑块
             VStack(spacing: 16) {
-                CircularSlider(
+                HorizontalPainSlider(
                     value: $viewModel.selectedPainIntensity,
                     range: 0...10,
                     isDragging: $isDragging

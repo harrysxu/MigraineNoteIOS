@@ -81,18 +81,36 @@ struct AttackListView: View {
                 if filteredAttacks.isEmpty {
                     noResultsView
                 } else {
-                    ForEach(filteredAttacks) { attack in
-                        AttackRowView(attack: attack)
-                            .onTapGesture {
-                                selectedAttack = attack
+                    let groupedAttacks = Dictionary(grouping: filteredAttacks) { attack in
+                        attack.startTime.year
+                    }
+                    .sorted { $0.key > $1.key } // 按年份降序排列
+                    
+                    ForEach(groupedAttacks, id: \.key) { year, yearAttacks in
+                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                            // 年份标题
+                            Text("\(year)年")
+                                .appFont(.title3)
+                                .foregroundStyle(AppColors.textPrimary)
+                                .fontWeight(.semibold)
+                                .padding(.horizontal, AppSpacing.medium)
+                                .padding(.top, AppSpacing.small)
+                            
+                            // 该年份的记录
+                            ForEach(yearAttacks) { attack in
+                                AttackRowView(attack: attack)
+                                    .onTapGesture {
+                                        selectedAttack = attack
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            viewModel.deleteAttack(attack, from: modelContext)
+                                        } label: {
+                                            Label("删除", systemImage: "trash")
+                                        }
+                                    }
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    viewModel.deleteAttack(attack, from: modelContext)
-                                } label: {
-                                    Label("删除", systemImage: "trash")
-                                }
-                            }
+                        }
                     }
                 }
             }
@@ -124,109 +142,82 @@ struct AttackListView: View {
 struct AttackRowView: View {
     let attack: AttackRecord
     
-    private var durationText: String {
-        let duration = attack.durationOrElapsed
-        let hours = Int(duration / 3600)
-        let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
-        
-        if hours > 0 {
-            return "\(hours)小时\(minutes)分钟"
-        } else {
-            return "\(minutes)分钟"
-        }
-    }
-    
     private var intensityColor: Color {
         PainIntensity.from(attack.painIntensity).color
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
-            // 顶部：日期和疼痛强度
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(attack.startTime.fullDate())
-                        .appFont(.headline)
-                        .foregroundStyle(AppColors.textPrimary)
-                    
-                    Text(attack.startTime.shortTime())
-                        .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
-                }
+        HStack(spacing: 16) {
+            // 左侧疼痛强度指示器
+            VStack(spacing: 4) {
+                Text("\(attack.painIntensity)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(intensityColor)
                 
-                Spacer()
-                
-                // 疼痛强度指示器
-                HStack(spacing: 6) {
-                    Text("\(attack.painIntensity)")
-                        .appFont(.title3)
-                        .foregroundStyle(intensityColor)
-                        .fontWeight(.bold)
-                    
-                    Text("/10")
-                        .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(intensityColor.opacity(0.15))
-                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
+                Text("强度")
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.textTertiary)
             }
+            .frame(width: 56, height: 56)
+            .background(intensityColor.opacity(0.15))
+            .cornerRadius(12)
             
-            // 持续时间
-            Label(durationText, systemImage: "clock")
-                .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
-            
-            // 疼痛部位
-            if !attack.painLocations.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "figure.arms.open")
+            // 中间内容
+            VStack(alignment: .leading, spacing: 4) {
+                Text(attack.startTime.smartFormatted())
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(AppColors.textPrimary)
+                
+                HStack(spacing: 8) {
+                    if let duration = calculateDuration() {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                            Text(duration)
+                        }
                         .font(.caption)
-                    Text(attack.painLocations.map { $0.displayName }.joined(separator: ", "))
-                        .appFont(.caption)
-                        .lineLimit(1)
-                }
-                .foregroundStyle(AppColors.textSecondary)
-            }
-            
-            // 主要诱因（显示前3个）
-            if !attack.triggers.isEmpty {
-                HStack(spacing: 6) {
-                    ForEach(Array(attack.triggers.prefix(3))) { trigger in
-                        Text(trigger.name)
-                            .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(AppColors.surfaceElevated)
-                            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                        .foregroundStyle(AppColors.textSecondary)
                     }
                     
-                    if attack.triggers.count > 3 {
-                        Text("+\(attack.triggers.count - 3)")
-                            .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                    if !attack.medicationLogs.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "pills")
+                                .font(.caption2)
+                            Text("\(attack.medicationLogs.count)种药物")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textSecondary)
                     }
                 }
             }
             
-            // 用药情况
-            if !attack.medicationLogs.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "pills.fill")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.info)
-                    Text("已用药 \(attack.medicationLogs.count) 次")
-                        .appFont(.caption)
-                        .foregroundStyle(AppColors.info)
-                }
-            }
+            Spacer()
+            
+            // 右侧箭头
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(AppColors.textTertiary)
         }
-        .padding(AppSpacing.medium)
+        .padding(12)
         .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
+        .cornerRadius(12)
         .shadow(color: AppColors.shadowColor, radius: AppSpacing.shadowRadiusSmall)
+    }
+    
+    private func calculateDuration() -> String? {
+        guard let endTime = attack.endTime else { return nil }
+        let duration = endTime.timeIntervalSince(attack.startTime)
+        
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h\(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return nil
+        }
     }
 }
 

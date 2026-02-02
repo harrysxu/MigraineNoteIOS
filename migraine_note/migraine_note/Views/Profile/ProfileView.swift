@@ -40,8 +40,8 @@ struct ProfileView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .background(Color.backgroundPrimary.ignoresSafeArea())
-            .navigationTitle("我的")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showProfileEditor) {
                 ProfileEditorView(profile: userProfile)
             }
@@ -345,6 +345,61 @@ struct ProfileView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            
+            #if DEBUG
+            // 测试与调试（仅 Debug 模式）
+            EmotionalCard(style: .warning) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("测试与调试")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.bottom, Spacing.sm)
+                    
+                    NavigationLink {
+                        TestDataView()
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "hammer.fill")
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .background(Color.statusWarning)
+                                .clipShape(Circle())
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 8) {
+                                    Text("测试数据")
+                                        .font(.body.weight(.medium))
+                                        .foregroundStyle(Color.textPrimary)
+                                    
+                                    Text("DEBUG")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.statusWarning)
+                                        .cornerRadius(4)
+                                }
+                                
+                                Text("生成和管理测试数据")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(Color.textTertiary)
+                        }
+                        .padding(.vertical, 12)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            #endif
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

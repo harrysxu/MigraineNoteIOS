@@ -358,13 +358,13 @@ struct SideHeadView: View {
     
     var body: some View {
         ZStack {
-            // 头部轮廓
+            // 头部轮廓（右侧时翻转）
             headOutline
+                .scaleEffect(x: isLeft ? 1 : -1, y: 1)
             
-            // 可点击区域
+            // 可点击区域（文字不翻转）
             clickableRegions
         }
-        .scaleEffect(x: isLeft ? 1 : -1, y: 1) // 右侧时水平翻转
     }
     
     private var headOutline: some View {
@@ -402,7 +402,7 @@ struct SideHeadView: View {
             // 太阳穴
             createRegion(
                 location: temple,
-                x: size.width * 0.6,
+                x: mirrorX(size.width * 0.6),
                 y: size.height * 0.4,
                 width: size.width * 0.15,
                 height: size.height * 0.15
@@ -411,7 +411,7 @@ struct SideHeadView: View {
             // 前额（侧面）
             createRegion(
                 location: .forehead,
-                x: size.width * 0.55,
+                x: mirrorX(size.width * 0.55),
                 y: size.height * 0.25,
                 width: size.width * 0.15,
                 height: size.height * 0.12
@@ -420,7 +420,7 @@ struct SideHeadView: View {
             // 后脑勺（侧面）
             createRegion(
                 location: .occipital,
-                x: size.width * 0.35,
+                x: mirrorX(size.width * 0.35),
                 y: size.height * 0.55,
                 width: size.width * 0.15,
                 height: size.height * 0.2
@@ -429,7 +429,7 @@ struct SideHeadView: View {
             // 颈部
             createRegion(
                 location: .neck,
-                x: size.width * 0.4,
+                x: mirrorX(size.width * 0.4),
                 y: size.height * 0.78,
                 width: size.width * 0.12,
                 height: size.height * 0.15
@@ -438,12 +438,17 @@ struct SideHeadView: View {
             // 头顶
             createRegion(
                 location: .vertex,
-                x: size.width * 0.45,
+                x: mirrorX(size.width * 0.45),
                 y: size.height * 0.17,
                 width: size.width * 0.15,
                 height: size.height * 0.1
             )
         }
+    }
+    
+    // 镜像 x 坐标（右侧时）
+    private func mirrorX(_ x: CGFloat) -> CGFloat {
+        isLeft ? x : (size.width - x)
     }
     
     private func createRegion(location: PainLocation, x: CGFloat, y: CGFloat, width: CGFloat, height: CGFloat) -> some View {

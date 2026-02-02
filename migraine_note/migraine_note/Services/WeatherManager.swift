@@ -18,6 +18,15 @@ class WeatherManager: NSObject {
     var isAuthorized = false
     var authorizationError: Error?
     
+    // MARK: - 缓存
+    
+    /// 天气数据缓存
+    private var cachedWeather: WeatherSnapshot?
+    /// 缓存时间戳
+    private var cacheTimestamp: Date?
+    /// 缓存有效期（秒）- 默认30分钟
+    private let cacheValidityDuration: TimeInterval = 1800
+    
     override init() {
         super.init()
         locationManager.delegate = self
@@ -36,12 +45,24 @@ class WeatherManager: NSObject {
     
     // MARK: - 获取当前天气
     
-    /// 获取当前天气快照
-    func fetchCurrentWeather() async throws -> WeatherSnapshot {
+    /// 获取当前天气快照（带缓存）
+    /// - Parameter forceRefresh: 是否强制刷新，忽略缓存
+    func fetchCurrentWeather(forceRefresh: Bool = false) async throws -> WeatherSnapshot {
+        // 检查缓存是否有效
+        if !forceRefresh, let cached = cachedWeather, let cacheTime = cacheTimestamp {
+            let timeSinceCache = Date().timeIntervalSince(cacheTime)
+            if timeSinceCache < cacheValidityDuration {
+                print("📦 使用缓存的天气数据 (缓存时间: \(Int(timeSinceCache))秒前)")
+                return cached
+            }
+        }
+        
+        // 缓存过期或强制刷新，重新获取
         guard let location = currentLocation else {
             throw WeatherError.locationNotAvailable
         }
         
+        print("🌤️ 从 WeatherKit 获取新的天气数据")
         let weather = try await weatherService.weather(for: location)
         
         let snapshot = WeatherSnapshot(timestamp: Date())
@@ -53,7 +74,33 @@ class WeatherManager: NSObject {
         snapshot.condition = weather.currentWeather.condition.description
         snapshot.location = await reverseGeocode(location)
         
+        // 更新缓存
+        cachedWeather = snapshot
+        cacheTimestamp = Date()
+        
         return snapshot
+    }
+    
+    /// 清除缓存
+    func clearCache() {
+        cachedWeather = nil
+        cacheTimestamp = nil
+        print("🗑️ 天气缓存已清除")
+    }
+    
+    /// 检查缓存是否有效
+    var isCacheValid: Bool {
+        guard let cacheTime = cacheTimestamp else { return false }
+        let timeSinceCache = Date().timeIntervalSince(cacheTime)
+        return timeSinceCache < cacheValidityDuration
+    }
+    
+    /// 获取缓存剩余有效时间（秒）
+    var cacheRemainingTime: TimeInterval? {
+        guard let cacheTime = cacheTimestamp else { return nil }
+        let timeSinceCache = Date().timeIntervalSince(cacheTime)
+        let remaining = cacheValidityDuration - timeSinceCache
+        return remaining > 0 ? remaining : nil
     }
     
     // MARK: - 获取历史天气
@@ -149,9 +196,11 @@ extension WeatherManager: CLLocationManagerDelegate {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             isAuthorized = true
+            authorizationError = nil
             requestLocation()
         case .denied, .restricted:
             isAuthorized = false
+            authorizationError = WeatherError.locationPermissionDenied
         case .notDetermined:
             break
         @unknown default:
@@ -166,15 +215,21 @@ enum WeatherError: Error, LocalizedError {
     case locationNotAvailable
     case dataNotAvailable
     case historicalDataNotAvailable
+    case locationPermissionDenied
+    case networkError
     
     var errorDescription: String? {
         switch self {
         case .locationNotAvailable:
-            return "无法获取位置信息"
+            return "请在设置中开启定位权限"
         case .dataNotAvailable:
-            return "无法获取天气数据"
+            return "请检查网络连接"
         case .historicalDataNotAvailable:
             return "历史天气数据仅支持最近10天"
+        case .locationPermissionDenied:
+            return "请在设置中开启定位权限"
+        case .networkError:
+            return "请检查网络连接"
         }
     }
 }

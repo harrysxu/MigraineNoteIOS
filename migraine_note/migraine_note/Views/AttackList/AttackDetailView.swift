@@ -329,33 +329,115 @@ struct AttackDetailView: View {
     // MARK: - Weather Card
     
     private func weatherCard(_ weather: WeatherSnapshot) -> some View {
-        DetailCard(title: "天气信息", icon: "cloud.sun") {
-            VStack(spacing: AppSpacing.small) {
-                InfoRow(label: "气压", value: String(format: "%.1f hPa", weather.pressure))
-                InfoRow(label: "湿度", value: String(format: "%.0f%%", weather.humidity * 100))
-                InfoRow(label: "温度", value: String(format: "%.1f°C", weather.temperature))
-                InfoRow(label: "风速", value: String(format: "%.1f km/h", weather.windSpeed))
-                InfoRow(label: "气压趋势", value: weather.pressureTrend.rawValue)
+        DetailCard(title: "天气状况", icon: "cloud.sun") {
+            VStack(spacing: AppSpacing.medium) {
+                // 顶部：温度和天气状况
+                HStack(spacing: AppSpacing.medium) {
+                    // 温度显示
+                    VStack(spacing: 4) {
+                        Text("\(Int(weather.temperature))°C")
+                            .font(.system(size: 48, weight: .bold))
+                            .foregroundStyle(AppColors.primary)
+                        
+                        if !weather.condition.isEmpty {
+                            Text(weather.condition)
+                                .appFont(.caption)
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    Divider()
+                        .frame(height: 60)
+                    
+                    // 位置和时间
+                    VStack(alignment: .leading, spacing: 4) {
+                        if !weather.location.isEmpty {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .font(.caption)
+                                Text(weather.location)
+                                    .appFont(.body)
+                            }
+                            .foregroundStyle(AppColors.textPrimary)
+                        }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption)
+                            Text(weather.timestamp.shortTime())
+                                .appFont(.caption)
+                        }
+                        .foregroundStyle(AppColors.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 
+                Divider()
+                
+                // 详细数据网格
+                VStack(spacing: 8) {
+                    HStack(spacing: 12) {
+                        WeatherDetailBox(
+                            icon: "gauge.high",
+                            label: "气压",
+                            value: String(format: "%.0f", weather.pressure),
+                            unit: "hPa",
+                            trend: weather.pressureTrend
+                        )
+                        
+                        WeatherDetailBox(
+                            icon: "humidity",
+                            label: "湿度",
+                            value: String(format: "%.0f", weather.humidity),
+                            unit: "%"
+                        )
+                    }
+                    
+                    HStack(spacing: 12) {
+                        WeatherDetailBox(
+                            icon: "wind",
+                            label: "风速",
+                            value: String(format: "%.1f", weather.windSpeed),
+                            unit: "m/s"
+                        )
+                        
+                        WeatherDetailBox(
+                            icon: weather.isHighRisk ? "exclamationmark.triangle.fill" : "checkmark.shield.fill",
+                            label: "风险",
+                            value: weather.isHighRisk ? "高" : "低",
+                            unit: "",
+                            isWarning: weather.isHighRisk
+                        )
+                    }
+                }
+                
+                // 风险警告（如果有）
                 if !weather.warnings.isEmpty {
                     Divider()
                     
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("风险警告")
-                            .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("⚠️ 环境风险提示")
+                            .appFont(.subheadline)
+                            .foregroundStyle(AppColors.warning)
+                            .fontWeight(.semibold)
                         
                         ForEach(weather.warnings, id: \.self) { warning in
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.triangle.fill")
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.caption)
                                     .foregroundStyle(AppColors.warning)
                                 Text(warning)
                                     .appFont(.caption)
                                     .foregroundStyle(AppColors.textSecondary)
+                                Spacer()
                             }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(AppColors.warning.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -475,6 +557,62 @@ struct MedicationLogRowView: View {
             return AppColors.warning
         case .poor, .none:
             return AppColors.error
+        }
+    }
+}
+
+struct WeatherDetailBox: View {
+    let icon: String
+    let label: String
+    let value: String
+    let unit: String
+    var trend: PressureTrend?
+    var isWarning: Bool = false
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(isWarning ? AppColors.warning : AppColors.primary)
+            
+            VStack(spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(AppColors.textPrimary)
+                    
+                    if !unit.isEmpty {
+                        Text(unit)
+                            .appFont(.caption)
+                            .foregroundStyle(AppColors.textSecondary)
+                    }
+                    
+                    if let trend = trend {
+                        Image(systemName: trend.icon)
+                            .font(.caption)
+                            .foregroundStyle(trendColor(for: trend))
+                    }
+                }
+                
+                Text(label)
+                    .appFont(.caption)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .background(AppColors.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private func trendColor(for trend: PressureTrend) -> Color {
+        switch trend {
+        case .rising:
+            return AppColors.success
+        case .falling:
+            return AppColors.warning
+        case .steady:
+            return AppColors.textSecondary
         }
     }
 }

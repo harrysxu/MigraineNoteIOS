@@ -108,6 +108,14 @@ struct Step3_SymptomsView: View {
                                 )
                             )
                         }
+                        
+                        // 添加自定义西医症状
+                        AddCustomLabelChip(
+                            category: .symptom,
+                            subcategory: SymptomSubcategory.western.rawValue
+                        ) { newLabel in
+                            viewModel.selectedSymptomNames.insert(newLabel)
+                        }
                     }
                 }
             }
@@ -139,6 +147,14 @@ struct Step3_SymptomsView: View {
                                     }
                                 )
                             )
+                        }
+                        
+                        // 添加自定义中医症状
+                        AddCustomLabelChip(
+                            category: .symptom,
+                            subcategory: SymptomSubcategory.tcm.rawValue
+                        ) { newLabel in
+                            viewModel.selectedSymptomNames.insert(newLabel)
                         }
                     }
                 }

@@ -48,16 +48,16 @@ struct SimplifiedRecordingView: View {
     @State private var showPainQualityManager = false
     @State private var showSymptomManager = false
     
-    init(modelContext: ModelContext, existingAttack: AttackRecord? = nil, onCancel: (() -> Void)? = nil) {
+    init(modelContext: ModelContext, weatherManager: WeatherManager? = nil, existingAttack: AttackRecord? = nil, onCancel: (() -> Void)? = nil) {
         self.isEditMode = existingAttack != nil
         self.existingAttack = existingAttack
         self.onCancel = onCancel
         
         if let attack = existingAttack {
-            let vm = RecordingViewModel(modelContext: modelContext, editingAttack: attack)
+            let vm = RecordingViewModel(modelContext: modelContext, editingAttack: attack, weatherManager: weatherManager)
             _viewModel = State(initialValue: vm)
         } else {
-            _viewModel = State(initialValue: RecordingViewModel(modelContext: modelContext))
+            _viewModel = State(initialValue: RecordingViewModel(modelContext: modelContext, weatherManager: weatherManager))
         }
     }
     
@@ -137,7 +137,7 @@ struct SimplifiedRecordingView: View {
             footerView
         }
         .background(Color.backgroundPrimary.ignoresSafeArea())
-        .navigationTitle(isEditMode ? "编辑记录" : "记录详情")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled(true) // 禁用下滑关闭,强制使用取消按钮
         .onAppear {
@@ -254,12 +254,11 @@ struct SimplifiedRecordingView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 疼痛强度
             VStack(spacing: 12) {
-                CircularSlider(
+                HorizontalPainSlider(
                     value: $viewModel.selectedPainIntensity,
                     range: 0...10,
                     isDragging: .constant(false)
                 )
-                .frame(height: 200)
             }
             
             Divider()
@@ -277,10 +276,9 @@ struct SimplifiedRecordingView: View {
             
             // 疼痛性质
             VStack(alignment: .leading, spacing: 12) {
-                sectionTitleWithManageButton(
-                    title: "疼痛性质",
-                    showSheet: $showPainQualityManager
-                )
+                Text("疼痛性质")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(PainQuality.allCases, id: \.self) { quality in
@@ -344,10 +342,9 @@ struct SimplifiedRecordingView: View {
             
             // 西医症状
             VStack(alignment: .leading, spacing: 12) {
-                sectionTitleWithManageButton(
-                    title: "伴随症状",
-                    showSheet: $showSymptomManager
-                )
+                Text("伴随症状")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(westernSymptoms, id: \.id) { label in
@@ -364,6 +361,14 @@ struct SimplifiedRecordingView: View {
                                 }
                             )
                         )
+                    }
+                    
+                    // 添加自定义症状
+                    AddCustomLabelChip(
+                        category: .symptom,
+                        subcategory: SymptomSubcategory.western.rawValue
+                    ) { newLabel in
+                        viewModel.selectedSymptomNames.insert(newLabel)
                     }
                 }
             }
@@ -647,13 +652,17 @@ struct SimplifiedRecordingView: View {
     }
     
     private func saveAndDismiss() {
-        do {
-            try viewModel.saveRecording()
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            dismiss()
-        } catch {
-            print("保存失败: \(error)")
+        Task {
+            do {
+                try await viewModel.saveRecording()
+                await MainActor.run {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
+                    dismiss()
+                }
+            } catch {
+                print("保存失败: \(error)")
+            }
         }
     }
     

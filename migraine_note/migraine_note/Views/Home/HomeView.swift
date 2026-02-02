@@ -11,9 +11,11 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: HomeViewModel?
+    @State private var weatherManager = WeatherManager()
     @State private var showRecordingView = false
     @State private var selectedTab: Int?
     @State private var selectedAttackForDetail: AttackRecord?
+    @State private var selectedAttackForEdit: AttackRecord?
     
     var body: some View {
         ZStack {
@@ -40,7 +42,7 @@ struct HomeView: View {
                                 ongoingAttack: vm.ongoingAttack,
                                 onTap: {
                                     if let attack = vm.ongoingAttack {
-                                        selectedAttackForDetail = attack
+                                        selectedAttackForEdit = attack
                                     } else {
                                         showRecordingView = true
                                     }
@@ -49,9 +51,16 @@ struct HomeView: View {
                             .fadeIn(delay: 0.3)
                             .padding(.horizontal, 20)
                             
-                            // 今日建议 + 月度概况 - 网格布局
+                            // 天气卡片 + 月度概况 - 网格布局
                             VStack(spacing: 16) {
-                                TodayInsightCard()
+                                WeatherInsightCard(
+                                    weather: vm.currentWeather,
+                                    error: vm.weatherError,
+                                    isRefreshing: vm.isRefreshingWeather,
+                                    onRefresh: {
+                                        vm.refreshWeather()
+                                    }
+                                )
                                     .fadeIn(delay: 0.4)
                                 
                                 MonthlyOverviewCard(modelContext: modelContext, selectedTab: $selectedTab)
@@ -87,6 +96,13 @@ struct HomeView: View {
                                                 .onTapGesture {
                                                     selectedAttackForDetail = attack
                                                 }
+                                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                                    Button(role: .destructive) {
+                                                        deleteAttack(attack)
+                                                    } label: {
+                                                        Label("删除", systemImage: "trash")
+                                                    }
+                                                }
                                         }
                                     }
                                 }
@@ -109,6 +125,7 @@ struct HomeView: View {
                 .sheet(isPresented: $showRecordingView) {
                     RecordingSheetView(
                         modelContext: modelContext,
+                        weatherManager: weatherManager,
                         isPresented: $showRecordingView,
                         onDismiss: {
                             viewModel?.refreshData()
@@ -121,10 +138,32 @@ struct HomeView: View {
                             viewModel?.refreshData()
                         }
                 }
+                .sheet(item: $selectedAttackForEdit) { attack in
+                    NavigationStack {
+                        SimplifiedRecordingView(
+                            modelContext: modelContext,
+                            weatherManager: weatherManager,
+                            existingAttack: attack,
+                            onCancel: {
+                                selectedAttackForEdit = nil
+                            }
+                        )
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("取消") {
+                                    selectedAttackForEdit = nil
+                                }
+                            }
+                        }
+                    }
+                    .onDisappear {
+                        viewModel?.refreshData()
+                    }
+                }
             }
             .onAppear {
                 if viewModel == nil {
-                    viewModel = HomeViewModel(modelContext: modelContext)
+                    viewModel = HomeViewModel(modelContext: modelContext, weatherManager: weatherManager)
                 }
             }
             
@@ -148,6 +187,18 @@ struct HomeView: View {
                     }
                 }
             }
+        }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func deleteAttack(_ attack: AttackRecord) {
+        modelContext.delete(attack)
+        do {
+            try modelContext.save()
+            viewModel?.refreshData()
+        } catch {
+            print("删除失败: \(error)")
         }
     }
 }
@@ -433,49 +484,221 @@ struct FloatingQuickActionButton: View {
     }
 }
 
-// MARK: - 今日建议卡片
+// MARK: - 天气洞察卡片
 
-struct TodayInsightCard: View {
+struct WeatherInsightCard: View {
+    let weather: WeatherSnapshot?
+    let error: String?
+    var isRefreshing: Bool = false
+    var onRefresh: (() -> Void)?
+    
     var body: some View {
         EmotionalCard(style: .gentle) {
-            HStack(spacing: 16) {
-                // 左侧图标
-                Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(Color.warmAccent)
-                    .frame(width: 48, height: 48)
-                    .background(Color.warmAccent.opacity(0.15))
-                    .clipShape(Circle())
-                
-                // 右侧内容
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("今日建议")
-                        .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "drop.fill")
-                                .font(.caption)
-                                .foregroundStyle(Color.warmAccent)
-                            Text("记得多喝水")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.textSecondary)
+            if let weather = weather {
+                VStack(alignment: .leading, spacing: 16) {
+                    // 标题行
+                    HStack {
+                        Image(systemName: weatherIcon(for: weather.condition))
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color.accentPrimary)
+                            .frame(width: 48, height: 48)
+                            .background(Color.accentPrimary.opacity(0.15))
+                            .clipShape(Circle())
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("当前天气")
+                                .font(.headline)
+                                .foregroundStyle(Color.textPrimary)
+                            
+                            if !weather.location.isEmpty {
+                                Text(weather.location)
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                            }
                         }
                         
-                        HStack(spacing: 8) {
-                            Image(systemName: "cloud.sun.fill")
-                                .font(.caption)
-                                .foregroundStyle(Color.warmAccent)
-                            Text("今日气压平稳")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.textSecondary)
+                        Spacer()
+                        
+                        // 温度显示
+                        Text("\(Int(weather.temperature))°C")
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundStyle(Color.accentPrimary)
+                        
+                        // 刷新按钮
+                        if let onRefresh = onRefresh {
+                            Button(action: onRefresh) {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.body)
+                                    .foregroundStyle(Color.accentPrimary)
+                                    .frame(width: 36, height: 36)
+                                    .background(Color.accentPrimary.opacity(0.1))
+                                    .clipShape(Circle())
+                                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                                    .animation(
+                                        isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default,
+                                        value: isRefreshing
+                                    )
+                            }
+                            .disabled(isRefreshing)
+                        }
+                    }
+                    
+                    // 详细信息网格
+                    VStack(spacing: 8) {
+                        HStack(spacing: 12) {
+                            WeatherDetailItem(
+                                icon: "gauge.high",
+                                label: "气压",
+                                value: String(format: "%.0f hPa", weather.pressure),
+                                trend: weather.pressureTrend
+                            )
+                            
+                            WeatherDetailItem(
+                                icon: "humidity",
+                                label: "湿度",
+                                value: String(format: "%.0f%%", weather.humidity)
+                            )
+                        }
+                        
+                        // 风险警告
+                        if !weather.warnings.isEmpty {
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 6) {
+                                ForEach(weather.warnings, id: \.self) { warning in
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.statusWarning)
+                                        Text(warning)
+                                            .font(.caption)
+                                            .foregroundStyle(Color.textSecondary)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-                
-                Spacer()
+            } else if let error = error {
+                // 错误状态 - 显示友好的提示信息
+                HStack(spacing: 16) {
+                    Image(systemName: "location.slash.fill")
+                        .font(.system(size: 32))
+                        .foregroundStyle(Color.statusInfo)
+                        .frame(width: 48, height: 48)
+                        .background(Color.statusInfo.opacity(0.15))
+                        .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("天气数据不可用")
+                            .font(.headline)
+                            .foregroundStyle(Color.textPrimary)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    // 刷新按钮
+                    if let onRefresh = onRefresh {
+                        Button(action: onRefresh) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.body)
+                                .foregroundStyle(Color.accentPrimary)
+                                .frame(width: 36, height: 36)
+                                .background(Color.accentPrimary.opacity(0.1))
+                                .clipShape(Circle())
+                        }
+                    }
+                }
+            } else {
+                // 加载状态
+                HStack(spacing: 16) {
+                    ProgressView()
+                        .frame(width: 48, height: 48)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("正在获取天气数据...")
+                            .font(.headline)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("需要位置权限")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    
+                    Spacer()
+                }
             }
+        }
+    }
+    
+    private func weatherIcon(for condition: String) -> String {
+        // 根据天气状况返回对应图标
+        let lowercased = condition.lowercased()
+        if lowercased.contains("晴") || lowercased.contains("clear") {
+            return "sun.max.fill"
+        } else if lowercased.contains("云") || lowercased.contains("cloud") {
+            return "cloud.fill"
+        } else if lowercased.contains("雨") || lowercased.contains("rain") {
+            return "cloud.rain.fill"
+        } else if lowercased.contains("雪") || lowercased.contains("snow") {
+            return "cloud.snow.fill"
+        } else {
+            return "cloud.sun.fill"
+        }
+    }
+}
+
+// MARK: - 天气详情项
+
+struct WeatherDetailItem: View {
+    let icon: String
+    let label: String
+    let value: String
+    var trend: PressureTrend?
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(Color.accentPrimary)
+                .frame(width: 28)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(Color.textTertiary)
+                
+                HStack(spacing: 4) {
+                    Text(value)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.textPrimary)
+                    
+                    if let trend = trend {
+                        Image(systemName: trend.icon)
+                            .font(.caption2)
+                            .foregroundStyle(trendColor(for: trend))
+                    }
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(10)
+        .background(Color.backgroundPrimary)
+        .cornerRadius(8)
+    }
+    
+    private func trendColor(for trend: PressureTrend) -> Color {
+        switch trend {
+        case .rising:
+            return .statusSuccess
+        case .falling:
+            return .statusWarning
+        case .steady:
+            return .textSecondary
         }
     }
 }
@@ -791,17 +1014,19 @@ struct CompactAttackRow: View {
 
 struct RecordingSheetView: View {
     let modelContext: ModelContext
+    let weatherManager: WeatherManager
     @Binding var isPresented: Bool
     let onDismiss: () -> Void
     
     @State private var viewModel: RecordingViewModel
     @State private var showCancelAlert = false
     
-    init(modelContext: ModelContext, isPresented: Binding<Bool>, onDismiss: @escaping () -> Void) {
+    init(modelContext: ModelContext, weatherManager: WeatherManager, isPresented: Binding<Bool>, onDismiss: @escaping () -> Void) {
         self.modelContext = modelContext
+        self.weatherManager = weatherManager
         self._isPresented = isPresented
         self.onDismiss = onDismiss
-        self._viewModel = State(initialValue: RecordingViewModel(modelContext: modelContext))
+        self._viewModel = State(initialValue: RecordingViewModel(modelContext: modelContext, weatherManager: weatherManager))
     }
     
     var body: some View {
@@ -950,7 +1175,7 @@ struct SimplifiedRecordingViewWrapper: View {
             footerView
         }
         .background(Color.backgroundPrimary.ignoresSafeArea())
-        .navigationTitle("记录详情")
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.startRecording()
@@ -1086,12 +1311,11 @@ struct SimplifiedRecordingViewWrapper: View {
         VStack(alignment: .leading, spacing: 16) {
             // 疼痛强度
             VStack(spacing: 12) {
-                CircularSlider(
+                HorizontalPainSlider(
                     value: $viewModel.selectedPainIntensity,
                     range: 0...10,
                     isDragging: .constant(false)
                 )
-                .frame(height: 200)
             }
             
             Divider()
@@ -1109,10 +1333,9 @@ struct SimplifiedRecordingViewWrapper: View {
             
             // 疼痛性质
             VStack(alignment: .leading, spacing: 12) {
-                sectionTitleWithManageButton(
-                    title: "疼痛性质",
-                    showSheet: $showPainQualityManager
-                )
+                Text("疼痛性质")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(PainQuality.allCases, id: \.self) { quality in
@@ -1176,10 +1399,9 @@ struct SimplifiedRecordingViewWrapper: View {
             
             // 西医症状
             VStack(alignment: .leading, spacing: 12) {
-                sectionTitleWithManageButton(
-                    title: "伴随症状",
-                    showSheet: $showSymptomManager
-                )
+                Text("伴随症状")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(westernSymptoms, id: \.id) { label in
@@ -1196,6 +1418,14 @@ struct SimplifiedRecordingViewWrapper: View {
                                 }
                             )
                         )
+                    }
+                    
+                    // 添加自定义症状
+                    AddCustomLabelChip(
+                        category: .symptom,
+                        subcategory: SymptomSubcategory.western.rawValue
+                    ) { newLabel in
+                        viewModel.selectedSymptomNames.insert(newLabel)
                     }
                 }
             }
@@ -1480,13 +1710,17 @@ struct SimplifiedRecordingViewWrapper: View {
     
     
     private func saveAndDismiss() {
-        do {
-            try viewModel.saveRecording()
-            let generator = UINotificationFeedbackGenerator()
-            generator.notificationOccurred(.success)
-            dismiss()
-        } catch {
-            print("保存失败: \(error)")
+        Task {
+            do {
+                try await viewModel.saveRecording()
+                await MainActor.run {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
+                    dismiss()
+                }
+            } catch {
+                print("保存失败: \(error)")
+            }
         }
     }
     

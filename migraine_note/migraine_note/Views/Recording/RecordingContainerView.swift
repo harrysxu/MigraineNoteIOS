@@ -86,11 +86,15 @@ struct RecordingContainerView: View {
     }
     
     private func saveAndDismiss() {
-        do {
-            try viewModel.saveRecording()
-            dismiss()
-        } catch {
-            print("保存失败: \(error)")
+        Task {
+            do {
+                try await viewModel.saveRecording()
+                await MainActor.run {
+                    dismiss()
+                }
+            } catch {
+                print("保存失败: \(error)")
+            }
         }
     }
 }
