@@ -12,46 +12,70 @@ struct Step1_TimeView: View {
     @Bindable var viewModel: RecordingViewModel
     
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.lg) {
+        VStack(alignment: .leading, spacing: 20) {
+            // 页面标题和说明
+            VStack(alignment: .leading, spacing: 8) {
+                Text("记录时间")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(Color.textPrimary)
+                
+                Text("记录发作的开始和结束时间")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            .padding(.horizontal, 4)
+            
             // 开始时间
-            InfoCard {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("开始时间")
-                        .font(.headline)
+            EmotionalCard(style: .default) {
+                HStack(spacing: 16) {
+                    Image(systemName: "clock.fill")
+                        .font(.title2)
+                        .foregroundStyle(Color.accentPrimary)
+                        .frame(width: 40, height: 40)
+                        .background(Color.accentPrimary.opacity(0.15))
+                        .clipShape(Circle())
                     
-                    DatePicker(
-                        "选择开始时间",
-                        selection: $viewModel.startTime,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
-                    .datePickerStyle(.compact)
-                    .labelsHidden()
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("开始时间")
+                            .font(.headline)
+                            .foregroundStyle(Color.textPrimary)
+                        
+                        DatePicker(
+                            "选择开始时间",
+                            selection: $viewModel.startTime,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                    }
                 }
             }
             
             // 状态选择
-            InfoCard {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("发作状态")
-                        .font(.headline)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("发作状态")
+                    .font(.headline)
+                    .foregroundStyle(Color.textPrimary)
+                    .padding(.horizontal, 4)
+                
+                HStack(spacing: 12) {
+                    StatusToggle(
+                        title: "进行中",
+                        icon: "play.circle.fill",
+                        isSelected: viewModel.isOngoing
+                    ) {
+                        viewModel.isOngoing = true
+                        viewModel.endTime = nil
+                    }
                     
-                    HStack(spacing: Spacing.md) {
-                        StatusToggle(
-                            title: "进行中",
-                            isSelected: viewModel.isOngoing
-                        ) {
-                            viewModel.isOngoing = true
-                            viewModel.endTime = nil
-                        }
-                        
-                        StatusToggle(
-                            title: "已结束",
-                            isSelected: !viewModel.isOngoing
-                        ) {
-                            viewModel.isOngoing = false
-                            if viewModel.endTime == nil {
-                                viewModel.endTime = Date()
-                            }
+                    StatusToggle(
+                        title: "已结束",
+                        icon: "stop.circle.fill",
+                        isSelected: !viewModel.isOngoing
+                    ) {
+                        viewModel.isOngoing = false
+                        if viewModel.endTime == nil {
+                            viewModel.endTime = Date()
                         }
                     }
                 }
@@ -59,27 +83,45 @@ struct Step1_TimeView: View {
             
             // 结束时间（仅在已结束时显示）
             if !viewModel.isOngoing {
-                InfoCard {
-                    VStack(alignment: .leading, spacing: Spacing.sm) {
-                        Text("结束时间")
-                            .font(.headline)
+                EmotionalCard(style: .default) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "flag.checkered.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(Color.statusSuccess)
+                            .frame(width: 40, height: 40)
+                            .background(Color.statusSuccess.opacity(0.15))
+                            .clipShape(Circle())
                         
-                        DatePicker(
-                            "选择结束时间",
-                            selection: Binding(
-                                get: { viewModel.endTime ?? Date() },
-                                set: { viewModel.endTime = $0 }
-                            ),
-                            in: viewModel.startTime...,
-                            displayedComponents: [.date, .hourAndMinute]
-                        )
-                        .datePickerStyle(.compact)
-                        .labelsHidden()
-                        
-                        if let duration = calculateDuration() {
-                            Text("持续时长: \(duration)")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.textSecondary)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("结束时间")
+                                .font(.headline)
+                                .foregroundStyle(Color.textPrimary)
+                            
+                            DatePicker(
+                                "选择结束时间",
+                                selection: Binding(
+                                    get: { viewModel.endTime ?? Date() },
+                                    set: { viewModel.endTime = $0 }
+                                ),
+                                in: viewModel.startTime...,
+                                displayedComponents: [.date, .hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                            
+                            if let duration = calculateDuration() {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "timer")
+                                        .font(.caption)
+                                    Text("持续 \(duration)")
+                                }
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Color.accentPrimary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.accentPrimary.opacity(0.1))
+                                .cornerRadius(8)
+                            }
                         }
                     }
                 }
@@ -110,19 +152,43 @@ struct Step1_TimeView: View {
 
 struct StatusToggle: View {
     let title: String
+    let icon: String
     let isSelected: Bool
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, Spacing.sm)
-                .background(isSelected ? Color.accentPrimary : Color.backgroundTertiary)
-                .foregroundStyle(isSelected ? .white : Color.textPrimary)
-                .cornerRadius(CornerRadius.sm)
+        Button(action: {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+            action()
+        }) {
+            VStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundStyle(isSelected ? .white : Color.textSecondary)
+                
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(isSelected ? .white : Color.textPrimary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+            .background(
+                isSelected ? 
+                    AnyShapeStyle(Color.primaryGradient) : 
+                    AnyShapeStyle(Color.backgroundSecondary)
+            )
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(isSelected ? Color.clear : Color.divider, lineWidth: 1)
+            )
+            .shadow(
+                color: isSelected ? Color.accentPrimary.opacity(0.3) : Color.clear,
+                radius: 8,
+                x: 0,
+                y: 4
+            )
         }
         .buttonStyle(.plain)
     }

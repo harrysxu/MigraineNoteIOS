@@ -11,13 +11,21 @@ import SwiftUI
 typealias AppColors = Color
 
 extension Color {
-    // MARK: - 主色调
+    // MARK: - 主色调（温暖治愈系）
     
-    /// 柔和的青紫色 - 主品牌色
-    static let accentPrimary = Color(red: 0.42, green: 0.62, blue: 0.85) // #6B9ED9
+    /// 治愈蓝绿 - 主品牌色（更温暖、平静）
+    static let accentPrimary = Color(red: 0.369, green: 0.769, blue: 0.714) // #5EC4B6
     
-    /// 辅助色 - 用于强调和区分
-    static let accentSecondary = Color(red: 0.73, green: 0.56, blue: 0.85) // #BA8FD9
+    /// 柔和蓝 - 辅助色（信任感）
+    static let accentSecondary = Color(red: 0.290, green: 0.565, blue: 0.886) // #4A90E2
+    
+    // MARK: - 温暖辅助色（情感化设计）
+    
+    /// 温暖橙 - 用于正向反馈和鼓励
+    static let warmAccent = Color(red: 0.957, green: 0.635, blue: 0.380) // #F4A261
+    
+    /// 柔和粉 - 用于提醒和友好信息
+    static let gentlePink = Color(red: 0.910, green: 0.627, blue: 0.749) // #E8A0BF
     
     // MARK: - 背景色
     
@@ -92,40 +100,56 @@ extension Color {
     /// 阴影颜色
     static let shadowColor = Color.black.opacity(0.3)
     
-    // MARK: - 疼痛强度色阶
+    // MARK: - 疼痛强度色阶（温暖柔和版）
     
-    /// 获取疼痛强度对应的颜色 (0-10)
+    /// 获取疼痛强度对应的颜色 (0-10) - 降低饱和度，增加温度感
     static func painIntensityColor(for intensity: Int) -> Color {
         let colors: [Color] = [
-            Color(red: 0.20, green: 0.78, blue: 0.35), // 0 - 绿色（无痛）
-            Color(red: 0.40, green: 0.80, blue: 0.40), // 1-2 - 浅绿
-            Color(red: 0.67, green: 0.87, blue: 0.47), // 3 - 黄绿
-            Color(red: 1.0, green: 0.92, blue: 0.04),  // 4-5 - 黄色
-            Color(red: 1.0, green: 0.78, blue: 0.04),  // 6 - 橙黄
-            Color(red: 1.0, green: 0.62, blue: 0.04),  // 7 - 橙色
-            Color(red: 1.0, green: 0.45, blue: 0.04),  // 8 - 深橙
-            Color(red: 1.0, green: 0.27, blue: 0.23)   // 9-10 - 红色（剧痛）
+            Color(red: 0.659, green: 0.835, blue: 0.729), // 0-2 - 薄荷绿 #A8D5BA
+            Color(red: 0.957, green: 0.886, blue: 0.522), // 3-4 - 柔黄 #F4E285
+            Color(red: 0.957, green: 0.722, blue: 0.376), // 5-6 - 温橙 #F4B860
+            Color(red: 0.910, green: 0.604, blue: 0.506), // 7-8 - 珊瑚 #E89A81
+            Color(red: 0.820, green: 0.478, blue: 0.478)  // 9-10 - 柔红 #D17A7A
         ]
         
         let index = min(max(0, intensity), 10)
-        if index == 0 {
+        switch index {
+        case 0...2:
+            return colors[0] // 薄荷绿
+        case 3...4:
+            return colors[1] // 柔黄
+        case 5...6:
+            return colors[2] // 温橙
+        case 7...8:
+            return colors[3] // 珊瑚
+        case 9...10:
+            return colors[4] // 柔红
+        default:
             return colors[0]
-        } else if index <= 2 {
-            return colors[1]
-        } else if index == 3 {
-            return colors[2]
-        } else if index <= 5 {
-            return colors[3]
-        } else if index == 6 {
-            return colors[4]
-        } else if index == 7 {
-            return colors[5]
-        } else if index == 8 {
-            return colors[6]
-        } else {
-            return colors[7]
         }
     }
+    
+    // MARK: - 渐变色
+    
+    /// 主色调渐变（用于按钮、重要元素）
+    static let primaryGradient = LinearGradient(
+        colors: [
+            Color(red: 0.369, green: 0.769, blue: 0.714), // #5EC4B6
+            Color(red: 0.290, green: 0.565, blue: 0.886)  // #4A90E2
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    
+    /// 温暖渐变（用于正向提示）
+    static let warmGradient = LinearGradient(
+        colors: [
+            Color(red: 0.957, green: 0.635, blue: 0.380), // #F4A261
+            Color(red: 0.957, green: 0.722, blue: 0.376)  // #F4B860
+        ],
+        startPoint: .leading,
+        endPoint: .trailing
+    )
     
     /// 疼痛强度分类颜色
     static func painCategoryColor(for intensity: Int) -> Color {

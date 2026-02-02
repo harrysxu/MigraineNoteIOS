@@ -145,11 +145,11 @@ struct AttackRowView: View {
             // 顶部：日期和疼痛强度
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(attack.startTime, format: .dateTime.year().month().day())
+                    Text(attack.startTime.fullDate())
                         .appFont(.headline)
                         .foregroundStyle(AppColors.textPrimary)
                     
-                    Text(attack.startTime, format: .dateTime.hour().minute())
+                    Text(attack.startTime.shortTime())
                         .appFont(.caption)
                         .foregroundStyle(AppColors.textSecondary)
                 }

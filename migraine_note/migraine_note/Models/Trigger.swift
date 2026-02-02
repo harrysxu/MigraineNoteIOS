@@ -10,19 +10,19 @@ import Foundation
 
 @Model
 final class Trigger {
-    @Attribute(.unique) var id: UUID
-    var categoryRawValue: String
-    var specificType: String // 具体诱因名称
-    var confidence: Double // 0.0-1.0 用户确定程度
+    var id: UUID = UUID()
+    var categoryRawValue: String = ""
+    var specificType: String = ""
+    var confidence: Double = 1.0
     var notes: String?
-    var timestamp: Date
+    var timestamp: Date = Date()
+    
+    // 反向关系：指向所属的发作记录
+    @Relationship(inverse: \AttackRecord.triggersData) var attackRecord: AttackRecord?
     
     init(category: TriggerCategory, specificType: String) {
-        self.id = UUID()
         self.categoryRawValue = category.rawValue
         self.specificType = specificType
-        self.confidence = 1.0
-        self.timestamp = Date()
     }
     
     // 计算属性

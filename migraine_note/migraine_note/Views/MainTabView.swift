@@ -11,52 +11,75 @@ import SwiftData
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            // 首页
-            HomeView()
-                .tabItem {
-                    Label("首页", systemImage: "house.fill")
-                }
-                .tag(0)
+        ZStack {
+            TabView(selection: $selectedTab) {
+                // 首页
+                HomeView()
+                    .tabItem {
+                        Label("首页", systemImage: selectedTab == 0 ? "house.fill" : "house")
+                    }
+                    .tag(0)
+                
+                // 记录列表
+                AttackListView()
+                    .tabItem {
+                        Label("记录", systemImage: selectedTab == 1 ? "list.bullet.clipboard.fill" : "list.bullet.clipboard")
+                    }
+                    .tag(1)
+                
+                // 数据（统计+日历）
+                AnalyticsView(modelContext: modelContext)
+                    .tabItem {
+                        Label("数据", systemImage: selectedTab == 2 ? "chart.bar.fill" : "chart.bar")
+                    }
+                    .tag(2)
+                
+                // 我的（药箱+设置）
+                ProfileView()
+                    .tabItem {
+                        Label("我的", systemImage: selectedTab == 3 ? "person.circle.fill" : "person.circle")
+                    }
+                    .tag(3)
+            }
+            .tint(Color.accentPrimary) // 使用新的主色调
+            .preferredColorScheme(.dark) // 暗黑模式优先
             
-            // 日历
-            CalendarView(modelContext: modelContext)
-                .tabItem {
-                    Label("日历", systemImage: "calendar")
-                }
-                .tag(1)
-            
-            // 记录列表
-            AttackListView()
-                .tabItem {
-                    Label("记录", systemImage: "list.bullet.clipboard")
-                }
-                .tag(2)
-            
-            // 数据分析
-            AnalyticsView(modelContext: modelContext)
-                .tabItem {
-                    Label("分析", systemImage: "chart.bar.fill")
-                }
-                .tag(3)
-            
-            // 用药管理
-            MedicationListView()
-                .tabItem {
-                    Label("药箱", systemImage: "pills.fill")
-                }
-                .tag(4)
-            
-            // 设置
-            SettingsView()
-                .tabItem {
-                    Label("设置", systemImage: "gearshape.fill")
-                }
-                .tag(5)
+            // Onboarding覆盖层
+            if !hasCompletedOnboarding {
+                OnboardingView(isOnboardingComplete: $hasCompletedOnboarding)
+                    .transition(.opacity)
+                    .zIndex(100)
+            }
         }
-        .preferredColorScheme(.dark) // 暗黑模式优先
+        .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
+        .onAppear {
+            setupNotificationObservers()
+        }
+    }
+    
+    // MARK: - Notification Observers
+    
+    private func setupNotificationObservers() {
+        // 监听切换到记录标签页的通知
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("SwitchToRecordListTab"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            selectedTab = 1
+        }
+        
+        // 监听切换到数据标签页的通知
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("SwitchToDataTab"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            selectedTab = 2
+        }
     }
 }
 

@@ -327,26 +327,26 @@ struct AccessibilityPreferences {
     VStack(spacing: 16) {
         HStack {
             Text("成功")
-                .foregroundColor(.semanticSuccess)
+                .foregroundStyle(Color.semanticSuccess)
             Text("警告")
-                .foregroundColor(.semanticWarning)
+                .foregroundStyle(Color.semanticWarning)
             Text("危险")
-                .foregroundColor(.semanticDanger)
+                .foregroundStyle(Color.semanticDanger)
             Text("信息")
-                .foregroundColor(.semanticInfo)
+                .foregroundStyle(Color.semanticInfo)
         }
         .font(.headline)
         
         // 暗色模式
         HStack {
             Text("成功")
-                .foregroundColor(.semanticSuccess)
+                .foregroundStyle(Color.semanticSuccess)
             Text("警告")
-                .foregroundColor(.semanticWarning)
+                .foregroundStyle(Color.semanticWarning)
             Text("危险")
-                .foregroundColor(.semanticDanger)
+                .foregroundStyle(Color.semanticDanger)
             Text("信息")
-                .foregroundColor(.semanticInfo)
+                .foregroundStyle(Color.semanticInfo)
         }
         .font(.headline)
         .preferredColorScheme(.dark)

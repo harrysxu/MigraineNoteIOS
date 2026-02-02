@@ -27,12 +27,18 @@ class RecordingViewModel {
     var selectedAuraTypes: Set<AuraType> = []
     var auraDuration: Double? // 分钟
     
-    var selectedSymptoms: Set<SymptomType> = []
+    // 改用字符串名称存储症状，支持自定义标签
+    var selectedSymptomNames: Set<String> = []
     var selectedTriggers: [String] = []
     
-    var selectedMedications: [(medication: Medication?, dosage: Double, timeTaken: Date)] = []
+    var selectedMedications: [(medication: Medication?, customName: String?, dosage: Double, unit: String, timeTaken: Date)] = []
     var selectedNonPharmacological: Set<String> = []
     var notes: String = ""
+    
+    // 自定义输入
+    var customPainQualities: [String] = []
+    var customSymptoms: [String] = []
+    var customNonPharmacological: [String] = []
     
     private let modelContext: ModelContext
     
@@ -78,15 +84,21 @@ class RecordingViewModel {
             self.auraDuration = duration / 60.0 // 转换为分钟
         }
         
-        // 加载症状
-        self.selectedSymptoms = Set(attack.symptoms.map { $0.type })
+        // 加载症状（使用名称）
+        self.selectedSymptomNames = Set(attack.symptoms.map { $0.name })
         
         // 加载诱因
         self.selectedTriggers = attack.triggers.map { $0.name }
         
         // 加载用药记录
         self.selectedMedications = attack.medications.map { log in
-            (medication: log.medication, dosage: log.dosage, timeTaken: log.takenAt)
+            (
+                medication: log.medication,
+                customName: log.medication == nil ? log.medicationName : nil,
+                dosage: log.dosage,
+                unit: log.unit ?? "mg",
+                timeTaken: log.takenAt
+            )
         }
         
         // 加载备注
@@ -132,7 +144,12 @@ class RecordingViewModel {
         // 设置疼痛评估
         attack.painIntensity = selectedPainIntensity
         attack.painLocation = selectedPainLocations.map { $0.rawValue }
-        attack.setPainQuality(Array(selectedPainQualities))
+        // 合并预设的和自定义的疼痛性质
+        let allPainQualities = Array(selectedPainQualities) + customPainQualities.map { quality in
+            // 尝试转换为枚举，如果失败则创建自定义字符串
+            return PainQuality(rawValue: quality) ?? PainQuality.dull // 使用一个默认值，实际保存字符串
+        }
+        attack.painQuality = (Array(selectedPainQualities).map { $0.rawValue } + customPainQualities)
         
         // 设置先兆
         attack.hasAura = hasAura
@@ -143,11 +160,20 @@ class RecordingViewModel {
             }
         }
         
-        // 添加症状
-        for symptomType in selectedSymptoms {
-            let symptom = Symptom(type: symptomType)
-            attack.symptoms.append(symptom)
-            modelContext.insert(symptom)
+        // 添加症状（从选中的名称创建）
+        for symptomName in selectedSymptomNames {
+            // 尝试转换为 SymptomType，如果失败则作为自定义症状
+            if let symptomType = SymptomType(rawValue: symptomName) {
+                let symptom = Symptom(type: symptomType)
+                attack.symptoms.append(symptom)
+                modelContext.insert(symptom)
+            } else {
+                // 自定义症状
+                let symptom = Symptom(type: .nausea) // 使用默认类型
+                symptom.typeRawValue = symptomName // 直接设置为自定义值
+                attack.symptoms.append(symptom)
+                modelContext.insert(symptom)
+            }
         }
         
         // 添加诱因
@@ -163,9 +189,17 @@ class RecordingViewModel {
         for medInfo in selectedMedications {
             let medLog = MedicationLog(dosage: medInfo.dosage, timeTaken: medInfo.timeTaken)
             medLog.medication = medInfo.medication
+            medLog.unit = medInfo.unit
+            // 如果没有关联药物，保存自定义名称
+            if medInfo.medication == nil, let customName = medInfo.customName {
+                medLog.medicationName = customName
+            }
             attack.medications.append(medLog)
             modelContext.insert(medLog)
         }
+        
+        // 保存非药物干预（合并预设的和自定义的）
+        attack.nonPharmInterventionList = Array(selectedNonPharmacological) + customNonPharmacological
         
         // 备注
         attack.notes = notes.isEmpty ? nil : notes
@@ -229,7 +263,7 @@ class RecordingViewModel {
         selectedAuraTypes = []
         auraDuration = nil
         
-        selectedSymptoms = []
+        selectedSymptomNames = []
         selectedTriggers = []
         
         selectedMedications = []
@@ -243,15 +277,95 @@ class RecordingViewModel {
         resetTemporaryData()
     }
     
+    // MARK: - 快速记录（一键开始/结束）
+    
+    /// 快速开始记录 - 立即创建并保存AttackRecord，只记录开始时间
+    func quickStartRecording() -> AttackRecord {
+        let attack = AttackRecord(startTime: Date())
+        modelContext.insert(attack)
+        try? modelContext.save()
+        return attack
+    }
+    
+    /// 快速结束记录 - 更新结束时间
+    func quickEndRecording(_ attack: AttackRecord) {
+        attack.endTime = Date()
+        attack.updatedAt = Date()
+        try? modelContext.save()
+    }
+    
     // MARK: - 用药管理
     
-    func addMedication(medication: Medication?, dosage: Double, timeTaken: Date = Date()) {
-        selectedMedications.append((medication, dosage, timeTaken))
+    func addMedication(
+        medication: Medication?,
+        customName: String? = nil,
+        dosage: Double,
+        unit: String = "mg",
+        timeTaken: Date = Date()
+    ) {
+        selectedMedications.append((
+            medication: medication,
+            customName: customName,
+            dosage: dosage,
+            unit: unit,
+            timeTaken: timeTaken
+        ))
     }
     
     func removeMedication(at index: Int) {
         guard index < selectedMedications.count else { return }
         selectedMedications.remove(at: index)
+    }
+    
+    /// 检查药箱中是否已存在同名药品
+    func checkMedicationExists(name: String) -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let descriptor = FetchDescriptor<Medication>()
+        
+        guard let allMedications = try? modelContext.fetch(descriptor) else {
+            return false
+        }
+        
+        // 在内存中进行不区分大小写的比较
+        return allMedications.contains { medication in
+            medication.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame
+        }
+    }
+    
+    /// 同步药品到药箱（使用默认值）
+    @discardableResult
+    func syncMedicationToCabinet(name: String, dosage: Double, unit: String) -> Medication? {
+        // 检查是否已存在
+        if checkMedicationExists(name: name) {
+            return nil
+        }
+        
+        let medication = Medication(
+            name: name.trimmingCharacters(in: .whitespaces),
+            category: .other,  // 默认类型：其他
+            isAcute: true      // 默认为急需用药
+        )
+        medication.standardDosage = 1.0  // 默认标准剂量
+        medication.unit = unit
+        medication.inventory = 6  // 默认库存
+        medication.monthlyLimit = nil  // 其他类型不设置MOH限制
+        
+        modelContext.insert(medication)
+        try? modelContext.save()
+        
+        return medication
+    }
+    
+    // MARK: - 取消记录
+    
+    /// 取消记录 - 删除已创建但未保存的记录
+    func cancelRecording() {
+        // 只在非编辑模式下删除记录
+        if !isEditMode, let attack = currentAttack {
+            modelContext.delete(attack)
+            try? modelContext.save()
+        }
+        reset()
     }
 }
 

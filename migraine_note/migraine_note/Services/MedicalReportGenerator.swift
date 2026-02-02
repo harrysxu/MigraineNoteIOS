@@ -181,10 +181,7 @@ class MedicalReportGenerator {
         
         currentY = drawSectionTitle(context: context, y: currentY, title: "报告周期")
         
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy年MM月dd日"
-        
-        let periodText = "\(dateFormatter.string(from: dateRange.start)) 至 \(dateFormatter.string(from: dateRange.end))"
+        let periodText = "\(dateRange.start.fullDate()) 至 \(dateRange.end.fullDate())"
         let infoFont = UIFont.systemFont(ofSize: 11)
         
         currentY = drawInfoRow(context: context, y: currentY, label: "时间范围：", value: periodText, font: infoFont)
@@ -399,9 +396,6 @@ class MedicalReportGenerator {
         currentY += rowHeight
         
         // 绘制数据行
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "MM/dd HH:mm"
-        
         let sortedAttacks = attacks.sorted { $0.startTime > $1.startTime }
         
         for attack in sortedAttacks {
@@ -414,7 +408,7 @@ class MedicalReportGenerator {
             xOffset = marginLeft
             
             // 日期
-            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[0].width, height: rowHeight, text: dateFormatter.string(from: attack.startTime), font: cellFont)
+            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[0].width, height: rowHeight, text: attack.startTime.compactDateTime(), font: cellFont)
             xOffset += columns[0].width
             
             // 时长
@@ -499,9 +493,7 @@ class MedicalReportGenerator {
         ]
         
         // 生成时间
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm"
-        let timestamp = "生成时间：\(dateFormatter.string(from: Date()))"
+        let timestamp = "生成时间：\(Date().reportDateTime())"
         timestamp.draw(at: CGPoint(x: marginLeft, y: footerY), withAttributes: footerAttrs)
         
         // 页码

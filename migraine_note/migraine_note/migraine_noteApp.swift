@@ -18,14 +18,14 @@ struct migraine_noteApp: App {
             MedicationLog.self,
             Medication.self,
             WeatherSnapshot.self,
-            UserProfile.self
+            UserProfile.self,
+            CustomLabelConfig.self
         ])
         
-        // 配置CloudKit自动同步
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            cloudKitDatabase: .automatic // ✅ 启用iCloud + CloudKit同步
+            cloudKitDatabase: .automatic
         )
 
         do {
@@ -38,6 +38,11 @@ struct migraine_noteApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .environment(\.locale, Locale(identifier: "zh_CN"))
+                .onAppear {
+                    // 初始化默认标签
+                    LabelManager.shared.initializeDefaultLabelsIfNeeded(context: sharedModelContainer.mainContext)
+                }
         }
         .modelContainer(sharedModelContainer)
     }

@@ -10,22 +10,38 @@ import SwiftData
 
 struct Step3_SymptomsView: View {
     @Bindable var viewModel: RecordingViewModel
+    @Environment(\.modelContext) private var modelContext
+    
+    // 查询所有症状标签（仅显示未隐藏的）
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "symptom" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var symptomLabels: [CustomLabelConfig]
+    
+    // 计算西医症状和中医症状
+    private var westernSymptoms: [CustomLabelConfig] {
+        symptomLabels.filter { $0.subcategory == SymptomSubcategory.western.rawValue }
+    }
+    
+    private var tcmSymptoms: [CustomLabelConfig] {
+        symptomLabels.filter { $0.subcategory == SymptomSubcategory.tcm.rawValue }
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
             // 先兆
-            InfoCard {
+            EmotionalCard(style: .default) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text("是否有先兆？")
                         .font(.headline)
                     
                     HStack(spacing: Spacing.md) {
-                        StatusToggle(title: "否", isSelected: !viewModel.hasAura) {
+                        StatusToggle(title: "否", icon: "xmark.circle", isSelected: !viewModel.hasAura) {
                             viewModel.hasAura = false
                             viewModel.selectedAuraTypes = []
                         }
                         
-                        StatusToggle(title: "是", isSelected: viewModel.hasAura) {
+                        StatusToggle(title: "是", icon: "checkmark.circle", isSelected: viewModel.hasAura) {
                             viewModel.hasAura = true
                         }
                     }
@@ -71,22 +87,22 @@ struct Step3_SymptomsView: View {
             .animation(.easeInOut(duration: 0.3), value: viewModel.hasAura)
             
             // 西医症状
-            InfoCard {
+            EmotionalCard(style: .default) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text("伴随症状")
                         .font(.headline)
                     
                     FlowLayout(spacing: Spacing.xs) {
-                        ForEach(SymptomType.allCases.filter { $0.isWesternMedicine }, id: \.self) { symptom in
+                        ForEach(westernSymptoms, id: \.id) { label in
                             SelectableChip(
-                                label: symptom.rawValue,
+                                label: label.displayName,
                                 isSelected: Binding(
-                                    get: { viewModel.selectedSymptoms.contains(symptom) },
+                                    get: { viewModel.selectedSymptomNames.contains(label.displayName) },
                                     set: { isSelected in
                                         if isSelected {
-                                            viewModel.selectedSymptoms.insert(symptom)
+                                            viewModel.selectedSymptomNames.insert(label.displayName)
                                         } else {
-                                            viewModel.selectedSymptoms.remove(symptom)
+                                            viewModel.selectedSymptomNames.remove(label.displayName)
                                         }
                                     }
                                 )
@@ -97,7 +113,7 @@ struct Step3_SymptomsView: View {
             }
             
             // 中医症状
-            InfoCard {
+            EmotionalCard(style: .default) {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     HStack {
                         Text("中医症状")
@@ -109,16 +125,16 @@ struct Step3_SymptomsView: View {
                     }
                     
                     FlowLayout(spacing: Spacing.xs) {
-                        ForEach(SymptomType.allCases.filter { $0.isTCM }, id: \.self) { symptom in
+                        ForEach(tcmSymptoms, id: \.id) { label in
                             SelectableChip(
-                                label: symptom.rawValue,
+                                label: label.displayName,
                                 isSelected: Binding(
-                                    get: { viewModel.selectedSymptoms.contains(symptom) },
+                                    get: { viewModel.selectedSymptomNames.contains(label.displayName) },
                                     set: { isSelected in
                                         if isSelected {
-                                            viewModel.selectedSymptoms.insert(symptom)
+                                            viewModel.selectedSymptomNames.insert(label.displayName)
                                         } else {
-                                            viewModel.selectedSymptoms.remove(symptom)
+                                            viewModel.selectedSymptomNames.remove(label.displayName)
                                         }
                                     }
                                 )

@@ -9,9 +9,22 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Medication Metadata Structure
+
+private struct MedicationMetadata: Codable {
+    let dosage: Double
+    let unit: String
+}
+
 struct AddMedicationView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    
+    // 查询所有药物预设标签（仅显示未隐藏的）
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "medication" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var presetLabels: [CustomLabelConfig]
     
     @State private var name: String = ""
     @State private var selectedCategory: MedicationCategory = .nsaid
@@ -25,8 +38,131 @@ struct AddMedicationView: View {
     @State private var showingPresets = false
     @State private var selectedPresetCategory: PresetCategory = .nsaid
     
+    // 过滤后的预设药品列表
+    private var filteredPresets: [MedicationPreset] {
+        guard !name.isEmpty else { return [] }
+        
+        let trimmedName = name.trimmingCharacters(in: .whitespaces).lowercased()
+        
+        return presetLabels
+            .filter { label in
+                label.displayName.lowercased().contains(trimmedName)
+            }
+            .compactMap { label -> MedicationPreset? in
+                guard let subcategory = label.subcategory,
+                      let category = MedicationCategory.allCases.first(where: { $0.rawValue == subcategory }) else {
+                    return nil
+                }
+                
+                // 解析剂量信息
+                var dosage: Double = 0
+                var unit: String = "mg"
+                
+                if let metadata = label.metadata,
+                   let data = metadata.data(using: .utf8),
+                   let medicationMeta = try? JSONDecoder().decode(MedicationMetadata.self, from: data) {
+                    dosage = medicationMeta.dosage
+                    unit = medicationMeta.unit
+                }
+                
+                return MedicationPreset(
+                    name: label.displayName,
+                    category: category,
+                    isAcute: category.isAcuteMedication,
+                    dosage: dosage,
+                    unit: unit
+                )
+            }
+    }
+    
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && standardDosage > 0
+    }
+    
+    // MARK: - Medication Name Search Field
+    
+    private var medicationNameSearchField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                TextField("药物名称", text: $name)
+                    .textInputAutocapitalization(.never)
+                
+                if !name.isEmpty {
+                    Button {
+                        name = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                }
+            }
+            
+            // 实时显示匹配的预设（最多显示5个）
+            if !filteredPresets.isEmpty {
+                medicationPresetsInlineList
+            }
+        }
+    }
+    
+    private var medicationPresetsInlineList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(filteredPresets.prefix(5).enumerated()), id: \.offset) { index, preset in
+                Button {
+                    applyPreset(preset)
+                } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(preset.name)
+                                .appFont(.subheadline)
+                                .foregroundStyle(AppColors.textPrimary)
+                            Text("\(preset.dosage, specifier: "%.1f")\(preset.unit) - \(preset.category.rawValue)")
+                                .appFont(.caption)
+                                .foregroundStyle(AppColors.textSecondary)
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.up.left")
+                            .font(.caption)
+                            .foregroundStyle(Color.accentPrimary)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(AppColors.backgroundTertiary)
+                }
+                .buttonStyle(.plain)
+                
+                if index < min(4, filteredPresets.count - 1) {
+                    Divider()
+                        .padding(.leading, 12)
+                }
+            }
+            
+            // 如果有更多结果，显示"查看全部"按钮
+            if filteredPresets.count > 5 {
+                Button {
+                    showingPresets = true
+                } label: {
+                    HStack {
+                        Text("查看全部 \(filteredPresets.count) 个预设...")
+                            .appFont(.caption)
+                            .foregroundStyle(Color.accentPrimary)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textTertiary)
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(AppColors.backgroundTertiary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .background(AppColors.backgroundTertiary)
+        .cornerRadius(CornerRadius.sm)
+        .overlay(
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(AppColors.textTertiary.opacity(0.2), lineWidth: 1)
+        )
     }
     
     var body: some View {
@@ -34,7 +170,8 @@ struct AddMedicationView: View {
             Form {
                 // 基本信息
                 Section("基本信息") {
-                    TextField("药物名称", text: $name)
+                    // 药物名称搜索框
+                    medicationNameSearchField
                     
                     Picker("药物类别", selection: $selectedCategory) {
                         ForEach(MedicationCategory.allCases, id: \.self) { category in
@@ -141,9 +278,14 @@ struct AddMedicationView: View {
                     Button {
                         showingPresets = true
                     } label: {
-                        Label("从常用药物列表选择", systemImage: "list.bullet.clipboard")
+                        if !name.isEmpty && !filteredPresets.isEmpty {
+                            Label("浏览所有匹配的常用药物", systemImage: "list.bullet.clipboard")
+                        } else {
+                            Label("从常用药物列表选择", systemImage: "list.bullet.clipboard")
+                        }
                     }
                 }
+                .listRowBackground(AppColors.backgroundSecondary)
             }
             .navigationTitle("添加药物")
             .navigationBarTitleDisplayMode(.inline)
@@ -162,7 +304,7 @@ struct AddMedicationView: View {
                 }
             }
             .sheet(isPresented: $showingPresets) {
-                MedicationPresetsView { preset in
+                MedicationPresetsView(initialSearchText: name) { preset in
                     applyPreset(preset)
                     showingPresets = false
                 }
@@ -215,41 +357,64 @@ struct AddMedicationView: View {
 
 struct MedicationPresetsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    
+    // 查询所有药物预设标签（仅显示未隐藏的）
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "medication" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var presetLabels: [CustomLabelConfig]
+    
+    let initialSearchText: String
     let onSelect: (MedicationPreset) -> Void
     
-    private let presets: [PresetCategory: [MedicationPreset]] = [
-        .nsaid: [
-            MedicationPreset(name: "布洛芬", category: .nsaid, isAcute: true, dosage: 400, unit: "mg"),
-            MedicationPreset(name: "对乙酰氨基酚", category: .nsaid, isAcute: true, dosage: 500, unit: "mg"),
-            MedicationPreset(name: "阿司匹林", category: .nsaid, isAcute: true, dosage: 500, unit: "mg"),
-            MedicationPreset(name: "萘普生", category: .nsaid, isAcute: true, dosage: 500, unit: "mg"),
-        ],
-        .triptan: [
-            MedicationPreset(name: "佐米曲普坦", category: .triptan, isAcute: true, dosage: 2.5, unit: "mg"),
-            MedicationPreset(name: "利扎曲普坦", category: .triptan, isAcute: true, dosage: 10, unit: "mg"),
-            MedicationPreset(name: "舒马曲普坦", category: .triptan, isAcute: true, dosage: 50, unit: "mg"),
-            MedicationPreset(name: "依立曲普坦", category: .triptan, isAcute: true, dosage: 40, unit: "mg"),
-        ],
-        .preventive: [
-            MedicationPreset(name: "氟桂利嗪", category: .preventive, isAcute: false, dosage: 5, unit: "mg"),
-            MedicationPreset(name: "普萘洛尔", category: .preventive, isAcute: false, dosage: 40, unit: "mg"),
-            MedicationPreset(name: "阿米替林", category: .preventive, isAcute: false, dosage: 25, unit: "mg"),
-            MedicationPreset(name: "托吡酯", category: .preventive, isAcute: false, dosage: 50, unit: "mg"),
-        ],
-        .tcm: [
-            MedicationPreset(name: "正天丸", category: .tcmHerbal, isAcute: true, dosage: 6, unit: "g"),
-            MedicationPreset(name: "川芎茶调散", category: .tcmHerbal, isAcute: true, dosage: 6, unit: "g"),
-            MedicationPreset(name: "天麻钩藤颗粒", category: .tcmHerbal, isAcute: true, dosage: 10, unit: "g"),
-        ]
-    ]
+    @State private var searchText: String = ""
+    
+    init(initialSearchText: String = "", onSelect: @escaping (MedicationPreset) -> Void) {
+        self.initialSearchText = initialSearchText
+        self.onSelect = onSelect
+        self._searchText = State(initialValue: initialSearchText)
+    }
+    
+    // 过滤预设标签
+    private var filteredPresetLabels: [CustomLabelConfig] {
+        guard !searchText.isEmpty else { return presetLabels }
+        
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        return presetLabels.filter { label in
+            label.displayName.lowercased().contains(trimmedSearch)
+        }
+    }
     
     var body: some View {
         NavigationStack {
             List {
-                ForEach(PresetCategory.allCases, id: \.self) { category in
-                    if let medications = presets[category] {
-                        Section(category.displayName) {
-                            ForEach(medications) { preset in
+                // 搜索框
+                Section {
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundStyle(AppColors.textSecondary)
+                        TextField("搜索药物名称", text: $searchText)
+                            .textInputAutocapitalization(.never)
+                        
+                        if !searchText.isEmpty {
+                            Button {
+                                searchText = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(AppColors.textTertiary)
+                            }
+                        }
+                    }
+                }
+                
+                // 按类别显示预设
+                ForEach(MedicationCategory.allCases, id: \.self) { category in
+                    let categoryPresets = presetsForCategory(category)
+                    
+                    if !categoryPresets.isEmpty {
+                        Section(category.rawValue) {
+                            ForEach(categoryPresets) { preset in
                                 Button {
                                     onSelect(preset)
                                 } label: {
@@ -272,6 +437,25 @@ struct MedicationPresetsView: View {
                         }
                     }
                 }
+                
+                // 如果没有结果
+                if filteredPresetLabels.isEmpty && !searchText.isEmpty {
+                    Section {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 12) {
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                                Text("未找到匹配的药物")
+                                    .appFont(.body)
+                                    .foregroundStyle(AppColors.textSecondary)
+                            }
+                            .padding(.vertical, 40)
+                            Spacer()
+                        }
+                    }
+                }
             }
             .navigationTitle("常用药物列表")
             .navigationBarTitleDisplayMode(.inline)
@@ -283,6 +467,30 @@ struct MedicationPresetsView: View {
                 }
             }
         }
+    }
+    
+    private func presetsForCategory(_ category: MedicationCategory) -> [MedicationPreset] {
+        filteredPresetLabels
+            .filter { $0.subcategory == category.rawValue }
+            .compactMap { label -> MedicationPreset? in
+                var dosage: Double = 0
+                var unit: String = "mg"
+                
+                if let metadata = label.metadata,
+                   let data = metadata.data(using: .utf8),
+                   let medicationMeta = try? JSONDecoder().decode(MedicationMetadata.self, from: data) {
+                    dosage = medicationMeta.dosage
+                    unit = medicationMeta.unit
+                }
+                
+                return MedicationPreset(
+                    name: label.displayName,
+                    category: category,
+                    isAcute: category.isAcuteMedication,
+                    dosage: dosage,
+                    unit: unit
+                )
+            }
     }
 }
 

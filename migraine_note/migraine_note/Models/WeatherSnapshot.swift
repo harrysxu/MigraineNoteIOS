@@ -10,26 +10,20 @@ import Foundation
 
 @Model
 final class WeatherSnapshot {
-    @Attribute(.unique) var id: UUID
-    var timestamp: Date
-    var pressure: Double // hPa
-    var pressureTrendRawValue: String
-    var temperature: Double // 摄氏度
-    var humidity: Double // 百分比 0-100
-    var windSpeed: Double // km/h
-    var condition: String // "晴", "阴", "雨"
-    var location: String
+    var id: UUID = UUID()
+    var timestamp: Date = Date()
+    var pressure: Double = 0
+    var pressureTrendRawValue: String = PressureTrend.steady.rawValue
+    var temperature: Double = 0
+    var humidity: Double = 0
+    var windSpeed: Double = 0
+    var condition: String = ""
+    var location: String = ""
+    
+    @Relationship(inverse: \AttackRecord.weatherSnapshot) var attackRecord: AttackRecord?
     
     init(timestamp: Date = Date()) {
-        self.id = UUID()
         self.timestamp = timestamp
-        self.pressure = 0
-        self.pressureTrendRawValue = PressureTrend.steady.rawValue
-        self.temperature = 0
-        self.humidity = 0
-        self.windSpeed = 0
-        self.condition = ""
-        self.location = ""
     }
     
     // 计算属性

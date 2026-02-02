@@ -190,9 +190,7 @@ struct ExportReportView: View {
     
     private func generatePDFURL(from data: Data) -> URL {
         let tempDirectory = FileManager.default.temporaryDirectory
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyyMMdd"
-        let filename = "偏头痛医疗报告_\(dateFormatter.string(from: Date())).pdf"
+        let filename = "偏头痛医疗报告_\(Date().compactDate()).pdf"
         let fileURL = tempDirectory.appendingPathComponent(filename)
         
         try? data.write(to: fileURL)

@@ -68,16 +68,6 @@ struct IconButton: View {
     }
 }
 
-/// 按钮按压动效
-struct ScaleButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
-    }
-}
-
 #Preview("Buttons") {
     VStack(spacing: 20) {
         PrimaryButton(title: "主按钮", action: {})

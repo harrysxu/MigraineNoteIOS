@@ -10,8 +10,17 @@ import SwiftData
 
 struct Step4_TriggersView: View {
     @Bindable var viewModel: RecordingViewModel
+    @Environment(\.modelContext) private var modelContext
+    
     @State private var customTrigger: String = ""
     @State private var showCustomInput: Bool = false
+    @State private var suggestedTriggers: [String] = []
+    
+    // 查询所有诱因标签（仅显示未隐藏的）
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "trigger" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var triggerLabels: [CustomLabelConfig]
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -19,6 +28,11 @@ struct Step4_TriggersView: View {
             Text("选择可能导致本次发作的诱因")
                 .font(.subheadline)
                 .foregroundStyle(Color.textSecondary)
+            
+            // 智能推荐（如果有）
+            if !suggestedTriggers.isEmpty {
+                smartSuggestionsCard
+            }
             
             // 各类诱因
             ForEach(TriggerCategory.allCases, id: \.self) { category in
@@ -86,34 +100,112 @@ struct Step4_TriggersView: View {
                 }
             }
         }
+        .onAppear {
+            loadSmartSuggestions()
+        }
+    }
+    
+    // MARK: - 智能推荐卡片
+    
+    private var smartSuggestionsCard: some View {
+        EmotionalCard(style: .gentle) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(Color.warmAccent)
+                    Text("根据您的记录，这些诱因常见：")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.textPrimary)
+                }
+                
+                FlowLayout(spacing: Spacing.xs) {
+                    ForEach(suggestedTriggers.prefix(5), id: \.self) { trigger in
+                        Button {
+                            toggleTrigger(trigger)
+                            // 触觉反馈
+                            let impact = UIImpactFeedbackGenerator(style: .light)
+                            impact.impactOccurred()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(trigger)
+                                    .font(.subheadline)
+                                if viewModel.selectedTriggers.contains(trigger) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.caption)
+                                }
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(
+                                viewModel.selectedTriggers.contains(trigger)
+                                    ? Color.warmAccent
+                                    : Color.warmAccent.opacity(0.2)
+                            )
+                            .foregroundStyle(
+                                viewModel.selectedTriggers.contains(trigger)
+                                    ? .white
+                                    : Color.textPrimary
+                            )
+                            .cornerRadius(CornerRadius.sm)
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - 私有方法
+    
+    private func loadSmartSuggestions() {
+        // 这里应该从历史数据中分析常见诱因
+        // 目前使用模拟数据作为示例
+        let commonTriggers = ["压力", "睡眠不足", "天气变化"]
+        suggestedTriggers = commonTriggers
+    }
+    
+    private func toggleTrigger(_ trigger: String) {
+        if viewModel.selectedTriggers.contains(trigger) {
+            viewModel.selectedTriggers.removeAll { $0 == trigger }
+        } else {
+            viewModel.selectedTriggers.append(trigger)
+        }
     }
     
     @ViewBuilder
     private func triggerSection(for category: TriggerCategory) -> some View {
-        InfoCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                HStack {
-                    Text(categoryIcon(for: category))
-                        .font(.title3)
-                    Text(category.rawValue)
-                        .font(.headline)
-                }
-                
-                FlowLayout(spacing: Spacing.xs) {
-                    ForEach(TriggerLibrary.triggers(for: category), id: \.self) { trigger in
-                        SelectableChip(
-                            label: trigger,
-                            isSelected: Binding(
-                                get: { viewModel.selectedTriggers.contains(trigger) },
-                                set: { isSelected in
-                                    if isSelected {
-                                        viewModel.selectedTriggers.append(trigger)
-                                    } else {
-                                        viewModel.selectedTriggers.removeAll { $0 == trigger }
+        // 获取该分类下的所有诱因标签
+        let categoryTriggers = triggerLabels.filter { $0.subcategory == category.rawValue }
+        
+        // 如果该分类下有标签，显示该区块
+        if !categoryTriggers.isEmpty {
+            EmotionalCard(style: .default) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack {
+                        Text(categoryIcon(for: category))
+                            .font(.title3)
+                        Text(category.rawValue)
+                            .font(.headline)
+                    }
+                    
+                    FlowLayout(spacing: Spacing.xs) {
+                        ForEach(categoryTriggers, id: \.id) { label in
+                            SelectableChip(
+                                label: label.displayName,
+                                isSelected: Binding(
+                                    get: { viewModel.selectedTriggers.contains(label.displayName) },
+                                    set: { isSelected in
+                                        if isSelected {
+                                            viewModel.selectedTriggers.append(label.displayName)
+                                            // 添加触觉反馈
+                                            let impact = UIImpactFeedbackGenerator(style: .light)
+                                            impact.impactOccurred()
+                                        } else {
+                                            viewModel.selectedTriggers.removeAll { $0 == label.displayName }
+                                        }
                                     }
-                                }
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }

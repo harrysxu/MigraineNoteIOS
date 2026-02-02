@@ -10,17 +10,18 @@ import Foundation
 
 @Model
 final class Symptom {
-    @Attribute(.unique) var id: UUID
-    var typeRawValue: String
-    var severity: Int // 1-5
-    var onset: Date
+    var id: UUID = UUID()
+    var typeRawValue: String = ""
+    var severity: Int = 3
+    var onset: Date = Date()
     var notes: String?
     
+    // 反向关系：指向所属的发作记录
+    @Relationship(inverse: \AttackRecord.symptomsData) var attackRecord: AttackRecord?
+    
     init(type: SymptomType, severity: Int = 3) {
-        self.id = UUID()
         self.typeRawValue = type.rawValue
         self.severity = severity
-        self.onset = Date()
     }
     
     // 计算属性

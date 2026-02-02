@@ -10,20 +10,22 @@ import Foundation
 
 @Model
 final class MedicationLog {
-    @Attribute(.unique) var id: UUID
-    var medication: Medication?
-    var dosage: Double // mg
-    var timeTaken: Date
-    var efficacyRawValue: String
+    var id: UUID = UUID()
+    @Relationship(inverse: \Medication.logsData) var medication: Medication?
+    var medicationName: String?  // 自定义药物名称（当medication为nil时使用）
+    var dosage: Double = 0
+    var unit: String?  // 剂量单位（如果medication为nil时使用）
+    var timeTaken: Date = Date()
+    var efficacyRawValue: String = MedicationEfficacy.notEvaluated.rawValue
     var efficacyCheckedAt: Date?
-    var sideEffects: [String]
+    var sideEffects: [String] = []
+    
+    // 反向关系：指向所属的发作记录
+    @Relationship(inverse: \AttackRecord.medicationsData) var attackRecord: AttackRecord?
     
     init(dosage: Double, timeTaken: Date = Date()) {
-        self.id = UUID()
         self.dosage = dosage
         self.timeTaken = timeTaken
-        self.efficacyRawValue = MedicationEfficacy.notEvaluated.rawValue
-        self.sideEffects = []
     }
     
     // 计算属性
@@ -74,7 +76,13 @@ final class MedicationLog {
     
     // 便捷属性：剂量字符串
     var dosageString: String {
-        return "\(self.dosage)mg"
+        let unitStr = unit ?? medication?.unit ?? "mg"
+        return "\(self.dosage)\(unitStr)"
+    }
+    
+    // 便捷属性：药物名称
+    var displayName: String {
+        return medication?.name ?? medicationName ?? "未知药物"
     }
 }
 

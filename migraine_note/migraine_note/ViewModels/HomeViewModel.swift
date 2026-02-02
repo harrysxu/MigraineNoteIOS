@@ -94,4 +94,23 @@ class HomeViewModel {
     func refreshData() {
         loadData()
     }
+    
+    // MARK: - 快速记录管理
+    
+    /// 快速开始记录
+    func quickStartRecording() -> AttackRecord {
+        let attack = AttackRecord(startTime: Date())
+        modelContext.insert(attack)
+        try? modelContext.save()
+        loadData() // 刷新数据以显示进行中状态
+        return attack
+    }
+    
+    /// 快速结束记录
+    func quickEndRecording(_ attack: AttackRecord) {
+        attack.endTime = Date()
+        attack.updatedAt = Date()
+        try? modelContext.save()
+        loadData() // 刷新数据以更新状态
+    }
 }

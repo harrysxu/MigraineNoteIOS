@@ -158,10 +158,10 @@ struct AttackDetailView: View {
     private var timeDetailCard: some View {
         DetailCard(title: "时间信息", icon: "clock") {
             VStack(spacing: AppSpacing.small) {
-                InfoRow(label: "开始时间", value: attack.startTime.formatted(date: .abbreviated, time: .shortened))
+                InfoRow(label: "开始时间", value: attack.startTime.fullDateTime())
                 
                 if let endTime = attack.endTime {
-                    InfoRow(label: "结束时间", value: endTime.formatted(date: .abbreviated, time: .shortened))
+                    InfoRow(label: "结束时间", value: endTime.fullDateTime())
                 } else {
                     InfoRow(label: "状态", value: "进行中", valueColor: AppColors.warning)
                 }
@@ -428,7 +428,7 @@ struct MedicationLogRowView: View {
                 
                 Spacer()
                 
-                Text(log.takenAt.formatted(date: .omitted, time: .shortened))
+                Text(log.takenAt.shortTime())
                     .appFont(.caption)
                     .foregroundStyle(AppColors.textSecondary)
             }

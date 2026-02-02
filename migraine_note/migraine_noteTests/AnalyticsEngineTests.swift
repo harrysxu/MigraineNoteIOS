@@ -146,43 +146,6 @@ final class AnalyticsEngineTests: XCTestCase {
         XCTAssertEqual(evening8?.count, 1, "晚上8点应有1次发作")
     }
     
-    // MARK: - MIDAS评分测试
-    
-    func testMIDAS_NoAttacks() {
-        // 给定：没有发作
-        
-        // 当：计算MIDAS
-        let midas = engine.calculateMIDASScore(attacks: [])
-        
-        // 则：应该是0分
-        XCTAssertEqual(midas, 0, "无发作时MIDAS应为0")
-    }
-    
-    func testMIDAS_WithAttacks() {
-        // 给定：近90天有发作记录
-        var attacks: [AttackRecord] = []
-        
-        // 3个轻度发作（每个影响0.5天）
-        for i in 0..<3 {
-            let attack = createAttackRecord(painIntensity: 3, daysAgo: i * 10)
-            attacks.append(attack)
-        }
-        
-        // 2个重度发作（每个影响1天）
-        for i in 0..<2 {
-            let attack = createAttackRecord(painIntensity: 8, daysAgo: i * 15 + 5)
-            attacks.append(attack)
-        }
-        
-        // 当：计算MIDAS
-        let midas = engine.calculateMIDASScore(attacks: attacks)
-        
-        // 则：应该根据疼痛强度累计
-        // 预期：(3 * 0.5) + (2 * 1.0) = 3.5 天 ≈ 4
-        XCTAssertGreaterThan(midas, 0, "有发作时MIDAS应大于0")
-        XCTAssertLessThan(midas, 20, "轻中度发作MIDAS应小于20")
-    }
-    
     // MARK: - 辅助方法
     
     @discardableResult

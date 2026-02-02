@@ -15,27 +15,23 @@ struct EditAttackView: View {
     
     let attack: AttackRecord
     
-    @State private var viewModel: RecordingViewModel
-    
     init(attack: AttackRecord, modelContext: ModelContext) {
         self.attack = attack
-        _viewModel = State(initialValue: RecordingViewModel(modelContext: modelContext, editingAttack: attack))
     }
     
     var body: some View {
         NavigationStack {
-            RecordingContainerView(viewModel: viewModel, isEditMode: true)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("取消") {
-                            dismiss()
-                        }
+            SimplifiedRecordingView(
+                modelContext: modelContext,
+                existingAttack: attack
+            )
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
                     }
                 }
-        }
-        .onAppear {
-            // 预填充现有数据
-            viewModel.loadExistingAttack(attack)
+            }
         }
     }
 }

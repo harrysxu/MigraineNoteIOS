@@ -29,6 +29,38 @@ struct AppAnimation {
     static let buttonPress = Animation.easeInOut(duration: 0.1)
 }
 
+// MARK: - 情感化动画库
+
+/// 情感化动画 - 动画应该"呼吸"而非"跳动"
+enum EmotionalAnimation {
+    /// 舒缓呼吸（用于待机状态、主按钮）
+    static let breathe = Animation.easeInOut(duration: 2.0)
+        .repeatForever(autoreverses: true)
+    
+    /// 温柔确认（用于成功操作）
+    static let gentleConfirm = Animation.spring(
+        response: 0.5,
+        dampingFraction: 0.7,
+        blendDuration: 0
+    )
+    
+    /// 轻柔出现（用于页面过渡）
+    static let softAppear = Animation.easeOut(duration: 0.4)
+    
+    /// 缓慢消失（用于提示）
+    static let fadeAway = Animation.easeIn(duration: 0.6)
+    
+    /// 数据滚动（用于数字变化）
+    static let dataRoll = Animation.easeOut(duration: 1.0)
+    
+    /// 流体动画（用于进度条）
+    static let fluid = Animation.spring(
+        response: 1.0,
+        dampingFraction: 0.8,
+        blendDuration: 0
+    )
+}
+
 // MARK: - 过渡效果
 
 struct AppTransition {
@@ -157,6 +189,59 @@ extension View {
     /// 可按压修饰器
     func pressable(action: @escaping () -> Void) -> some View {
         self.modifier(PressableModifier(action: action))
+    }
+}
+
+// MARK: - 触觉反馈扩展
+
+extension View {
+    /// 轻柔触觉反馈
+    func gentleHaptic() -> some View {
+        let impact = UIImpactFeedbackGenerator(style: .light)
+        impact.impactOccurred()
+        return self
+    }
+    
+    /// 成功触觉反馈
+    func successHaptic() -> some View {
+        let notification = UINotificationFeedbackGenerator()
+        notification.notificationOccurred(.success)
+        return self
+    }
+    
+    /// 警告触觉反馈
+    func warningHaptic() -> some View {
+        let notification = UINotificationFeedbackGenerator()
+        notification.notificationOccurred(.warning)
+        return self
+    }
+    
+    /// 错误触觉反馈
+    func errorHaptic() -> some View {
+        let notification = UINotificationFeedbackGenerator()
+        notification.notificationOccurred(.error)
+        return self
+    }
+}
+
+// MARK: - 温柔按钮样式
+
+/// 温柔按压样式 - 微妙的缩放和透明度变化
+struct GentlePressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+/// 缩放按钮样式 - 用于大型主按钮
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
     }
 }
 

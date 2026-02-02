@@ -101,31 +101,39 @@ struct ProgressIndicator: View {
     let currentStep: RecordingStep
     
     var body: some View {
-        VStack(spacing: Spacing.xs) {
+        VStack(spacing: Spacing.sm) {
             // 步骤文字
-            Text(currentStep.stepNumber)
-                .font(.caption)
-                .foregroundStyle(Color.textSecondary)
+            HStack {
+                Text(currentStep.stepNumber)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textPrimary)
+                
+                Spacer()
+                
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
             
-            // 进度条
+            // 进度条（带渐变）
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     // 背景
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: 3)
                         .fill(Color.backgroundTertiary)
-                        .frame(height: 4)
+                        .frame(height: 6)
                     
-                    // 进度
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accentPrimary)
+                    // 进度（渐变）
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.primaryGradient)
                         .frame(
                             width: geometry.size.width * progress,
-                            height: 4
+                            height: 6
                         )
-                        .animation(.easeInOut(duration: 0.3), value: currentStep)
+                        .animation(EmotionalAnimation.fluid, value: currentStep)
                 }
             }
-            .frame(height: 4)
+            .frame(height: 6)
         }
     }
     

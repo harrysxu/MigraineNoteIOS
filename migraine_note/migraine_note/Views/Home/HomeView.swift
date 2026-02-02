@@ -12,106 +12,277 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: HomeViewModel?
     @State private var showRecordingView = false
+    @State private var selectedTab: Int?
+    @State private var selectedAttackForDetail: AttackRecord?
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    if let vm = viewModel {
-                        // 状态卡片
-                        StatusCard(
-                            streakDays: vm.streakDays,
-                            ongoingAttack: vm.ongoingAttack
-                        )
-                        
-                        // 记录按钮
-                        RecordButton {
-                            showRecordingView = true
-                        }
-                        
-                        // 天气卡片
-                        WeatherRiskCardPlaceholder()
-                        
-                        // 最近记录（如果有）
-                        if !vm.recentAttacks.isEmpty {
-                            RecentAttacksCard(attacks: vm.recentAttacks)
-                        }
-                    } else {
-                        ProgressView()
-                    }
-                    
-                    Spacer(minLength: 40)
-                }
-                .padding()
-            }
-            .navigationTitle("今天")
-            .background(Color.backgroundPrimary.ignoresSafeArea())
-            .sheet(isPresented: $showRecordingView) {
-                NavigationStack {
-                    RecordingContainerView(modelContext: modelContext)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("取消") {
-                                    showRecordingView = false
+        ZStack {
+            NavigationStack {
+                ScrollView {
+                    VStack(spacing: 20) {
+                        if let vm = viewModel {
+                            // 动态问候 - 左对齐
+                            DynamicGreeting()
+                                .fadeIn(delay: 0.1)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 8)
+                            
+                            // 状态卡片 - 全宽
+                            CompactStatusCard(
+                                streakDays: vm.streakDays,
+                                ongoingAttack: vm.ongoingAttack
+                            )
+                            .fadeIn(delay: 0.2)
+                            .padding(.horizontal, 20)
+                            
+                            // 主操作按钮
+                            MainActionButton(
+                                ongoingAttack: vm.ongoingAttack,
+                                onTap: {
+                                    if let attack = vm.ongoingAttack {
+                                        selectedAttackForDetail = attack
+                                    } else {
+                                        showRecordingView = true
+                                    }
                                 }
+                            )
+                            .fadeIn(delay: 0.3)
+                            .padding(.horizontal, 20)
+                            
+                            // 今日建议 + 月度概况 - 网格布局
+                            VStack(spacing: 16) {
+                                TodayInsightCard()
+                                    .fadeIn(delay: 0.4)
+                                
+                                MonthlyOverviewCard(modelContext: modelContext, selectedTab: $selectedTab)
+                                    .fadeIn(delay: 0.5)
                             }
+                            .padding(.horizontal, 20)
+                            
+                            // 最近记录 - 列表布局
+                            if !vm.recentAttacks.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Text("最近记录")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(Color.textPrimary)
+                                        
+                                        Spacer()
+                                        
+                                        Button {
+                                            NotificationCenter.default.post(
+                                                name: NSNotification.Name("SwitchToRecordListTab"),
+                                                object: nil
+                                            )
+                                        } label: {
+                                            Text("查看全部")
+                                                .font(.subheadline)
+                                                .foregroundStyle(Color.accentPrimary)
+                                        }
+                                    }
+                                    
+                                    VStack(spacing: 12) {
+                                        ForEach(vm.recentAttacks.prefix(3)) { attack in
+                                            CompactAttackRow(attack: attack)
+                                                .onTapGesture {
+                                                    selectedAttackForDetail = attack
+                                                }
+                                        }
+                                    }
+                                }
+                                .fadeIn(delay: 0.6)
+                                .padding(.horizontal, 20)
+                            }
+                        } else {
+                            ProgressView()
+                                .tint(Color.accentPrimary)
+                                .frame(maxWidth: .infinity, maxHeight: 300)
+                        }
+                        
+                        Spacer(minLength: 80)
+                    }
+                    .padding(.vertical, 12)
+                }
+                .navigationTitle("")
+                .navigationBarTitleDisplayMode(.inline)
+                .background(Color.backgroundPrimary.ignoresSafeArea())
+                .sheet(isPresented: $showRecordingView) {
+                    RecordingSheetView(
+                        modelContext: modelContext,
+                        isPresented: $showRecordingView,
+                        onDismiss: {
+                            viewModel?.refreshData()
+                        }
+                    )
+                }
+                .sheet(item: $selectedAttackForDetail) { attack in
+                    AttackDetailView(attack: attack)
+                        .onDisappear {
+                            viewModel?.refreshData()
                         }
                 }
-                .onDisappear {
-                    viewModel?.refreshData()
+            }
+            .onAppear {
+                if viewModel == nil {
+                    viewModel = HomeViewModel(modelContext: modelContext)
                 }
             }
-        }
-        .onAppear {
-            if viewModel == nil {
-                viewModel = HomeViewModel(modelContext: modelContext)
+            
+            // 浮动快速操作按钮
+            if let vm = viewModel {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        FloatingQuickActionButton(
+                            ongoingAttack: vm.ongoingAttack,
+                            onQuickStart: {
+                                _ = vm.quickStartRecording()
+                            },
+                            onQuickEnd: { attack in
+                                vm.quickEndRecording(attack)
+                            }
+                        )
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                    }
+                }
             }
         }
     }
 }
 
-// MARK: - 状态卡片
+// MARK: - 动态问候语
 
-struct StatusCard: View {
+struct DynamicGreeting: View {
+    @State private var currentHour = Calendar.current.component(.hour, from: Date())
+    
+    var greeting: String {
+        switch currentHour {
+        case 6..<11:
+            return "早安"
+        case 11..<14:
+            return "中午好"
+        case 14..<18:
+            return "下午好"
+        case 18..<22:
+            return "晚上好"
+        default:
+            return "夜深了"
+        }
+    }
+    
+    var greetingColor: LinearGradient {
+        switch currentHour {
+        case 6..<11:
+            return LinearGradient(
+                colors: [Color.warmAccent.opacity(0.8), Color.warmAccent],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        case 11..<18:
+            return Color.primaryGradient
+        case 18..<22:
+            return LinearGradient(
+                colors: [Color.accentSecondary.opacity(0.8), Color.accentSecondary],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        default:
+            return LinearGradient(
+                colors: [Color.accentSecondary.opacity(0.6), Color.accentPrimary.opacity(0.6)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(greeting)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(greetingColor)
+            
+            Text("今天感觉如何？")
+                .font(.body)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - 紧凑状态卡片
+
+struct CompactStatusCard: View {
     let streakDays: Int
     let ongoingAttack: AttackRecord?
     
+    var streakEmoji: String {
+        switch streakDays {
+        case 0:
+            return "🌱"
+        case 1...3:
+            return "💪"
+        case 4...6:
+            return "✨"
+        case 7...13:
+            return "🌟"
+        case 14...29:
+            return "🎯"
+        case 30...:
+            return "🎉"
+        default:
+            return "🌱"
+        }
+    }
+    
     var body: some View {
-        InfoCard {
-            VStack(spacing: 12) {
-                if let attack = ongoingAttack {
-                    // 发作进行中
-                    HStack {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(Color.statusWarning)
+        EmotionalCard(style: .elevated) {
+            if let attack = ongoingAttack {
+                // 发作进行中 - 显示持续时间
+                HStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(Color.statusWarning)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("发作进行中")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                    }
-                    Text("已持续 \(formatDuration(attack.startTime))")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.textSecondary)
-                } else {
-                    // 无发作
-                    Text("🎉")
-                        .font(.system(size: 48))
-                    if streakDays > 0 {
-                        Text("您已连续 \(streakDays) 天无头痛")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Text("欢迎使用偏头痛记录")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                        Text("开始记录您的健康状况")
+                            .font(.headline)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("已持续 \(formatDuration(attack.startTime))")
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                     }
+                    
+                    Spacer()
+                }
+            } else {
+                // 无发作状态 - 横向布局
+                HStack(spacing: 16) {
+                    Text(streakEmoji)
+                        .font(.system(size: 48))
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        if streakDays > 0 {
+                            Text("\(streakDays) 天")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundStyle(Color.accentPrimary)
+                            Text("无头痛")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.textSecondary)
+                        } else {
+                            Text("开始记录")
+                                .font(.headline)
+                                .foregroundStyle(Color.textPrimary)
+                            Text("发现健康规律")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                    }
+                    
+                    Spacer()
                 }
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
         }
     }
     
@@ -128,33 +299,184 @@ struct StatusCard: View {
     }
 }
 
-// MARK: - 记录按钮
+// MARK: - 微型趋势图（占位）
 
-struct RecordButton: View {
-    let action: () -> Void
+struct MiniTrendSparkline: View {
+    // 模拟过去7天的数据（0表示无发作，1-10表示疼痛强度）
+    let mockData: [CGFloat] = [0, 0, 5, 0, 0, 7, 0]
     
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 64))
-                Text("开始记录")
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+            let spacing = width / CGFloat(mockData.count)
+            
+            ZStack {
+                // 背景线
+                Path { path in
+                    for i in 0..<mockData.count {
+                        let x = CGFloat(i) * spacing + spacing / 2
+                        let y = height - (mockData[i] / 10 * height)
+                        
+                        if i == 0 {
+                            path.move(to: CGPoint(x: x, y: y))
+                        } else {
+                            path.addLine(to: CGPoint(x: x, y: y))
+                        }
+                    }
+                }
+                .stroke(
+                    Color.accentPrimary.opacity(0.3),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+                )
+                
+                // 数据点
+                ForEach(0..<mockData.count, id: \.self) { index in
+                    let x = CGFloat(index) * spacing + spacing / 2
+                    let y = height - (mockData[index] / 10 * height)
+                    
+                    Circle()
+                        .fill(mockData[index] > 0 ? Color.statusWarning : Color.statusSuccess)
+                        .frame(width: 6, height: 6)
+                        .position(x: x, y: y)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 主操作按钮
+
+struct MainActionButton: View {
+    let ongoingAttack: AttackRecord?
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            onTap()
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: ongoingAttack == nil ? "plus.circle.fill" : "square.and.pencil")
+                    .font(.system(size: 24))
+                
+                Text(ongoingAttack == nil ? "开始记录" : "编辑记录")
                     .font(.headline)
             }
-            .foregroundStyle(Color.accentPrimary)
-            .frame(width: 160, height: 160)
-            .background(
-                Circle()
-                    .fill(Color.backgroundSecondary)
-                    .shadow(
-                        color: Shadow.card,
-                        radius: Shadow.floatingRadius,
-                        x: Shadow.floatingOffset.width,
-                        y: Shadow.floatingOffset.height
-                    )
-            )
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(Color.primaryGradient)
+            .cornerRadius(16)
+            .shadow(color: Color.accentPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
         }
-        .buttonStyle(ScaleButtonStyle())
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - 浮动快速操作按钮 (FAB)
+
+struct FloatingQuickActionButton: View {
+    let ongoingAttack: AttackRecord?
+    let onQuickStart: () -> Void
+    let onQuickEnd: (AttackRecord) -> Void
+    
+    @State private var isBreathing = false
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.impactOccurred()
+            
+            if let attack = ongoingAttack {
+                // 有进行中的记录，执行快速结束
+                onQuickEnd(attack)
+            } else {
+                // 没有进行中的记录，执行快速开始
+                onQuickStart()
+            }
+        }) {
+            ZStack {
+                // 外圈呼吸光晕
+                Circle()
+                    .fill(ongoingAttack == nil ? Color.primaryGradient : LinearGradient(
+                        colors: [Color.statusSuccess, Color.statusSuccess.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 64, height: 64)
+                    .scaleEffect(isBreathing ? 1.15 : 1.0)
+                    .opacity(isBreathing ? 0.3 : 0.5)
+                
+                // 主按钮
+                Circle()
+                    .fill(ongoingAttack == nil ? Color.primaryGradient : LinearGradient(
+                        colors: [Color.statusSuccess, Color.statusSuccess.opacity(0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ))
+                    .frame(width: 56, height: 56)
+                    .shadow(color: (ongoingAttack == nil ? Color.accentPrimary : Color.statusSuccess).opacity(0.4), radius: 12, x: 0, y: 6)
+                
+                Image(systemName: ongoingAttack == nil ? "bolt.fill" : "checkmark")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            withAnimation(EmotionalAnimation.breathe) {
+                isBreathing = true
+            }
+        }
+    }
+}
+
+// MARK: - 今日建议卡片
+
+struct TodayInsightCard: View {
+    var body: some View {
+        EmotionalCard(style: .gentle) {
+            HStack(spacing: 16) {
+                // 左侧图标
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 32))
+                    .foregroundStyle(Color.warmAccent)
+                    .frame(width: 48, height: 48)
+                    .background(Color.warmAccent.opacity(0.15))
+                    .clipShape(Circle())
+                
+                // 右侧内容
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("今日建议")
+                        .font(.headline)
+                        .foregroundStyle(Color.textPrimary)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "drop.fill")
+                                .font(.caption)
+                                .foregroundStyle(Color.warmAccent)
+                            Text("记得多喝水")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                        
+                        HStack(spacing: 8) {
+                            Image(systemName: "cloud.sun.fill")
+                                .font(.caption)
+                                .foregroundStyle(Color.warmAccent)
+                            Text("今日气压平稳")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                    }
+                }
+                
+                Spacer()
+            }
+        }
     }
 }
 
@@ -180,42 +502,776 @@ struct WeatherRiskCardPlaceholder: View {
     }
 }
 
-// MARK: - 最近记录卡片
+// MARK: - 月度概况卡片
 
-struct RecentAttacksCard: View {
+struct MonthlyOverviewCard: View {
+    let modelContext: ModelContext
+    @Binding var selectedTab: Int?
+    
+    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
+    
+    var body: some View {
+        EmotionalCard(style: .gentle) {
+            VStack(alignment: .leading, spacing: 16) {
+                // 标题行
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "calendar")
+                            .font(.title3)
+                            .foregroundStyle(Color.accentPrimary)
+                        Text("本月概况")
+                            .font(.headline)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        // 先切换到数据标签页
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("SwitchToDataTab"),
+                            object: nil
+                        )
+                        // 延迟一下再切换到日历视图，确保标签页已经切换
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            NotificationCenter.default.post(
+                                name: NSNotification.Name("SwitchToDataCalendarView"),
+                                object: nil
+                            )
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("日历")
+                                .font(.caption.weight(.medium))
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                        }
+                        .foregroundStyle(Color.accentPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.accentPrimary.opacity(0.1))
+                        .cornerRadius(12)
+                    }
+                }
+                
+                // 统计数据网格 - 2x2布局
+                VStack(spacing: 12) {
+                    HStack(spacing: 12) {
+                        CompactStatCard(
+                            value: "\(monthlyAttackDays)",
+                            label: "发作天数",
+                            icon: "exclamationmark.circle.fill",
+                            color: monthlyAttackDays >= 15 ? .statusError : .accentPrimary
+                        )
+                        
+                        CompactStatCard(
+                            value: "\(monthlyAttackCount)",
+                            label: "发作次数",
+                            icon: "chart.bar.fill",
+                            color: .accentPrimary
+                        )
+                    }
+                    
+                    HStack(spacing: 12) {
+                        CompactStatCard(
+                            value: String(format: "%.1f", averageIntensity),
+                            label: "平均强度",
+                            icon: "waveform.path.ecg",
+                            color: Color.painIntensityColor(for: Int(averageIntensity))
+                        )
+                        
+                        CompactStatCard(
+                            value: "\(getMedicationDays())",
+                            label: "用药天数",
+                            icon: "pills.fill",
+                            color: getMedicationDays() >= 10 ? .statusWarning : .accentPrimary
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - 计算属性
+    
+    private var monthlyAttacks: [AttackRecord] {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        return attacks.filter { $0.startTime >= startOfMonth }
+    }
+    
+    private var monthlyAttackDays: Int {
+        let calendar = Calendar.current
+        let uniqueDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
+        return uniqueDays.count
+    }
+    
+    private var monthlyAttackCount: Int {
+        monthlyAttacks.count
+    }
+    
+    private var averageIntensity: Double {
+        guard !monthlyAttacks.isEmpty else { return 0 }
+        let total = monthlyAttacks.reduce(0) { $0 + $1.painIntensity }
+        return Double(total) / Double(monthlyAttacks.count)
+    }
+    
+    private func getMedicationDays() -> Int {
+        let calendar = Calendar.current
+        let medicationDays = Set(
+            monthlyAttacks
+                .filter { !$0.medications.isEmpty }
+                .map { calendar.startOfDay(for: $0.startTime) }
+        )
+        return medicationDays.count
+    }
+}
+
+// MARK: - 紧凑统计卡片
+
+struct CompactStatCard: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // 图标
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+                .frame(width: 36, height: 36)
+                .background(color.opacity(0.15))
+                .clipShape(Circle())
+            
+            // 数值和标签
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Color.textPrimary)
+                
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            
+            Spacer()
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity)
+        .background(Color.backgroundPrimary)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - 简化的日历热力图
+
+struct MiniCalendarHeatmap: View {
     let attacks: [AttackRecord]
     
     var body: some View {
-        InfoCard {
-            VStack(alignment: .leading, spacing: Spacing.sm) {
-                Text("最近记录")
-                    .font(.headline)
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        let daysInMonth = calendar.range(of: .day, in: .month, for: now)!.count
+        
+        GeometryReader { geometry in
+            let cellWidth = geometry.size.width / CGFloat(daysInMonth)
+            
+            HStack(spacing: 2) {
+                ForEach(1...daysInMonth, id: \.self) { day in
+                    let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)!
+                    let dayAttacks = attacks.filter {
+                        calendar.isDate($0.startTime, inSameDayAs: date)
+                    }
+                    
+                    Rectangle()
+                        .fill(cellColor(for: dayAttacks))
+                        .frame(width: max(2, cellWidth - 2))
+                        .cornerRadius(2)
+                }
+            }
+            .frame(height: 60)
+        }
+    }
+    
+    private func cellColor(for attacks: [AttackRecord]) -> Color {
+        guard !attacks.isEmpty else {
+            return Color.backgroundSecondary
+        }
+        
+        let maxIntensity = attacks.map(\.painIntensity).max() ?? 0
+        return Color.painIntensityColor(for: maxIntensity).opacity(0.8)
+    }
+}
+
+// MARK: - 紧凑记录行
+
+struct CompactAttackRow: View {
+    let attack: AttackRecord
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // 左侧疼痛强度指示器
+            VStack(spacing: 4) {
+                Text("\(attack.painIntensity)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color.painIntensityColor(for: attack.painIntensity))
                 
-                ForEach(attacks.prefix(3)) { attack in
-                    HStack {
-                        // 疼痛强度指示器
-                        Circle()
-                            .fill(Color.painCategoryColor(for: attack.painIntensity))
-                            .frame(width: 8, height: 8)
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(formatDate(attack.startTime))
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Text("疼痛强度: \(attack.painIntensity)/10")
-                                .font(.caption)
+                Text("强度")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .frame(width: 56, height: 56)
+            .background(Color.painIntensityColor(for: attack.painIntensity).opacity(0.15))
+            .cornerRadius(12)
+            
+            // 中间内容
+            VStack(alignment: .leading, spacing: 4) {
+                Text(attack.startTime.smartFormatted())
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(Color.textPrimary)
+                
+                HStack(spacing: 8) {
+                    if let duration = calculateDuration() {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                            Text(duration)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                    }
+                    
+                    if !attack.medications.isEmpty {
+                        HStack(spacing: 4) {
+                            Image(systemName: "pills")
+                                .font(.caption2)
+                            Text("\(attack.medications.count)种药物")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // 右侧箭头
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(Color.textTertiary)
+        }
+        .padding(12)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(12)
+    }
+    
+    
+    private func calculateDuration() -> String? {
+        guard let endTime = attack.endTime else { return nil }
+        let duration = endTime.timeIntervalSince(attack.startTime)
+        
+        let hours = Int(duration) / 3600
+        let minutes = (Int(duration) % 3600) / 60
+        
+        if hours > 0 {
+            return "\(hours)h\(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return nil
+        }
+    }
+}
+
+// MARK: - 记录页面Sheet包装器
+
+struct RecordingSheetView: View {
+    let modelContext: ModelContext
+    @Binding var isPresented: Bool
+    let onDismiss: () -> Void
+    
+    @State private var viewModel: RecordingViewModel
+    @State private var showCancelAlert = false
+    
+    init(modelContext: ModelContext, isPresented: Binding<Bool>, onDismiss: @escaping () -> Void) {
+        self.modelContext = modelContext
+        self._isPresented = isPresented
+        self.onDismiss = onDismiss
+        self._viewModel = State(initialValue: RecordingViewModel(modelContext: modelContext))
+    }
+    
+    var body: some View {
+        NavigationStack {
+            SimplifiedRecordingViewWrapper(
+                viewModel: viewModel,
+                modelContext: modelContext
+            )
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        showCancelAlert = true
+                    }
+                }
+            }
+            .alert("确认取消", isPresented: $showCancelAlert) {
+                Button("继续编辑", role: .cancel) {}
+                Button("放弃记录", role: .destructive) {
+                    handleCancel()
+                }
+            } message: {
+                Text("取消后将不会保存任何信息")
+            }
+        }
+        .onDisappear {
+            onDismiss()
+        }
+    }
+    
+    private func handleCancel() {
+        viewModel.cancelRecording()
+        isPresented = false
+    }
+}
+
+// MARK: - SimplifiedRecordingView 包装器
+
+struct SimplifiedRecordingViewWrapper: View {
+    @Bindable var viewModel: RecordingViewModel
+    let modelContext: ModelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    // 展开/收起状态
+    @State private var isPainExpanded = true
+    @State private var isSymptomsExpanded = false
+    @State private var isTriggersExpanded = false
+    @State private var isMedicationsExpanded = false
+    @State private var isNotesExpanded = false
+    
+    // 标签管理 Sheet 状态
+    @State private var showPainQualityManager = false
+    @State private var showSymptomManager = false
+    
+    // 查询症状标签和诱因标签
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "symptom" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var symptomLabels: [CustomLabelConfig]
+    
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "trigger" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var triggerLabels: [CustomLabelConfig]
+    
+    private var westernSymptoms: [CustomLabelConfig] {
+        symptomLabels.filter { $0.subcategory == SymptomSubcategory.western.rawValue }
+    }
+    
+    private var tcmSymptoms: [CustomLabelConfig] {
+        symptomLabels.filter { $0.subcategory == SymptomSubcategory.tcm.rawValue }
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // 内容区域
+            ScrollView {
+                VStack(spacing: 16) {
+                    // 时间信息（始终显示）
+                    timeSection
+                    
+                    // 疼痛评估（默认展开）
+                    CollapsibleSection(
+                        title: "疼痛评估",
+                        icon: "waveform.path.ecg",
+                        isExpandedByDefault: true
+                    ) {
+                        painAssessmentContent
+                    }
+                    
+                    // 症状记录（可折叠）
+                    CollapsibleSection(
+                        title: "症状记录",
+                        icon: "heart.text.square",
+                        isExpandedByDefault: true
+                    ) {
+                        symptomsContent
+                    }
+                    
+                    // 诱因分析（可折叠）
+                    CollapsibleSection(
+                        title: "诱因分析",
+                        icon: "sparkles",
+                        isExpandedByDefault: true
+                    ) {
+                        triggersContent
+                    }
+                    
+                    // 用药记录（可折叠）
+                    CollapsibleSection(
+                        title: "用药记录",
+                        icon: "pills.fill",
+                        isExpandedByDefault: true
+                    ) {
+                        medicationsContent
+                    }
+                    
+                    // 非药物干预（可折叠）
+                    CollapsibleSection(
+                        title: "非药物干预",
+                        icon: "figure.mind.and.body",
+                        isExpandedByDefault: true
+                    ) {
+                        nonPharmContent
+                    }
+                    
+                    // 备注（可折叠）
+                    CollapsibleSection(
+                        title: "备注",
+                        icon: "note.text",
+                        isExpandedByDefault: true
+                    ) {
+                        notesContent
+                    }
+                    
+                    // 保存提示
+                    if !viewModel.canSave {
+                        warningBanner
+                    }
+                    
+                    Spacer(minLength: 100)
+                }
+                .padding(16)
+            }
+            
+            // 底部保存按钮
+            footerView
+        }
+        .background(Color.backgroundPrimary.ignoresSafeArea())
+        .navigationTitle("记录详情")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.startRecording()
+        }
+        .sheet(isPresented: $showPainQualityManager) {
+            NavigationStack {
+                SettingsView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+        .sheet(isPresented: $showSymptomManager) {
+            NavigationStack {
+                LabelManagementView()
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+    }
+    
+    // MARK: - Header
+    
+    private var headerView: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "heart.text.square.fill")
+                .font(.title3)
+                .foregroundStyle(Color.accentPrimary)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("记录偏头痛发作")
+                    .font(.headline)
+                    .foregroundStyle(Color.textPrimary)
+                
+                Text("所有字段均可选，随时保存")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            
+            Spacer()
+        }
+        .padding(16)
+        .background(Color.backgroundSecondary)
+    }
+    
+    // MARK: - Time Section
+    
+    private var timeSection: some View {
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: 16) {
+                // 开始时间
+                HStack(spacing: 12) {
+                    Image(systemName: "clock.fill")
+                        .foregroundStyle(Color.accentPrimary)
+                    Text("开始时间")
+                        .font(.subheadline.weight(.medium))
+                    Spacer()
+                    DatePicker(
+                        "",
+                        selection: $viewModel.startTime,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .labelsHidden()
+                }
+                
+                Divider()
+                
+                // 状态切换
+                HStack(spacing: 12) {
+                    Button {
+                        viewModel.isOngoing = true
+                        viewModel.endTime = nil
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "play.circle.fill")
+                            Text("进行中")
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(viewModel.isOngoing ? .white : Color.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(viewModel.isOngoing ? Color.accentPrimary : Color.backgroundSecondary)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Button {
+                        viewModel.isOngoing = false
+                        if viewModel.endTime == nil {
+                            viewModel.endTime = Date()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "stop.circle.fill")
+                            Text("已结束")
+                        }
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(!viewModel.isOngoing ? .white : Color.textPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(!viewModel.isOngoing ? Color.accentPrimary : Color.backgroundSecondary)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
+                
+                // 结束时间（仅在已结束时显示）
+                if !viewModel.isOngoing {
+                    Divider()
+                    
+                    HStack(spacing: 12) {
+                        Image(systemName: "flag.checkered.circle.fill")
+                            .foregroundStyle(Color.statusSuccess)
+                        Text("结束时间")
+                            .font(.subheadline.weight(.medium))
+                        Spacer()
+                        DatePicker(
+                            "",
+                            selection: Binding(
+                                get: { viewModel.endTime ?? Date() },
+                                set: { viewModel.endTime = $0 }
+                            ),
+                            in: viewModel.startTime...,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                        .labelsHidden()
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Pain Assessment Content
+    
+    private var painAssessmentContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 疼痛强度
+            VStack(spacing: 12) {
+                CircularSlider(
+                    value: $viewModel.selectedPainIntensity,
+                    range: 0...10,
+                    isDragging: .constant(false)
+                )
+                .frame(height: 200)
+            }
+            
+            Divider()
+            
+            // 疼痛部位
+            VStack(alignment: .leading, spacing: 12) {
+                Text("疼痛部位")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
+                
+                HeadMapView(selectedLocations: $viewModel.selectedPainLocations)
+            }
+            
+            Divider()
+            
+            // 疼痛性质
+            VStack(alignment: .leading, spacing: 12) {
+                sectionTitleWithManageButton(
+                    title: "疼痛性质",
+                    showSheet: $showPainQualityManager
+                )
+                
+                FlowLayout(spacing: 8) {
+                    ForEach(PainQuality.allCases, id: \.self) { quality in
+                        SelectableChip(
+                            label: quality.rawValue,
+                            isSelected: Binding(
+                                get: { viewModel.selectedPainQualities.contains(quality) },
+                                set: { isSelected in
+                                    if isSelected {
+                                        viewModel.selectedPainQualities.insert(quality)
+                                    } else {
+                                        viewModel.selectedPainQualities.remove(quality)
+                                    }
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Symptoms Content
+    
+    private var symptomsContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 先兆
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("是否有先兆？")
+                        .font(.subheadline.weight(.medium))
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $viewModel.hasAura)
+                        .labelsHidden()
+                }
+                
+                if viewModel.hasAura {
+                    FlowLayout(spacing: 8) {
+                        ForEach(AuraType.allCases, id: \.self) { aura in
+                            SelectableChip(
+                                label: aura.rawValue,
+                                isSelected: Binding(
+                                    get: { viewModel.selectedAuraTypes.contains(aura) },
+                                    set: { isSelected in
+                                        if isSelected {
+                                            viewModel.selectedAuraTypes.insert(aura)
+                                        } else {
+                                            viewModel.selectedAuraTypes.remove(aura)
+                                        }
+                                    }
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Divider()
+            
+            // 西医症状
+            VStack(alignment: .leading, spacing: 12) {
+                sectionTitleWithManageButton(
+                    title: "伴随症状",
+                    showSheet: $showSymptomManager
+                )
+                
+                FlowLayout(spacing: 8) {
+                    ForEach(westernSymptoms, id: \.id) { label in
+                        SelectableChip(
+                            label: label.displayName,
+                            isSelected: Binding(
+                                get: { viewModel.selectedSymptomNames.contains(label.displayName) },
+                                set: { isSelected in
+                                    if isSelected {
+                                        viewModel.selectedSymptomNames.insert(label.displayName)
+                                    } else {
+                                        viewModel.selectedSymptomNames.remove(label.displayName)
+                                    }
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+            
+            Divider()
+            
+            // 中医症状
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("中医症状")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.textSecondary)
+                    Spacer()
+                    Image(systemName: "leaf.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.statusSuccess)
+                }
+                
+                FlowLayout(spacing: 8) {
+                    ForEach(tcmSymptoms, id: \.id) { label in
+                        SelectableChip(
+                            label: label.displayName,
+                            isSelected: Binding(
+                                get: { viewModel.selectedSymptomNames.contains(label.displayName) },
+                                set: { isSelected in
+                                    if isSelected {
+                                        viewModel.selectedSymptomNames.insert(label.displayName)
+                                    } else {
+                                        viewModel.selectedSymptomNames.remove(label.displayName)
+                                    }
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Triggers Content
+    
+    private var triggersContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            ForEach(TriggerCategory.allCases, id: \.self) { category in
+                let categoryTriggers = triggerLabels.filter { $0.subcategory == category.rawValue }
+                
+                if !categoryTriggers.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Text(categoryEmoji(for: category))
+                                .font(.title3)
+                            Text(category.rawValue)
+                                .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Color.textSecondary)
                         }
                         
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundStyle(Color.textTertiary)
+                        FlowLayout(spacing: 8) {
+                            ForEach(categoryTriggers, id: \.id) { label in
+                                SelectableChip(
+                                    label: label.displayName,
+                                    isSelected: Binding(
+                                        get: { viewModel.selectedTriggers.contains(label.displayName) },
+                                        set: { isSelected in
+                                            if isSelected {
+                                                viewModel.selectedTriggers.append(label.displayName)
+                                            } else {
+                                                viewModel.selectedTriggers.removeAll { $0 == label.displayName }
+                                            }
+                                        }
+                                    )
+                                )
+                            }
+                        }
                     }
-                    .padding(.vertical, 4)
                     
-                    if attack.id != attacks.prefix(3).last?.id {
+                    if category != TriggerCategory.allCases.last {
                         Divider()
                     }
                 }
@@ -223,13 +1279,220 @@ struct RecentAttacksCard: View {
         }
     }
     
-    private func formatDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        formatter.locale = Locale(identifier: "zh_CN")
-        return formatter.string(from: date)
+    // MARK: - Medications Content
+    
+    @State private var showAddMedicationSheet = false
+    
+    private var medicationsContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // 添加按钮
+            Button {
+                showAddMedicationSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(Color.accentPrimary)
+                    Text("添加用药")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.accentPrimary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.accentPrimary.opacity(0.1))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showAddMedicationSheet) {
+                UnifiedMedicationInputSheet(viewModel: viewModel, isPresented: $showAddMedicationSheet)
+            }
+            
+            // 已添加的药物
+            if !viewModel.selectedMedications.isEmpty {
+                Divider()
+                
+                ForEach(Array(viewModel.selectedMedications.enumerated()), id: \.offset) { index, medInfo in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(medInfo.medication?.name ?? "未知药物")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(Color.textPrimary)
+                            Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.medication?.unit ?? "mg") - \(medInfo.timeTaken.shortTime())")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                        Spacer()
+                        Button {
+                            viewModel.removeMedication(at: index)
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(Color.statusDanger)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    
+                    if index < viewModel.selectedMedications.count - 1 {
+                        Divider()
+                    }
+                }
+            } else {
+                Text("未记录用药")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
     }
+    
+    // MARK: - Non-Pharm Content
+    
+    private var nonPharmContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            FlowLayout(spacing: 8) {
+                ForEach(nonPharmacologicalOptions, id: \.self) { option in
+                    SelectableChip(
+                        label: option,
+                        isSelected: Binding(
+                            get: { viewModel.selectedNonPharmacological.contains(option) },
+                            set: { isSelected in
+                                if isSelected {
+                                    viewModel.selectedNonPharmacological.insert(option)
+                                } else {
+                                    viewModel.selectedNonPharmacological.remove(option)
+                                }
+                            }
+                        )
+                    )
+                }
+                
+                // 自定义非药物干预
+                ForEach(viewModel.customNonPharmacological, id: \.self) { custom in
+                    SelectableChip(
+                        label: custom,
+                        isSelected: .constant(true)
+                    )
+                    .overlay(
+                        Button {
+                            viewModel.customNonPharmacological.removeAll { $0 == custom }
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                        .offset(x: 8, y: -8),
+                        alignment: .topTrailing
+                    )
+                }
+                
+                CompactCustomInputField(placeholder: "其他方法...") { text in
+                    if !viewModel.customNonPharmacological.contains(text) {
+                        viewModel.customNonPharmacological.append(text)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Notes Content
+    
+    private var notesContent: some View {
+        TextEditor(text: $viewModel.notes)
+            .frame(height: 100)
+            .padding(8)
+            .background(Color.backgroundTertiary)
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.divider, lineWidth: 1)
+            )
+    }
+    
+    // MARK: - Warning Banner
+    
+    private var warningBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "info.circle.fill")
+                .foregroundStyle(Color.statusInfo)
+            Text("建议填写疼痛强度和部位以获得更准确的分析")
+                .font(.subheadline)
+                .foregroundStyle(Color.textPrimary)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.statusInfo.opacity(0.1))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - Footer
+    
+    private var footerView: some View {
+        VStack(spacing: 0) {
+            Divider()
+            
+            PrimaryButton(
+                title: "完成记录",
+                isEnabled: true  // 总是可以保存
+            ) {
+                saveAndDismiss()
+            }
+            .padding(16)
+        }
+        .background(Color.backgroundSecondary)
+    }
+    
+    // MARK: - Helpers
+    
+    private func categoryEmoji(for category: TriggerCategory) -> String {
+        switch category {
+        case .food: return "🍜"
+        case .environment: return "🌦️"
+        case .sleep: return "😴"
+        case .stress: return "💼"
+        case .hormone: return "🌸"
+        case .lifestyle: return "🏃"
+        case .tcm: return "🌿"
+        }
+    }
+    
+    // 带标签管理按钮的章节标题
+    private func sectionTitleWithManageButton(
+        title: String,
+        showSheet: Binding<Bool>
+    ) -> some View {
+        HStack {
+            Text(title)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.textSecondary)
+            
+            Spacer()
+            
+            Button {
+                showSheet.wrappedValue = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "gear")
+                        .font(.caption)
+                    Text("管理")
+                        .font(.caption)
+                }
+                .foregroundStyle(Color.accentPrimary)
+            }
+        }
+    }
+    
+    
+    private func saveAndDismiss() {
+        do {
+            try viewModel.saveRecording()
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            dismiss()
+        } catch {
+            print("保存失败: \(error)")
+        }
+    }
+    
+    private let nonPharmacologicalOptions = [
+        "睡眠", "冷敷", "热敷", "按摩", "针灸", "暗室休息", "深呼吸", "冥想"
+    ]
 }
 
 #Preview {

@@ -197,10 +197,7 @@ class CalendarViewModel {
     
     /// 获取月份标题（如"2026年2月"）
     var monthTitle: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy年M月"
-        formatter.locale = Locale(identifier: "zh_CN")
-        return formatter.string(from: currentMonth)
+        return currentMonth.monthTitle()
     }
 }
 

@@ -415,7 +415,7 @@ struct UsageHistoryRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(log.takenAt.formatted(date: .abbreviated, time: .shortened))
+                Text(log.takenAt.fullDateTime())
                     .appFont(.body)
                     .foregroundStyle(AppColors.textPrimary)
                 

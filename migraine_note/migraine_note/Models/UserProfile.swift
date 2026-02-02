@@ -10,38 +10,29 @@ import Foundation
 
 @Model
 final class UserProfile {
-    @Attribute(.unique) var id: UUID
+    var id: UUID = UUID()
     var name: String?
     var age: Int?
     var genderRawValue: String?
     
     // 病史
-    var migraineOnsetAge: Int? // 发病年龄
-    var familyHistory: Bool // 家族史
+    var migraineOnsetAge: Int?
+    var familyHistory: Bool = false
     
     // 偏好设置
-    var enableTCMFeatures: Bool // 启用中医功能
-    var enableHealthKitSync: Bool
-    var enableWeatherTracking: Bool
-    var preferredPainScaleRawValue: String
+    var enableTCMFeatures: Bool = true
+    var enableHealthKitSync: Bool = true
+    var enableWeatherTracking: Bool = true
+    var preferredPainScaleRawValue: String = PainScale.numeric.rawValue
     
     // 提醒设置
-    var medicationRemindersData: Data? // JSON编码的提醒列表
-    var efficacyCheckReminder: Bool
+    var medicationRemindersData: Data?
+    var efficacyCheckReminder: Bool = true
     
     // 隐私设置
-    var requireBiometricAuth: Bool
+    var requireBiometricAuth: Bool = false
     
-    init() {
-        self.id = UUID()
-        self.familyHistory = false
-        self.enableTCMFeatures = true
-        self.enableHealthKitSync = true
-        self.enableWeatherTracking = true
-        self.preferredPainScaleRawValue = PainScale.numeric.rawValue
-        self.efficacyCheckReminder = true
-        self.requireBiometricAuth = false
-    }
+    init() {}
     
     // 计算属性
     var gender: Gender? {
@@ -88,8 +79,6 @@ struct MedicationReminder: Codable, Identifiable {
     var repeatDaily: Bool
     
     var timeString: String {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter.string(from: time)
+        return time.shortTime()
     }
 }

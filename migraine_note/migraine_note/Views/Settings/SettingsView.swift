@@ -60,7 +60,7 @@ struct SettingsView: View {
                             icon: "heart.fill",
                             iconColor: .red,
                             title: "健康数据",
-                            subtitle: "HealthKit权限管理"
+                            subtitle: "集成健康记录"
                         )
                     }
                     
@@ -71,7 +71,7 @@ struct SettingsView: View {
                             icon: "location.fill",
                             iconColor: .blue,
                             title: "位置服务",
-                            subtitle: "天气追踪权限"
+                            subtitle: "追踪天气诱因"
                         )
                     }
                     
@@ -81,8 +81,8 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "icloud.fill",
                             iconColor: .cyan,
-                            title: "iCloud同步",
-                            subtitle: "跨设备数据同步"
+                            title: "iCloud 同步",
+                            subtitle: "多设备协同"
                         )
                     }
                 } header: {
@@ -94,13 +94,24 @@ struct SettingsView: View {
                 // 功能设置
                 Section {
                     NavigationLink {
+                        LabelManagementView()
+                    } label: {
+                        SettingRow(
+                            icon: "tag.fill",
+                            iconColor: .blue,
+                            title: "标签管理",
+                            subtitle: "自定义症状、诱因、药物标签"
+                        )
+                    }
+                    
+                    NavigationLink {
                         FeatureSettingsView()
                     } label: {
                         SettingRow(
                             icon: "slider.horizontal.3",
                             iconColor: .purple,
-                            title: "功能配置",
-                            subtitle: "自定义应用功能"
+                            title: "个性化配置",
+                            subtitle: "定制专属体验"
                         )
                     }
                     
@@ -110,8 +121,8 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "bell.fill",
                             iconColor: .orange,
-                            title: "提醒设置",
-                            subtitle: "用药提醒和疗效评估"
+                            title: "智能提醒",
+                            subtitle: "按时用药评估"
                         )
                     }
                 } header: {
@@ -126,8 +137,8 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "info.circle.fill",
                             iconColor: .gray,
-                            title: "关于",
-                            subtitle: "版本信息和使用指南"
+                            title: "关于应用",
+                            subtitle: "版本与帮助"
                         )
                     }
                 } header: {
@@ -148,7 +159,14 @@ struct SettingRow: View {
     let icon: String
     let iconColor: Color
     let title: String
-    let subtitle: String
+    let subtitle: String?
+    
+    init(icon: String, iconColor: Color, title: String, subtitle: String? = nil) {
+        self.icon = icon
+        self.iconColor = iconColor
+        self.title = title
+        self.subtitle = subtitle
+    }
     
     var body: some View {
         HStack(spacing: AppSpacing.medium) {
@@ -157,15 +175,19 @@ struct SettingRow: View {
                 .foregroundStyle(iconColor)
                 .frame(width: 28)
             
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.body)
+                    .font(.body.weight(.medium))
                     .foregroundColor(AppColors.textPrimary)
                 
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                if let subtitle = subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundColor(AppColors.textTertiary)
+                }
             }
+            
+            Spacer()
         }
     }
 }

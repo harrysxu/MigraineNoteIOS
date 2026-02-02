@@ -10,27 +10,27 @@ import Foundation
 
 @Model
 final class AttackRecord {
-    // 主键
-    @Attribute(.unique) var id: UUID
+    // 主键（CloudKit 不支持 unique，需移除约束）
+    var id: UUID = UUID()
     
     // 时间信息
-    var startTime: Date
+    var startTime: Date = Date()
     var endTime: Date?
     
     // 疼痛评估
-    var painIntensity: Int // 0-10 VAS评分
-    var painLocation: [String] // ["left_temple", "right_temple", "forehead"]
-    var painQuality: [String] // 疼痛性质的原始值
+    var painIntensity: Int = 0 // 0-10 VAS评分
+    var painLocation: [String] = []
+    var painQuality: [String] = []
     
     // 先兆
-    var hasAura: Bool
-    var auraTypes: [String] // 先兆类型的原始值
-    var auraDuration: TimeInterval? // 分钟
+    var hasAura: Bool = false
+    var auraTypes: [String] = []
+    var auraDuration: TimeInterval?
     
-    // 关系
-    @Relationship(deleteRule: .cascade) var symptoms: [Symptom]
-    @Relationship(deleteRule: .cascade) var triggers: [Trigger]
-    @Relationship(deleteRule: .cascade) var medications: [MedicationLog]
+    // 关系（CloudKit 要求关系必须可选，使用 Data 后缀存储，computed 提供便捷访问）
+    @Relationship(deleteRule: .cascade) var symptomsData: [Symptom]?
+    @Relationship(deleteRule: .cascade) var triggersData: [Trigger]?
+    @Relationship(deleteRule: .cascade) var medicationsData: [MedicationLog]?
     @Relationship(deleteRule: .cascade) var weatherSnapshot: WeatherSnapshot?
     
     // 生理数据（来自HealthKit）
@@ -40,26 +40,32 @@ final class AttackRecord {
     
     // 元数据
     var notes: String?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     
     // 中医相关
-    var tcmPattern: [String] // 中医证候的原始值
+    var tcmPattern: [String] = []
+    
+    // 非药物干预
+    var nonPharmInterventionList: [String] = []
+    
+    // CloudKit 兼容：关系便捷访问（保持 API 一致）
+    var symptoms: [Symptom] {
+        get { symptomsData ?? [] }
+        set { symptomsData = newValue }
+    }
+    var triggers: [Trigger] {
+        get { triggersData ?? [] }
+        set { triggersData = newValue }
+    }
+    var medications: [MedicationLog] {
+        get { medicationsData ?? [] }
+        set { medicationsData = newValue }
+    }
     
     init(startTime: Date = Date()) {
         self.id = UUID()
         self.startTime = startTime
-        self.painIntensity = 0
-        self.painLocation = []
-        self.painQuality = []
-        self.hasAura = false
-        self.auraTypes = []
-        self.symptoms = []
-        self.triggers = []
-        self.medications = []
-        self.tcmPattern = []
-        self.createdAt = Date()
-        self.updatedAt = Date()
     }
     
     // 计算属性
