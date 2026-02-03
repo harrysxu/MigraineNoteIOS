@@ -18,7 +18,7 @@ class AttackListViewModel {
     var searchText: String = ""
     
     /// 筛选选项
-    var filterOption: FilterOption = .all
+    var filterOption: FilterOption = .thisMonth
     
     /// 排序选项
     var sortOption: SortOption = .dateDescending
@@ -32,18 +32,18 @@ class AttackListViewModel {
     // MARK: - Enums
     
     enum FilterOption: String, CaseIterable {
-        case all = "全部"
-        case thisWeek = "本周"
         case thisMonth = "本月"
         case last3Months = "近3个月"
+        case last6Months = "近6个月"
+        case lastYear = "近1年"
         case custom = "自定义"
         
         var systemImage: String {
             switch self {
-            case .all: return "calendar"
-            case .thisWeek: return "calendar.badge.clock"
             case .thisMonth: return "calendar.circle"
             case .last3Months: return "calendar.badge.plus"
+            case .last6Months: return "calendar.badge.clock"
+            case .lastYear: return "calendar"
             case .custom: return "calendar.badge.exclamationmark"
             }
         }
@@ -120,13 +120,6 @@ class AttackListViewModel {
         let now = Date()
         
         switch filterOption {
-        case .all:
-            return attacks
-            
-        case .thisWeek:
-            let weekAgo = calendar.date(byAdding: .day, value: -7, to: now)!
-            return attacks.filter { $0.startTime >= weekAgo }
-            
         case .thisMonth:
             let monthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
             return attacks.filter { $0.startTime >= monthAgo }
@@ -134,6 +127,14 @@ class AttackListViewModel {
         case .last3Months:
             let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!
             return attacks.filter { $0.startTime >= threeMonthsAgo }
+            
+        case .last6Months:
+            let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now)!
+            return attacks.filter { $0.startTime >= sixMonthsAgo }
+            
+        case .lastYear:
+            let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now)!
+            return attacks.filter { $0.startTime >= oneYearAgo }
             
         case .custom:
             if let dateRange = selectedDateRange {
@@ -165,7 +166,7 @@ class AttackListViewModel {
     /// 重置所有筛选
     func resetFilters() {
         searchText = ""
-        filterOption = .all
+        filterOption = .thisMonth
         sortOption = .dateDescending
         selectedIntensityRange = nil
         selectedDateRange = nil

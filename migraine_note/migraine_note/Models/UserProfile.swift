@@ -25,10 +25,6 @@ final class UserProfile {
     var enableWeatherTracking: Bool = true
     var preferredPainScaleRawValue: String = PainScale.numeric.rawValue
     
-    // 提醒设置
-    var medicationRemindersData: Data?
-    var efficacyCheckReminder: Bool = true
-    
     // 隐私设置
     var requireBiometricAuth: Bool = false
     
@@ -49,16 +45,6 @@ final class UserProfile {
         get { PainScale(rawValue: preferredPainScaleRawValue) ?? .numeric }
         set { preferredPainScaleRawValue = newValue.rawValue }
     }
-    
-    var medicationReminders: [MedicationReminder] {
-        get {
-            guard let data = medicationRemindersData else { return [] }
-            return (try? JSONDecoder().decode([MedicationReminder].self, from: data)) ?? []
-        }
-        set {
-            medicationRemindersData = try? JSONEncoder().encode(newValue)
-        }
-    }
 }
 
 enum Gender: String, Codable, CaseIterable {
@@ -70,15 +56,4 @@ enum Gender: String, Codable, CaseIterable {
 enum PainScale: String, Codable, CaseIterable {
     case numeric = "数字评分(NRS)"
     case visual = "视觉模拟(VAS)"
-}
-
-struct MedicationReminder: Codable, Identifiable {
-    var id: UUID = UUID()
-    var medicationName: String
-    var time: Date
-    var repeatDaily: Bool
-    
-    var timeString: String {
-        return time.shortTime()
-    }
 }

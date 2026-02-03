@@ -262,10 +262,20 @@ class LabelManager {
         subcategory: String? = nil,
         context: ModelContext
     ) throws {
+        // 验证标签名称长度
+        let trimmedName = displayName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            throw LabelError.invalidName
+        }
+        
+        guard trimmedName.count <= 10 else {
+            throw LabelError.nameTooLong
+        }
+        
         // 检查是否已存在同名标签
         let existingLabels = fetchLabels(category: category, subcategory: subcategory, includeHidden: true, context: context)
         
-        if existingLabels.contains(where: { $0.displayName == displayName }) {
+        if existingLabels.contains(where: { $0.displayName == trimmedName }) {
             throw LabelError.duplicateName
         }
         
@@ -274,8 +284,8 @@ class LabelManager {
         
         let newLabel = CustomLabelConfig(
             category: category.rawValue,
-            labelKey: displayName, // 自定义标签使用显示名称作为 key
-            displayName: displayName,
+            labelKey: trimmedName, // 自定义标签使用显示名称作为 key
+            displayName: trimmedName,
             isDefault: false,
             subcategory: subcategory,
             sortOrder: maxSortOrder + 1
@@ -325,6 +335,16 @@ class LabelManager {
             throw LabelError.cannotEditDefault
         }
         
+        // 验证新名称长度
+        let trimmedName = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else {
+            throw LabelError.invalidName
+        }
+        
+        guard trimmedName.count <= 10 else {
+            throw LabelError.nameTooLong
+        }
+        
         // 检查新名称是否已存在
         let existingLabels = fetchLabels(
             category: LabelCategory(rawValue: label.category)!,
@@ -333,12 +353,12 @@ class LabelManager {
             context: context
         )
         
-        if existingLabels.contains(where: { $0.displayName == newName && $0.id != label.id }) {
+        if existingLabels.contains(where: { $0.displayName == trimmedName && $0.id != label.id }) {
             throw LabelError.duplicateName
         }
         
-        label.displayName = newName
-        label.labelKey = newName
+        label.displayName = trimmedName
+        label.labelKey = trimmedName
         label.updatedAt = Date()
         try context.save()
     }
@@ -350,6 +370,8 @@ enum LabelError: LocalizedError {
     case duplicateName
     case cannotDeleteDefault
     case cannotEditDefault
+    case invalidName
+    case nameTooLong
     
     var errorDescription: String? {
         switch self {
@@ -359,6 +381,10 @@ enum LabelError: LocalizedError {
             return "默认标签不能删除，只能隐藏"
         case .cannotEditDefault:
             return "默认标签不能修改"
+        case .invalidName:
+            return "标签名称无效"
+        case .nameTooLong:
+            return "标签名称过长，最多10个字符"
         }
     }
 }

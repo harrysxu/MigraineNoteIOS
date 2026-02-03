@@ -20,6 +20,10 @@ struct AddCustomLabelChip: View {
     @State private var labelName = ""
     @State private var errorMessage: String?
     
+    // 标签长度限制
+    private let maxLabelLength = 10
+    private let minLabelLength = 1
+    
     var body: some View {
         Button {
             showingAddSheet = true
@@ -60,7 +64,7 @@ struct AddCustomLabelChip: View {
                     Text("添加自定义\(categoryDisplayName)")
                         .font(.headline)
                     
-                    Text("输入标签名称，方便下次快速选择")
+                    Text("输入标签名称(\(minLabelLength)-\(maxLabelLength)个字符)，方便下次快速选择")
                         .font(.subheadline)
                         .foregroundStyle(Color.textSecondary)
                         .multilineTextAlignment(.center)
@@ -72,18 +76,35 @@ struct AddCustomLabelChip: View {
                     TextField("标签名称", text: $labelName)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
-                        .onChange(of: labelName) { _, _ in
+                        .onChange(of: labelName) { _, newValue in
+                            // 限制输入长度
+                            if newValue.count > maxLabelLength {
+                                labelName = String(newValue.prefix(maxLabelLength))
+                            }
                             errorMessage = nil
                         }
                     
-                    if let error = errorMessage {
-                        HStack(spacing: 6) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.caption)
-                            Text(error)
-                                .font(.caption)
+                    // 字符计数提示
+                    HStack {
+                        if let error = errorMessage {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.caption)
+                                Text(error)
+                                    .font(.caption)
+                            }
+                            .foregroundStyle(Color.statusError)
                         }
-                        .foregroundStyle(Color.statusError)
+                        
+                        Spacer()
+                        
+                        Text("\(labelName.count)/\(maxLabelLength)")
+                            .font(.caption)
+                            .foregroundStyle(
+                                labelName.count >= maxLabelLength
+                                    ? Color.statusWarning
+                                    : Color.textSecondary
+                            )
                     }
                 }
                 .padding(.horizontal)
@@ -125,8 +146,20 @@ struct AddCustomLabelChip: View {
     private func addLabel() {
         let trimmedName = labelName.trimmingCharacters(in: .whitespaces)
         
+        // 验证标签名称不能为空
         guard !trimmedName.isEmpty else {
             errorMessage = "标签名称不能为空"
+            return
+        }
+        
+        // 验证标签长度
+        guard trimmedName.count >= minLabelLength else {
+            errorMessage = "标签名称至少需要\(minLabelLength)个字符"
+            return
+        }
+        
+        guard trimmedName.count <= maxLabelLength else {
+            errorMessage = "标签名称不能超过\(maxLabelLength)个字符"
             return
         }
         
@@ -152,6 +185,10 @@ struct AddCustomLabelChip: View {
                 switch labelError {
                 case .duplicateName:
                     errorMessage = "该标签已存在"
+                case .nameTooLong:
+                    errorMessage = "标签名称过长，最多\(maxLabelLength)个字符"
+                case .invalidName:
+                    errorMessage = "标签名称无效"
                 case .cannotDeleteDefault, .cannotEditDefault:
                     errorMessage = "操作失败"
                 }

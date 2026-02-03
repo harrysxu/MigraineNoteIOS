@@ -154,13 +154,53 @@ struct MedicationDetailView: View {
     
     private var basicInfoCard: some View {
         DetailCard(title: "基本信息", icon: "info.circle") {
-            VStack(spacing: AppSpacing.small) {
-                InfoRow(label: "药物类别", value: medication.category.rawValue)
-                InfoRow(label: "用药类型", value: medication.isAcute ? "急性用药" : "预防性用药")
-                InfoRow(label: "标准剂量", value: String(format: "%.1f %@", medication.standardDosage, medication.unit))
+            VStack(spacing: AppSpacing.medium) {
+                // 药物类别和类型
+                HStack(spacing: AppSpacing.medium) {
+                    InfoPill(
+                        label: "药物类别",
+                        value: medication.category.rawValue,
+                        icon: "pills",
+                        color: AppColors.primary
+                    )
+                    
+                    InfoPill(
+                        label: "用药类型",
+                        value: medication.isAcute ? "急性用药" : "预防性用药",
+                        icon: medication.isAcute ? "bolt.fill" : "shield.fill",
+                        color: medication.isAcute ? AppColors.warning : AppColors.info
+                    )
+                }
                 
-                if let limit = medication.monthlyLimit {
-                    InfoRow(label: "月度限制", value: "\(limit) 天")
+                Divider()
+                
+                // 剂量和限制
+                VStack(spacing: AppSpacing.small) {
+                    HStack {
+                        Label("标准剂量", systemImage: "scalemass")
+                            .appFont(.subheadline)
+                            .foregroundStyle(AppColors.textSecondary)
+                        
+                        Spacer()
+                        
+                        Text(String(format: "%.1f %@", medication.standardDosage, medication.unit))
+                            .appFont(.headline)
+                            .foregroundStyle(AppColors.textPrimary)
+                    }
+                    
+                    if let limit = medication.monthlyLimit {
+                        HStack {
+                            Label("月度限制", systemImage: "calendar.badge.exclamationmark")
+                                .appFont(.subheadline)
+                                .foregroundStyle(AppColors.textSecondary)
+                            
+                            Spacer()
+                            
+                            Text("\(limit) 天")
+                                .appFont(.headline)
+                                .foregroundStyle(AppColors.textPrimary)
+                        }
+                    }
                 }
             }
         }
@@ -170,34 +210,31 @@ struct MedicationDetailView: View {
     
     private var usageStatsCard: some View {
         DetailCard(title: "使用统计", icon: "chart.bar") {
-            HStack(spacing: AppSpacing.large) {
-                StatItem(
-                    title: "本月使用",
-                    value: "\(monthlyUsageDays)",
-                    icon: "calendar",
-                    color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? AppColors.error : AppColors.primary,
-                    subtitle: "天"
-                )
-                
-                Divider()
-                
-                StatItem(
-                    title: "总使用",
-                    value: "\(totalUsageCount)",
-                    icon: "number",
-                    color: AppColors.info,
-                    subtitle: "次"
-                )
-                
-                if let avgEffectiveness = averageEffectiveness {
-                    Divider()
+            VStack(spacing: AppSpacing.medium) {
+                // 本月使用和总使用
+                HStack(spacing: AppSpacing.medium) {
+                    EnhancedStatItem(
+                        title: "本月使用",
+                        value: "\(monthlyUsageDays)",
+                        icon: "calendar",
+                        color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? AppColors.error : AppColors.primary,
+                        subtitle: "天"
+                    )
                     
-                    StatItem(
-                        title: "平均疗效",
-                        value: String(format: "%.1f", avgEffectiveness),
-                        icon: "star.fill",
-                        color: effectivenessColor(avgEffectiveness),
-                        subtitle: "/ 5.0"
+                    EnhancedStatItem(
+                        title: "总使用",
+                        value: "\(totalUsageCount)",
+                        icon: "number",
+                        color: AppColors.info,
+                        subtitle: "次"
+                    )
+                }
+                
+                // 平均疗效（如果有数据）
+                if let avgEffectiveness = averageEffectiveness {
+                    EffectivenessCard(
+                        value: avgEffectiveness,
+                        color: effectivenessColor(avgEffectiveness)
                     )
                 }
             }
@@ -212,80 +249,102 @@ struct MedicationDetailView: View {
         let isApproaching = monthlyUsageDays >= limit - 3 && !isExceeding
         
         return DetailCard(
-            title: "MOH风险",
+            title: "MOH 风险",
             icon: "exclamationmark.triangle.fill"
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
-                // 进度条
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("\(monthlyUsageDays) / \(limit) 天")
-                            .appFont(.headline)
-                            .foregroundStyle(AppColors.textPrimary)
-                        Spacer()
+                // 使用天数显示
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(monthlyUsageDays)")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundStyle(mohRiskColor(progress))
+                    
+                    Text("/ \(limit) 天")
+                        .appFont(.title3)
+                        .foregroundStyle(AppColors.textSecondary)
+                    
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 2) {
                         Text("\(Int(progress * 100))%")
+                            .font(.system(size: 24, weight: .semibold, design: .rounded))
+                            .foregroundStyle(mohRiskColor(progress))
+                        
+                        Text("使用率")
                             .appFont(.caption)
                             .foregroundStyle(AppColors.textSecondary)
                     }
-                    
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(AppColors.surfaceElevated)
-                                .frame(height: 8)
-                            
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(
-                                    LinearGradient(
-                                        colors: progressGradientColors(progress),
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
-                                .frame(
-                                    width: min(geometry.size.width * progress, geometry.size.width),
-                                    height: 8
-                                )
-                        }
-                    }
-                    .frame(height: 8)
                 }
                 
-                // 警告信息
-                if isExceeding {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.error)
-                        Text("已超过MOH阈值，请咨询医生")
-                            .appFont(.caption)
-                            .foregroundStyle(AppColors.error)
-                    }
-                    .padding(AppSpacing.small)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.error.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
-                } else if isApproaching {
-                    HStack(spacing: 6) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.warning)
-                        Text("接近MOH阈值，请注意控制用药频率")
-                            .appFont(.caption)
-                            .foregroundStyle(AppColors.warning)
-                    }
-                    .padding(AppSpacing.small)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.warning.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
-                } else {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppColors.success)
-                        Text("用药频率正常")
-                            .appFont(.caption)
-                            .foregroundStyle(AppColors.success)
+                // 进度条
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        // 背景
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(AppColors.surfaceElevated)
+                            .frame(height: 12)
+                        
+                        // 进度
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(
+                                LinearGradient(
+                                    colors: progressGradientColors(progress),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(
+                                width: min(geometry.size.width * progress, geometry.size.width),
+                                height: 12
+                            )
                     }
                 }
+                .frame(height: 12)
+                
+                // 状态提示
+                HStack(spacing: 8) {
+                    if isExceeding {
+                        Image(systemName: "exclamationmark.octagon.fill")
+                            .foregroundStyle(AppColors.error)
+                    } else if isApproaching {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(AppColors.warning)
+                    } else {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(AppColors.success)
+                    }
+                    
+                    Text(mohRiskMessage(isExceeding: isExceeding, isApproaching: isApproaching))
+                        .appFont(.subheadline)
+                        .foregroundStyle(mohRiskColor(progress))
+                    
+                    Spacer()
+                }
+                .padding(AppSpacing.small)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(mohRiskColor(progress).opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
             }
+        }
+    }
+    
+    private func mohRiskColor(_ progress: Double) -> Color {
+        if progress >= 1.0 {
+            return AppColors.error
+        } else if progress >= 0.8 {
+            return AppColors.warning
+        } else {
+            return AppColors.success
+        }
+    }
+    
+    private func mohRiskMessage(isExceeding: Bool, isApproaching: Bool) -> String {
+        if isExceeding {
+            return "已超过 MOH 阈值，请咨询医生"
+        } else if isApproaching {
+            return "接近 MOH 阈值，请注意控制用药频率"
+        } else {
+            return "用药频率正常"
         }
     }
     
@@ -293,45 +352,78 @@ struct MedicationDetailView: View {
     
     private var inventoryCard: some View {
         DetailCard(title: "库存管理", icon: "shippingbox") {
-            HStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("当前库存")
-                        .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
-                    
-                    HStack(spacing: 8) {
-                        Text("\(medication.inventory)")
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundStyle(inventoryColor)
+            VStack(spacing: AppSpacing.medium) {
+                // 库存显示
+                HStack(spacing: AppSpacing.large) {
+                    // 左侧库存信息
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("当前库存")
+                            .appFont(.subheadline)
+                            .foregroundStyle(AppColors.textSecondary)
                         
-                        if medication.inventory <= 5 && medication.inventory > 0 {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(AppColors.warning)
-                        } else if medication.inventory == 0 {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(AppColors.error)
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("\(medication.inventory)")
+                                .font(.system(size: 48, weight: .bold, design: .rounded))
+                                .foregroundStyle(inventoryColor)
+                            
+                            Text("片")
+                                .appFont(.title3)
+                                .foregroundStyle(AppColors.textSecondary)
                         }
                     }
                     
-                    if medication.inventory <= 5 {
-                        Text(medication.inventory == 0 ? "库存已用完" : "库存不足，请及时补充")
-                            .appFont(.caption)
-                            .foregroundStyle(medication.inventory == 0 ? AppColors.error : AppColors.warning)
+                    Spacer()
+                    
+                    // 右侧状态图标
+                    VStack(spacing: 8) {
+                        if medication.inventory == 0 {
+                            Image(systemName: "exclamationmark.octagon.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(AppColors.error)
+                        } else if medication.inventory <= 5 {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(AppColors.warning)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(AppColors.success.opacity(0.5))
+                        }
                     }
                 }
                 
-                Spacer()
+                // 警告信息和操作按钮
+                if medication.inventory <= 5 {
+                    HStack(spacing: 8) {
+                        Image(systemName: medication.inventory == 0 ? "xmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(medication.inventory == 0 ? AppColors.error : AppColors.warning)
+                        
+                        Text(medication.inventory == 0 ? "库存已用完，请及时补充" : "库存不足，建议补充")
+                            .appFont(.subheadline)
+                            .foregroundStyle(medication.inventory == 0 ? AppColors.error : AppColors.warning)
+                        
+                        Spacer()
+                    }
+                    .padding(AppSpacing.small)
+                    .background((medication.inventory == 0 ? AppColors.error : AppColors.warning).opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                }
                 
+                // 调整按钮
                 Button {
                     showingInventorySheet = true
                 } label: {
-                    Label("调整", systemImage: "slider.horizontal.3")
-                        .appFont(.body)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.small)
-                        .background(AppColors.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                    HStack {
+                        Image(systemName: "slider.horizontal.3")
+                        Text("调整库存")
+                            .appFont(.body)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, AppSpacing.small)
+                    .background(AppColors.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
                 }
             }
         }
@@ -361,10 +453,23 @@ struct MedicationDetailView: View {
     
     private func notesCard(_ notes: String) -> some View {
         DetailCard(title: "备注", icon: "note.text") {
-            Text(notes)
-                .appFont(.body)
-                .foregroundStyle(AppColors.textPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(alignment: .top, spacing: AppSpacing.small) {
+                Image(systemName: "quote.opening")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                
+                Text(notes)
+                    .appFont(.body)
+                    .foregroundStyle(AppColors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Image(systemName: "quote.closing")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+            }
+            .padding(AppSpacing.small)
+            .background(AppColors.surfaceElevated)
+            .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
         }
     }
     
@@ -413,30 +518,70 @@ struct UsageHistoryRow: View {
     let log: MedicationLog
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(log.takenAt.fullDateTime())
+        HStack(spacing: AppSpacing.medium) {
+            // 左侧时间标记
+            VStack(spacing: 4) {
+                Text(log.takenAt.formatted(.dateTime.month(.abbreviated).day()))
+                    .appFont(.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+                
+                Text(log.takenAt.formatted(.dateTime.hour().minute()))
+                    .appFont(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.textPrimary)
+            }
+            .frame(width: 50)
+            
+            // 分隔线
+            Rectangle()
+                .fill(AppColors.divider)
+                .frame(width: 2)
+            
+            // 中间信息
+            VStack(alignment: .leading, spacing: 6) {
+                // 剂量
+                Text(log.dosageString)
                     .appFont(.body)
+                    .fontWeight(.medium)
                     .foregroundStyle(AppColors.textPrimary)
                 
+                // 疗效
                 if let effectiveness = log.effectiveness {
                     HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                            .font(.caption)
+                        ForEach(0..<effectivenessStars(effectiveness), id: \.self) { _ in
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundStyle(effectivenessColor(effectiveness))
+                        }
+                        
                         Text(effectiveness.rawValue)
                             .appFont(.caption)
+                            .foregroundStyle(effectivenessColor(effectiveness))
                     }
-                    .foregroundStyle(effectivenessColor(effectiveness))
                 }
             }
             
             Spacer()
             
-            Text(log.dosageString)
-                .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+            // 右侧指示器
+            Circle()
+                .fill(log.effectiveness != nil ? effectivenessColor(log.effectiveness!) : AppColors.textSecondary.opacity(0.3))
+                .frame(width: 8, height: 8)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, AppSpacing.small)
+        .padding(.horizontal, AppSpacing.small)
+        .background(AppColors.surfaceElevated)
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+    }
+    
+    private func effectivenessStars(_ effectiveness: MedicationLog.Effectiveness) -> Int {
+        switch effectiveness {
+        case .excellent: return 5
+        case .good: return 4
+        case .moderate: return 3
+        case .poor: return 2
+        case .none: return 1
+        }
     }
     
     private func effectivenessColor(_ effectiveness: MedicationLog.Effectiveness) -> Color {
@@ -524,6 +669,145 @@ struct InventoryAdjustmentSheet: View {
         medication.inventory = newInventory
         try? modelContext.save()
         dismiss()
+    }
+}
+
+// MARK: - Info Pill Component
+
+struct InfoPill: View {
+    let label: String
+    let value: String
+    let icon: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(color)
+            
+            Text(value)
+                .appFont(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColors.textPrimary)
+            
+            Text(label)
+                .appFont(.caption)
+                .foregroundStyle(AppColors.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppSpacing.medium)
+        .background(color.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
+    }
+}
+
+// MARK: - Enhanced Stat Item
+
+struct EnhancedStatItem: View {
+    let title: String
+    let value: String
+    let icon: String
+    let color: Color
+    let subtitle: String
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption)
+                    .foregroundStyle(color)
+                
+                Text(title)
+                    .appFont(.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+            
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(color)
+                
+                Text(subtitle)
+                    .appFont(.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(AppSpacing.medium)
+        .background(color.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
+    }
+}
+
+// MARK: - Effectiveness Card
+
+struct EffectivenessCard: View {
+    let value: Double
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: AppSpacing.medium) {
+            // 星星图标
+            ZStack {
+                Circle()
+                    .fill(color.opacity(0.2))
+                    .frame(width: 56, height: 56)
+                
+                Image(systemName: "star.fill")
+                    .font(.title2)
+                    .foregroundStyle(color)
+            }
+            
+            // 疗效信息
+            VStack(alignment: .leading, spacing: 4) {
+                Text("平均疗效")
+                    .appFont(.subheadline)
+                    .foregroundStyle(AppColors.textSecondary)
+                
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(String(format: "%.1f", value))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundStyle(color)
+                    
+                    Text("/ 5.0")
+                        .appFont(.body)
+                        .foregroundStyle(AppColors.textSecondary)
+                }
+            }
+            
+            Spacer()
+            
+            // 星级显示
+            VStack(alignment: .trailing, spacing: 4) {
+                HStack(spacing: 2) {
+                    ForEach(0..<5) { index in
+                        Image(systemName: Double(index) < value ? "star.fill" : "star")
+                            .font(.caption)
+                            .foregroundStyle(color)
+                    }
+                }
+                
+                Text(effectivenessLabel)
+                    .appFont(.caption)
+                    .foregroundStyle(color)
+            }
+        }
+        .padding(AppSpacing.medium)
+        .background(color.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
+    }
+    
+    private var effectivenessLabel: String {
+        if value >= 4.5 {
+            return "非常有效"
+        } else if value >= 3.5 {
+            return "较为有效"
+        } else if value >= 2.5 {
+            return "一般"
+        } else {
+            return "效果不佳"
+        }
     }
 }
 

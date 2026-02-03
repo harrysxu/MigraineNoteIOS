@@ -189,13 +189,6 @@ struct DataExportView: View {
             .background(Color.backgroundPrimary.ignoresSafeArea())
             .navigationTitle("数据导出")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("关闭") {
-                        dismiss()
-                    }
-                }
-            }
             .sheet(isPresented: $showShareSheet) {
                 if let fileURL = exportFileURL {
                     ShareSheet(activityItems: [fileURL])

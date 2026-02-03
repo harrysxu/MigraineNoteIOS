@@ -301,21 +301,6 @@ struct ProfileView: View {
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
-                    
-                    Divider()
-                        .padding(.leading, 44)
-                    
-                    NavigationLink {
-                        NotificationSettingsView()
-                    } label: {
-                        SettingRow(
-                            icon: "bell.fill",
-                            iconColor: .orange,
-                            title: "智能提醒"
-                        )
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

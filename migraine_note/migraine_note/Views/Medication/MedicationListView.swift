@@ -31,22 +31,8 @@ struct MedicationListView: View {
                 }
             }
             .navigationTitle("药箱")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Menu {
-                        Picker("筛选", selection: $viewModel.selectedCategory) {
-                            ForEach(MedicationViewModel.MedicationCategoryFilter.allCases, id: \.self) { category in
-                                Label(category.rawValue, systemImage: category.systemImage)
-                                    .tag(category)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
-                            .foregroundStyle(AppColors.primary)
-                    }
-                }
-                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingAddSheet = true

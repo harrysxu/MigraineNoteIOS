@@ -161,11 +161,29 @@ struct AddTriggerLabelSheet: View {
     @State private var showError = false
     @State private var errorMessage = ""
     
+    // 标签长度限制
+    private let maxLabelLength = 10
+    
     var body: some View {
         NavigationStack {
             Form {
                 Section("标签信息") {
-                    TextField("诱因名称", text: $labelName)
+                    VStack(alignment: .leading, spacing: 4) {
+                        TextField("诱因名称", text: $labelName)
+                            .onChange(of: labelName) { _, newValue in
+                                // 限制输入长度
+                                if newValue.count > maxLabelLength {
+                                    labelName = String(newValue.prefix(maxLabelLength))
+                                }
+                            }
+                        
+                        HStack {
+                            Spacer()
+                            Text("\(labelName.count)/\(maxLabelLength)")
+                                .font(.caption)
+                                .foregroundColor(labelName.count >= maxLabelLength ? .orange : .secondary)
+                        }
+                    }
                     
                     Picker("分类", selection: $selectedCategory) {
                         ForEach(TriggerCategory.allCases, id: \.self) { category in
@@ -176,7 +194,7 @@ struct AddTriggerLabelSheet: View {
                 }
                 
                 Section {
-                    Text("添加后，该诱因将出现在记录流程的诱因选择界面。")
+                    Text("添加后，该诱因将出现在记录流程的诱因选择界面。标签长度限制为\(maxLabelLength)个字符。")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

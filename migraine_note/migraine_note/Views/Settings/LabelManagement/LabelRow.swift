@@ -81,12 +81,13 @@ struct LabelRow: View {
             TextField("新名称", text: $newName)
             Button("取消", role: .cancel) {}
             Button("确定") {
-                if !newName.trimmingCharacters(in: .whitespaces).isEmpty {
-                    onAction(.rename(newName: newName))
+                let trimmed = newName.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty && trimmed.count <= 10 {
+                    onAction(.rename(newName: trimmed))
                 }
             }
         } message: {
-            Text("请输入新的标签名称")
+            Text("请输入新的标签名称(最多10个字符)")
         }
     }
 }

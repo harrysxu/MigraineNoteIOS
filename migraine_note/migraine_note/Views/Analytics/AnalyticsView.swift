@@ -13,12 +13,12 @@ struct AnalyticsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
     
-    @State private var selectedTimeRange: TimeRange = .threeMonths
+    @State private var selectedTimeRange: TimeRange = .thisMonth
     @State private var selectedView: DataViewType = .analytics
     @State private var analyticsEngine: AnalyticsEngine
     @State private var mohDetector: MOHDetector
     @State private var calendarViewModel: CalendarViewModel?
-    @State private var showCustomDatePicker = false
+    @State private var showTimeRangeSheet = false
     @State private var customStartDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
     @State private var customEndDate = Date()
     @State private var showCSVShareSheet = false
@@ -76,18 +76,14 @@ struct AnalyticsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if selectedView == .analytics {
-                        Menu {
-                            Picker("时间范围", selection: $selectedTimeRange) {
-                                ForEach(TimeRange.allCases) { range in
-                                    Text(range.displayName).tag(range)
-                                }
-                            }
+                        Button {
+                            showTimeRangeSheet = true
                         } label: {
                             HStack(spacing: 4) {
                                 Text(selectedTimeRange.displayName)
                                     .font(.subheadline)
-                                Image(systemName: "chevron.down")
-                                    .font(.caption)
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                                    .font(.subheadline)
                             }
                             .foregroundStyle(Color.accentPrimary)
                         }
@@ -102,14 +98,11 @@ struct AnalyticsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showCustomDatePicker) {
-                CustomDateRangePickerView(
-                    startDate: $customStartDate,
-                    endDate: $customEndDate,
-                    onConfirm: {
-                        selectedTimeRange = .custom
-                        showCustomDatePicker = false
-                    }
+            .sheet(isPresented: $showTimeRangeSheet) {
+                TimeRangeSheetView(
+                    selectedTimeRange: $selectedTimeRange,
+                    customStartDate: $customStartDate,
+                    customEndDate: $customEndDate
                 )
             }
             .sheet(isPresented: $showCSVShareSheet) {
@@ -121,14 +114,6 @@ struct AnalyticsView: View {
                 Button("确定", role: .cancel) { }
             } message: {
                 Text(exportErrorMessage)
-            }
-            .onChange(of: selectedTimeRange) { oldValue, newValue in
-                if newValue == .custom {
-                    showCustomDatePicker = true
-                } else {
-                    // 当切换到非自定义选项时，关闭日期选择器
-                    showCustomDatePicker = false
-                }
             }
         }
         .onAppear {
@@ -906,8 +891,8 @@ struct AnalyticsView: View {
         // 根据时间范围确定要显示的月份数
         let monthsToShow: Int
         switch selectedTimeRange {
-        case .oneMonth:
-            monthsToShow = 3  // 1个月范围也显示3个月趋势
+        case .thisMonth:
+            monthsToShow = 3  // 本月范围也显示3个月趋势
         case .threeMonths:
             monthsToShow = 3
         case .sixMonths:
@@ -1144,22 +1129,32 @@ struct FrequencyRow: View {
 // MARK: - Supporting Types
 
 enum TimeRange: String, CaseIterable, Identifiable {
-    case oneMonth = "1个月"
-    case threeMonths = "3个月"
-    case sixMonths = "6个月"
-    case oneYear = "1年"
+    case thisMonth = "本月"
+    case threeMonths = "近3个月"
+    case sixMonths = "近6个月"
+    case oneYear = "近1年"
     case custom = "自定义"
     
     var id: String { rawValue }
     
     var displayName: String { rawValue }
     
+    var systemImage: String {
+        switch self {
+        case .thisMonth: return "calendar.circle"
+        case .threeMonths: return "calendar.badge.plus"
+        case .sixMonths: return "calendar.badge.clock"
+        case .oneYear: return "calendar"
+        case .custom: return "calendar.badge.exclamationmark"
+        }
+    }
+    
     func dateRange(customStart: Date? = nil, customEnd: Date? = nil) -> (Date, Date) {
         let calendar = Calendar.current
         let now = Date()
         
         switch self {
-        case .oneMonth:
+        case .thisMonth:
             let start = calendar.date(byAdding: .month, value: -1, to: now)!
             return (start, now)
         case .threeMonths:
@@ -1417,47 +1412,48 @@ struct CalendarDayCell: View {
     }
 }
 
-// MARK: - Custom Date Range Picker View
+// MARK: - Time Range Sheet View
 
-struct CustomDateRangePickerView: View {
-    @Binding var startDate: Date
-    @Binding var endDate: Date
-    let onConfirm: () -> Void
-    
+struct TimeRangeSheetView: View {
+    @Binding var selectedTimeRange: TimeRange
+    @Binding var customStartDate: Date
+    @Binding var customEndDate: Date
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
             Form {
-                Section("选择日期范围") {
-                    DatePicker("开始日期", 
-                               selection: $startDate, 
-                               displayedComponents: .date)
-                    DatePicker("结束日期", 
-                               selection: $endDate, 
-                               in: startDate...,
-                               displayedComponents: .date)
-                }
-                
-                Section {
-                    Text("从 \(startDate.formatted(date: .long, time: .omitted)) 到 \(endDate.formatted(date: .long, time: .omitted))")
-                        .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                Section("时间范围") {
+                    Picker("筛选", selection: $selectedTimeRange) {
+                        ForEach(TimeRange.allCases) { range in
+                            Label(range.displayName, systemImage: range.systemImage)
+                                .tag(range)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    
+                    // 自定义日期范围选择器
+                    if selectedTimeRange == .custom {
+                        VStack(spacing: AppSpacing.small) {
+                            DatePicker("开始日期", 
+                                       selection: $customStartDate, 
+                                       displayedComponents: .date)
+                            DatePicker("结束日期", 
+                                       selection: $customEndDate, 
+                                       displayedComponents: .date)
+                        }
+                        .padding(.vertical, AppSpacing.small)
+                    }
                 }
             }
-            .navigationTitle("自定义日期范围")
+            .navigationTitle("筛选和排序")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("完成") {
                         dismiss()
                     }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("确认") {
-                        onConfirm()
-                    }
+                    .foregroundStyle(AppColors.primary)
                 }
             }
         }

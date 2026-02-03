@@ -100,18 +100,6 @@ struct SettingsView: View {
                         )
                     }
                     .buttonStyle(.plain)
-                    
-                    NavigationLink {
-                        NotificationSettingsView()
-                    } label: {
-                        SettingRow(
-                            icon: "bell.fill",
-                            iconColor: .orange,
-                            title: "智能提醒",
-                            subtitle: "按时用药评估"
-                        )
-                    }
-                    .buttonStyle(.plain)
                 } header: {
                     Text("功能设置")
                 }
@@ -567,53 +555,6 @@ struct FeatureSettingsView: View {
 enum PainScoreStyle: String {
     case vas = "VAS"
     case nrs = "NRS"
-}
-
-// MARK: - 提醒设置
-
-struct NotificationSettingsView: View {
-    @State private var enableMedicationReminders = false
-    @State private var enableEffectivenessReminders = true
-    @State private var reminderTime = Date()
-    
-    var body: some View {
-        List {
-            Section {
-                InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
-                        Text("提醒功能")
-                            .font(.headline)
-                            .foregroundColor(AppColors.primary)
-                        Text("设置用药提醒和疗效评估提醒，帮助您按时用药并记录疗效。")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            
-            Section {
-                Toggle("预防性用药提醒", isOn: $enableMedicationReminders)
-                
-                if enableMedicationReminders {
-                    DatePicker("提醒时间", selection: $reminderTime, displayedComponents: .hourAndMinute)
-                }
-            } header: {
-                Text("用药提醒")
-            } footer: {
-                Text("每日固定时间提醒服用预防性用药")
-            }
-            
-            Section {
-                Toggle("服药后疗效评估", isOn: $enableEffectivenessReminders)
-            } header: {
-                Text("疗效评估提醒")
-            } footer: {
-                Text("服药2小时后提醒评估药物疗效")
-            }
-        }
-        .navigationTitle("提醒设置")
-        .navigationBarTitleDisplayMode(.inline)
-    }
 }
 
 // MARK: - 关于页面
