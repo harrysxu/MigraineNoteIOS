@@ -295,7 +295,7 @@ struct AccessibilityPreferences {
                 .foregroundColor(.white)
                 .padding()
                 .frame(maxWidth: .infinity)
-                .background(AppColors.primary)
+                .background(Color.primary)
                 .cornerRadius(12)
         }
         .accessibilityButton(
@@ -312,7 +312,7 @@ struct AccessibilityPreferences {
         ForEach([2, 5, 8], id: \.self) { intensity in
             HStack {
                 Circle()
-                    .fill(AppColors.painIntensityColor(for: intensity))
+                    .fill(Color.painIntensityColor(for: intensity))
                     .frame(width: 20, height: 20)
                     .colorBlindFriendlyPainIndicator(intensity: intensity)
                 

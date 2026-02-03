@@ -17,11 +17,11 @@ struct Step1_TimeView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("记录时间")
                     .font(.title2.weight(.bold))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text("记录发作的开始和结束时间")
                     .font(.subheadline)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             .padding(.horizontal, 4)
             
@@ -30,15 +30,15 @@ struct Step1_TimeView: View {
                 HStack(spacing: 16) {
                     Image(systemName: "clock.fill")
                         .font(.title2)
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                         .frame(width: 40, height: 40)
-                        .background(Color.accentPrimary.opacity(0.15))
+                        .background(Color.primary.opacity(0.15))
                         .clipShape(Circle())
                     
                     VStack(alignment: .leading, spacing: 8) {
                         Text("开始时间")
                             .font(.headline)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         DatePicker(
                             "选择开始时间",
@@ -55,7 +55,7 @@ struct Step1_TimeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("发作状态")
                     .font(.headline)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .padding(.horizontal, 4)
                 
                 HStack(spacing: 12) {
@@ -95,7 +95,7 @@ struct Step1_TimeView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("结束时间")
                                 .font(.headline)
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             
                             DatePicker(
                                 "选择结束时间",
@@ -116,10 +116,10 @@ struct Step1_TimeView: View {
                                     Text("持续 \(duration)")
                                 }
                                 .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
-                                .background(Color.accentPrimary.opacity(0.1))
+                                .background(Color.primary.opacity(0.1))
                                 .cornerRadius(8)
                             }
                         }
@@ -165,29 +165,23 @@ struct StatusToggle: View {
             VStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 28))
-                    .foregroundStyle(isSelected ? .white : Color.textSecondary)
+                    .foregroundStyle(isSelected ? .white : Color.labelSecondary)
                 
                 Text(title)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(isSelected ? .white : Color.textPrimary)
+                    .foregroundStyle(isSelected ? .white : Color.labelPrimary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
             .background(
                 isSelected ? 
-                    AnyShapeStyle(Color.primaryGradient) : 
+                    AnyShapeStyle(Color.primary) : 
                     AnyShapeStyle(Color.backgroundSecondary)
             )
             .cornerRadius(16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(isSelected ? Color.clear : Color.divider, lineWidth: 1)
-            )
-            .shadow(
-                color: isSelected ? Color.accentPrimary.opacity(0.3) : Color.clear,
-                radius: 8,
-                x: 0,
-                y: 4
+                    .stroke(isSelected ? Color.clear : Color.separator, lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

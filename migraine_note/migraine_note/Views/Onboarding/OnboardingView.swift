@@ -28,7 +28,7 @@ struct OnboardingView: View {
                             }
                         }
                         .font(.subheadline)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .padding()
                     }
                 } else {
@@ -65,25 +65,25 @@ struct WelcomePage: View {
             // 插画占位（使用SF Symbols模拟）
             ZStack {
                 Circle()
-                    .fill(Color.primaryGradient)
+                    .fill(Color.primary)
                     .frame(width: 200, height: 200)
                     .opacity(0.1)
                 
                 VStack(spacing: 16) {
                     Image(systemName: "book.pages.fill")
                         .font(.system(size: 80))
-                        .foregroundStyle(Color.primaryGradient)
+                        .foregroundStyle(Color.primary)
                     
                     // 装饰性元素
                     HStack(spacing: 12) {
                         Circle()
-                            .fill(Color.accentPrimary)
+                            .fill(Color.primary)
                             .frame(width: 8, height: 8)
                         Circle()
                             .fill(Color.accentSecondary)
                             .frame(width: 8, height: 8)
                         Circle()
-                            .fill(Color.warmAccent)
+                            .fill(Color.warning)
                             .frame(width: 8, height: 8)
                     }
                 }
@@ -92,7 +92,7 @@ struct WelcomePage: View {
             VStack(spacing: 16) {
                 Text("欢迎使用偏头痛记录")
                     .font(.title.bold())
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .multilineTextAlignment(.center)
                 
                 VStack(spacing: 8) {
@@ -153,7 +153,7 @@ struct PrivacyPage: View {
             VStack(spacing: 16) {
                 Text("您的数据，完全私密")
                     .font(.title.bold())
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 VStack(spacing: 12) {
                     PrivacyFeatureRow(
@@ -179,7 +179,7 @@ struct PrivacyPage: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("需要的权限（可选）")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .padding(.bottom, 4)
                     
                     PermissionRow(
@@ -213,7 +213,7 @@ struct ReadyPage: View {
             // 插画占位
             ZStack {
                 Circle()
-                    .fill(Color.warmAccent.opacity(0.1))
+                    .fill(Color.warning.opacity(0.1))
                     .frame(width: 200, height: 200)
                 
                 VStack(spacing: 16) {
@@ -236,25 +236,25 @@ struct ReadyPage: View {
             VStack(spacing: 16) {
                 Text("一切准备就绪")
                     .font(.title.bold())
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text("要现在开始第一次记录吗？")
                     .font(.body)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 // 提示卡片
                 EmotionalCard(style: .gentle) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
                             Image(systemName: "hand.point.right.fill")
-                                .foregroundStyle(Color.warmAccent)
+                                .foregroundStyle(Color.warning)
                             Text("快速开始")
                                 .font(.headline)
                         }
                         
                         Text("点击首页的\"轻触记录\"按钮\n即可开始您的第一次记录")
                             .font(.subheadline)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                             .lineSpacing(4)
                     }
                 }
@@ -281,9 +281,8 @@ struct ReadyPage: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding()
-                .background(Color.primaryGradient)
+                .background(Color.primary)
                 .cornerRadius(16)
-                .shadow(color: Color.accentPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 32)
@@ -302,12 +301,12 @@ struct FeatureRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.primary)
                 .frame(width: 32)
             
             Text(text)
                 .font(.body)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -326,7 +325,7 @@ struct PrivacyFeatureRow: View {
             
             Text(text)
                 .font(.body)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -340,12 +339,12 @@ struct PermissionRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
                 .frame(width: 24)
             
             Text(text)
                 .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

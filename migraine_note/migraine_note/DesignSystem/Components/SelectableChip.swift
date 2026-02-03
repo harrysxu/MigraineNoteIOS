@@ -35,12 +35,12 @@ struct SelectableChip: View {
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, Spacing.xs)
             .frame(minHeight: 32) // 确保足够的触摸目标高度
-            .background(isSelected ? Color.accentPrimary : Color.backgroundTertiary)
-            .foregroundStyle(isSelected ? .white : Color.textPrimary)
+            .background(isSelected ? Color.primary : Color.backgroundTertiary)
+            .foregroundStyle(isSelected ? .white : Color.labelPrimary)
             .cornerRadius(CornerRadius.sm)
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.sm)
-                    .stroke(isSelected ? Color.clear : Color.textTertiary.opacity(0.3), lineWidth: 1)
+                    .stroke(isSelected ? Color.clear : Color.labelTertiary.opacity(0.3), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

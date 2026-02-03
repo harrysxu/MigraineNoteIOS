@@ -32,13 +32,13 @@ struct SymptomLabelEditor: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppSpacing.large) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
                 // 说明卡片
                 InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         HStack {
                             Image(systemName: "info.circle.fill")
-                                .foregroundStyle(AppColors.primary)
+                                .foregroundStyle(Color.primary)
                             Text("症状标签管理")
                                 .font(.headline)
                         }
@@ -67,7 +67,7 @@ struct SymptomLabelEditor: View {
             }
             .padding(.vertical)
         }
-        .background(AppColors.backgroundPrimary)
+        .background(Color.backgroundPrimary)
         .overlay(alignment: .bottomTrailing) {
             // 添加按钮
             Button {
@@ -75,14 +75,14 @@ struct SymptomLabelEditor: View {
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 56))
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.primary)
                     .background(
                         Circle()
                             .fill(.white)
                             .frame(width: 40, height: 40)
                     )
             }
-            .padding(AppSpacing.large)
+            .padding(Spacing.lg)
         }
         .sheet(isPresented: $showAddSheet) {
             AddSymptomLabelSheet()
@@ -101,10 +101,10 @@ struct SymptomLabelEditor: View {
         labels: [CustomLabelConfig],
         subcategory: SymptomSubcategory
     ) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.primary)
                 Text(title)
                     .font(.headline)
                 Spacer()
@@ -114,7 +114,7 @@ struct SymptomLabelEditor: View {
             }
             .padding(.horizontal)
             
-            LazyVStack(spacing: AppSpacing.small) {
+            LazyVStack(spacing: Spacing.xs) {
                 ForEach(labels) { label in
                     LabelRow(label: label) { action in
                         handleLabelAction(label: label, action: action)

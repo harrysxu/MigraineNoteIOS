@@ -92,15 +92,15 @@ struct MedicationPickerSheet: View {
         VStack(spacing: 20) {
             Image(systemName: "pill.circle")
                 .font(.system(size: 80))
-                .foregroundStyle(Color.textSecondary.opacity(0.5))
+                .foregroundStyle(Color.labelSecondary.opacity(0.5))
             
             Text("药箱是空的")
                 .font(.title2.weight(.bold))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("请先在药箱中添加常用药物")
                 .font(.body)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 40)
@@ -125,12 +125,12 @@ struct MedicationPickerSheet: View {
                                 Text(category.rawValue)
                                     .font(.subheadline.weight(.medium))
                             }
-                            .foregroundStyle(selectedCategory == category ? .white : Color.textPrimary)
+                            .foregroundStyle(selectedCategory == category ? .white : Color.labelPrimary)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
                             .background(
                                 selectedCategory == category ?
-                                    Color.accentPrimary :
+                                    Color.primary :
                                     Color.backgroundSecondary
                             )
                             .cornerRadius(20)
@@ -167,15 +167,15 @@ struct MedicationPickerSheet: View {
         VStack(spacing: 16) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 50))
-                .foregroundStyle(Color.textSecondary.opacity(0.5))
+                .foregroundStyle(Color.labelSecondary.opacity(0.5))
             
             Text("未找到匹配的药物")
                 .font(.headline)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("尝试调整搜索或筛选条件")
                 .font(.body)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
         .padding(.top, 60)
     }
@@ -192,11 +192,11 @@ struct MedicationPickerSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(medication.name)
                                     .font(.title3.weight(.bold))
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.labelPrimary)
                                 
                                 Text(medication.category.rawValue)
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                             
                             Spacer()
@@ -214,7 +214,7 @@ struct MedicationPickerSheet: View {
                             Divider()
                             Text(notes)
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                     }
                 }
@@ -224,7 +224,7 @@ struct MedicationPickerSheet: View {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             Image(systemName: "pills.fill")
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                             Text("剂量")
                                 .font(.headline)
                         }
@@ -233,14 +233,14 @@ struct MedicationPickerSheet: View {
                             TextField("剂量", value: $dosage, format: .number)
                                 .keyboardType(.decimalPad)
                                 .font(.title2.weight(.medium))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                                 .padding(12)
                                 .background(Color.backgroundTertiary)
                                 .cornerRadius(8)
                             
                             Text(medication.unit)
                                 .font(.title3)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                                 .frame(width: 60, alignment: .leading)
                         }
                         
@@ -255,10 +255,10 @@ struct MedicationPickerSheet: View {
                                     Text("使用标准剂量：\(medication.standardDosage, specifier: "%.1f") \(medication.unit)")
                                         .font(.subheadline)
                                 }
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(Color.accentPrimary.opacity(0.1))
+                                .background(Color.primary.opacity(0.1))
                                 .cornerRadius(8)
                             }
                             .buttonStyle(.plain)
@@ -271,7 +271,7 @@ struct MedicationPickerSheet: View {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "clock.fill")
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                             Text("服用时间")
                                 .font(.headline)
                         }
@@ -340,28 +340,28 @@ struct MedicationPickerRow: View {
                 // 药物图标
                 Image(systemName: "pills.fill")
                     .font(.title2)
-                    .foregroundStyle(Color.accentPrimary)
+                    .foregroundStyle(Color.primary)
                     .frame(width: 44, height: 44)
-                    .background(Color.accentPrimary.opacity(0.15))
+                    .background(Color.primary.opacity(0.15))
                     .clipShape(Circle())
                 
                 // 药物信息
                 VStack(alignment: .leading, spacing: 4) {
                     Text(medication.name)
                         .font(.body.weight(.medium))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     HStack(spacing: 8) {
                         Text(medication.category.rawValue)
                             .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         if medication.standardDosage > 0 {
                             Text("•")
-                                .foregroundStyle(Color.textTertiary)
+                                .foregroundStyle(Color.labelTertiary)
                             Text("\(medication.standardDosage, specifier: "%.1f")\(medication.unit)")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                     }
                 }
@@ -371,7 +371,7 @@ struct MedicationPickerRow: View {
                 // 右侧箭头
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.labelTertiary)
             }
             .padding(16)
             .background(Color.backgroundSecondary)

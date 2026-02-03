@@ -31,14 +31,14 @@ struct ExportReportView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.large) {
+                VStack(alignment: .leading, spacing: Spacing.lg) {
                     
                     // 说明卡片
                     InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("医疗报告导出")
                                 .font(.headline)
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(Color.primary)
                             
                             Text("生成专业的PDF医疗报告,可供医生参考。报告包含发作统计、MOH评估、诱因分析和详细记录表格。")
                                 .font(.body)
@@ -47,10 +47,10 @@ struct ExportReportView: View {
                     }
                     
                     // 时间范围选择
-                    VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                    VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("选择时间范围")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.primary)
                         
                         Picker("时间范围", selection: $selectedTimeRange) {
                             ForEach(ExportTimeRange.allCases) { range in
@@ -60,36 +60,36 @@ struct ExportReportView: View {
                         .pickerStyle(.segmented)
                         
                         if selectedTimeRange == .custom {
-                            VStack(spacing: AppSpacing.small) {
+                            VStack(spacing: Spacing.xs) {
                                 DatePicker("开始日期", selection: $customStartDate, displayedComponents: .date)
                                 DatePicker("结束日期", selection: $customEndDate, displayedComponents: .date)
                             }
-                            .padding(AppSpacing.medium)
-                            .background(AppColors.surface)
-                            .cornerRadius(AppSpacing.cornerRadiusMedium)
+                            .padding(Spacing.md)
+                            .background(Color.backgroundSecondary)
+                            .cornerRadius(CornerRadius.md)
                         }
                     }
                     
                     // 数据预览
-                    VStack(alignment: .leading, spacing: AppSpacing.medium) {
+                    VStack(alignment: .leading, spacing: Spacing.md) {
                         Text("数据预览")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.primary)
                         
-                        VStack(spacing: AppSpacing.small) {
+                        VStack(spacing: Spacing.xs) {
                             PreviewRow(label: "发作次数", value: "\(filteredAttacks.count)次")
                             PreviewRow(label: "发作天数", value: "\(attackDaysCount)天")
                             PreviewRow(label: "平均强度", value: String(format: "%.1f/10", averagePainIntensity))
                             PreviewRow(label: "用药天数", value: "\(medicationDaysCount)天")
                         }
-                        .padding(AppSpacing.medium)
-                        .background(AppColors.surface)
-                        .cornerRadius(AppSpacing.cornerRadiusMedium)
+                        .padding(Spacing.md)
+                        .background(Color.backgroundSecondary)
+                        .cornerRadius(CornerRadius.md)
                     }
                     
                     // 错误提示
                     if let errorMessage = errorMessage {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Label("生成失败", systemImage: "exclamationmark.triangle.fill")
                                 .font(.headline)
                                 .foregroundColor(.red)
@@ -97,9 +97,9 @@ struct ExportReportView: View {
                                 .font(.body)
                                 .foregroundColor(.secondary)
                         }
-                        .padding(AppSpacing.medium)
+                        .padding(Spacing.md)
                         .background(Color.red.opacity(0.1))
-                        .cornerRadius(AppSpacing.cornerRadiusMedium)
+                        .cornerRadius(CornerRadius.md)
                     }
                     
                     // 生成按钮
@@ -116,7 +116,7 @@ struct ExportReportView: View {
                             .frame(maxWidth: .infinity, alignment: .center)
                     }
                 }
-                .padding(AppSpacing.large)
+                .padding(Spacing.lg)
             }
             .navigationTitle("导出医疗报告")
             .navigationBarTitleDisplayMode(.inline)

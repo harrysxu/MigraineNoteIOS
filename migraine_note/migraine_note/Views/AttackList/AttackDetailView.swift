@@ -21,10 +21,10 @@ struct AttackDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.background.ignoresSafeArea()
+                Color.backgroundPrimary.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: AppSpacing.large) {
+                    VStack(spacing: Spacing.lg) {
                         // 顶部卡片：疼痛概览
                         painOverviewCard
                         
@@ -64,7 +64,7 @@ struct AttackDetailView: View {
                             notesCard(notes)
                         }
                     }
-                    .padding(AppSpacing.medium)
+                    .padding(Spacing.md)
                 }
             }
             .navigationTitle("记录详情")
@@ -111,26 +111,26 @@ struct AttackDetailView: View {
     // MARK: - Pain Overview Card
     
     private var painOverviewCard: some View {
-        VStack(spacing: AppSpacing.medium) {
+        VStack(spacing: Spacing.md) {
             // 疼痛强度
             VStack(spacing: 8) {
                 Text("疼痛强度")
                     .appFont(.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(attack.painIntensity)")
                         .font(.system(size: 60, weight: .bold))
-                        .foregroundStyle(PainIntensity.from(attack.painIntensity).color)
+                        .foregroundStyle(Color.painIntensityColor(for: attack.painIntensity))
                     
                     Text("/10")
                         .appFont(.title3)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
                 
-                Text(PainIntensity.from(attack.painIntensity).description)
+                Text(Color.painIntensityDescription(for: attack.painIntensity))
                     .appFont(.body)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             Divider()
@@ -139,31 +139,30 @@ struct AttackDetailView: View {
             VStack(spacing: 4) {
                 Text("持续时间")
                     .appFont(.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 Text(formattedDuration)
                     .appFont(.title3)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(AppSpacing.large)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
-        .shadow(color: AppColors.shadowColor, radius: AppSpacing.shadowRadiusSmall)
+        .padding(Spacing.lg)
+        .background(Color.backgroundSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
     }
     
     // MARK: - Time Info Card
     
     private var timeDetailCard: some View {
         DetailCard(title: "时间信息", icon: "clock") {
-            VStack(spacing: AppSpacing.small) {
+            VStack(spacing: Spacing.xs) {
                 InfoRow(label: "开始时间", value: attack.startTime.fullDateTime())
                 
                 if let endTime = attack.endTime {
                     InfoRow(label: "结束时间", value: endTime.fullDateTime())
                 } else {
-                    InfoRow(label: "状态", value: "进行中", valueColor: AppColors.warning)
+                    InfoRow(label: "状态", value: "进行中", valueColor: Color.warning)
                 }
             }
         }
@@ -173,23 +172,23 @@ struct AttackDetailView: View {
     
     private var painDetailsCard: some View {
         DetailCard(title: "疼痛详情", icon: "exclamationmark.circle") {
-            VStack(spacing: AppSpacing.small) {
+            VStack(spacing: Spacing.xs) {
                 // 疼痛部位
                 if !attack.painLocations.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("疼痛部位")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         HStack(spacing: 8) {
                             ForEach(attack.painLocations, id: \.self) { location in
                                 Text(location.displayName)
                                     .appFont(.body)
-                                    .foregroundStyle(AppColors.textPrimary)
+                                    .foregroundStyle(Color.labelPrimary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(AppColors.primary.opacity(0.1))
-                                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                                    .background(Color.primary.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                             }
                         }
                     }
@@ -201,17 +200,17 @@ struct AttackDetailView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("疼痛性质")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         HStack(spacing: 8) {
                             ForEach(attack.painQualities, id: \.self) { quality in
                                 Text(quality.rawValue)
                                     .appFont(.body)
-                                    .foregroundStyle(AppColors.textPrimary)
+                                    .foregroundStyle(Color.labelPrimary)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(AppColors.surfaceElevated)
-                                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                                    .background(Color.backgroundTertiary)
+                                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                             }
                         }
                     }
@@ -225,21 +224,21 @@ struct AttackDetailView: View {
     
     private var symptomsCard: some View {
         DetailCard(title: "症状与先兆", icon: "waveform.path.ecg") {
-            VStack(alignment: .leading, spacing: AppSpacing.small) {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 // 先兆
                 if attack.hasAura {
                     HStack {
                         Image(systemName: "sparkles")
-                            .foregroundStyle(AppColors.warning)
+                            .foregroundStyle(Color.warning)
                         Text("有先兆")
                             .appFont(.body)
-                            .foregroundStyle(AppColors.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         Spacer()
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 12)
-                    .background(AppColors.warning.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                    .background(Color.warning.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                 }
                 
                 // 症状列表
@@ -247,22 +246,22 @@ struct AttackDetailView: View {
                     ForEach(attack.symptoms) { symptom in
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(AppColors.success)
+                                .foregroundStyle(Color.success)
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(symptom.name)
                                     .appFont(.body)
-                                    .foregroundStyle(AppColors.textPrimary)
+                                    .foregroundStyle(Color.labelPrimary)
                                 
                                 if let description = symptom.symptomDescription, !description.isEmpty {
                                     Text(description)
                                         .appFont(.caption)
-                                        .foregroundStyle(AppColors.textSecondary)
+                                        .foregroundStyle(Color.labelSecondary)
                                 }
                                 
                                 Text(symptom.category.rawValue)
                                     .appFont(.caption)
-                                    .foregroundStyle(AppColors.textTertiary)
+                                    .foregroundStyle(Color.labelTertiary)
                             }
                             
                             Spacer()
@@ -286,11 +285,11 @@ struct AttackDetailView: View {
                         Text(trigger.name)
                             .appFont(.body)
                     }
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(AppColors.warning.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                    .background(Color.warning.opacity(0.15))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                 }
             }
         }
@@ -300,7 +299,7 @@ struct AttackDetailView: View {
     
     private var medicationsCard: some View {
         DetailCard(title: "用药记录", icon: "pills.fill") {
-            VStack(spacing: AppSpacing.small) {
+            VStack(spacing: Spacing.xs) {
                 ForEach(attack.medicationLogs) { log in
                     MedicationLogRowView(log: log)
                 }
@@ -316,11 +315,11 @@ struct AttackDetailView: View {
                 ForEach(attack.nonPharmInterventions, id: \.self) { intervention in
                     Text(intervention.rawValue)
                         .appFont(.body)
-                        .foregroundStyle(AppColors.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(AppColors.success.opacity(0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                        .background(Color.success.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                 }
             }
         }
@@ -330,19 +329,19 @@ struct AttackDetailView: View {
     
     private func weatherCard(_ weather: WeatherSnapshot) -> some View {
         DetailCard(title: "天气状况", icon: "cloud.sun") {
-            VStack(spacing: AppSpacing.medium) {
+            VStack(spacing: Spacing.md) {
                 // 顶部：温度和天气状况
-                HStack(spacing: AppSpacing.medium) {
+                HStack(spacing: Spacing.md) {
                     // 温度显示
                     VStack(spacing: 4) {
                         Text("\(Int(weather.temperature))°C")
                             .font(.system(size: 48, weight: .bold))
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.primary)
                         
                         if !weather.condition.isEmpty {
                             Text(weather.condition)
                                 .appFont(.caption)
-                                .foregroundStyle(AppColors.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -359,7 +358,7 @@ struct AttackDetailView: View {
                                 Text(weather.location)
                                     .appFont(.body)
                             }
-                            .foregroundStyle(AppColors.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         }
                         
                         HStack(spacing: 4) {
@@ -368,7 +367,7 @@ struct AttackDetailView: View {
                             Text(weather.timestamp.shortTime())
                                 .appFont(.caption)
                         }
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -419,22 +418,22 @@ struct AttackDetailView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("⚠️ 环境风险提示")
                             .appFont(.subheadline)
-                            .foregroundStyle(AppColors.warning)
+                            .foregroundStyle(Color.warning)
                             .fontWeight(.semibold)
                         
                         ForEach(weather.warnings, id: \.self) { warning in
                             HStack(spacing: 8) {
                                 Image(systemName: "exclamationmark.circle.fill")
                                     .font(.caption)
-                                    .foregroundStyle(AppColors.warning)
+                                    .foregroundStyle(Color.warning)
                                 Text(warning)
                                     .appFont(.caption)
-                                    .foregroundStyle(AppColors.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                                 Spacer()
                             }
                             .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(AppColors.warning.opacity(0.1))
+                            .background(Color.warning.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
@@ -449,7 +448,7 @@ struct AttackDetailView: View {
         DetailCard(title: "备注", icon: "note.text") {
             Text(notes)
                 .appFont(.body)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -482,13 +481,13 @@ struct AttackDetailView: View {
 struct InfoRow: View {
     let label: String
     let value: String
-    var valueColor: Color = AppColors.textPrimary
+    var valueColor: Color = Color.labelPrimary
     
     var body: some View {
         HStack {
             Text(label)
                 .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
             Spacer()
             Text(value)
                 .appFont(.body)
@@ -505,32 +504,32 @@ struct MedicationLogRowView: View {
             HStack {
                 Text(log.medication?.name ?? "未知药物")
                     .appFont(.body)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .fontWeight(.medium)
                 
                 Spacer()
                 
                 Text(log.takenAt.shortTime())
                     .appFont(.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             HStack {
                 if let medication = log.medication {
                     Label(medication.category.rawValue, systemImage: "pills")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 } else {
                     Label("未分类", systemImage: "pills")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
                 
                 Spacer()
                 
                 Text(log.dosageString)
                     .appFont(.caption)
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             // 疗效评估
@@ -544,19 +543,19 @@ struct MedicationLogRowView: View {
                 }
             }
         }
-        .padding(AppSpacing.small)
-        .background(AppColors.surfaceElevated)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+        .padding(Spacing.xs)
+        .background(Color.backgroundTertiary)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
     }
     
     private func effectivenessColor(_ effectiveness: MedicationLog.Effectiveness) -> Color {
         switch effectiveness {
         case .excellent, .good:
-            return AppColors.success
+            return Color.success
         case .moderate:
-            return AppColors.warning
+            return Color.warning
         case .poor, .none:
-            return AppColors.error
+            return Color.danger
         }
     }
 }
@@ -573,18 +572,18 @@ struct WeatherDetailBox: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundStyle(isWarning ? AppColors.warning : AppColors.primary)
+                .foregroundStyle(isWarning ? Color.warning : Color.primary)
             
             VStack(spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text(value)
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(AppColors.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     if !unit.isEmpty {
                         Text(unit)
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                     }
                     
                     if let trend = trend {
@@ -596,23 +595,23 @@ struct WeatherDetailBox: View {
                 
                 Text(label)
                     .appFont(.caption)
-                    .foregroundStyle(AppColors.textTertiary)
+                    .foregroundStyle(Color.labelTertiary)
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .background(AppColors.surfaceElevated)
+        .background(Color.backgroundTertiary)
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     
     private func trendColor(for trend: PressureTrend) -> Color {
         switch trend {
         case .rising:
-            return AppColors.success
+            return Color.success
         case .falling:
-            return AppColors.warning
+            return Color.warning
         case .steady:
-            return AppColors.textSecondary
+            return Color.labelSecondary
         }
     }
 }

@@ -141,11 +141,11 @@ struct TestDataView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("测试环境")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     Text("此功能仅在 Debug 模式下可用，生成的数据会保存到数据库中")
                         .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
             }
         }
@@ -158,14 +158,14 @@ struct TestDataView: View {
                 HStack {
                     Text("当前数据统计")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     Spacer()
                     
                     if let stats = statistics {
                         Text("共 \(stats.recordCount + stats.medicationCount + stats.customLabelCount) 项")
                             .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                     }
                 }
                 
@@ -212,11 +212,11 @@ struct TestDataView: View {
             
             Text("\(count)")
                 .font(.title2.bold())
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text(title)
                 .font(.caption)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -243,18 +243,18 @@ struct TestDataView: View {
                             Spacer()
                             Text("\(monthCount) 个月")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                         
                         Slider(value: Binding(
                             get: { Double(monthCount) },
                             set: { monthCount = Int($0) }
                         ), in: 1...24, step: 1)
-                        .tint(Color.accentPrimary)
+                        .tint(Color.primary)
                         
                         Text("生成过去 \(monthCount) 个月的数据")
                             .font(.caption)
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                     
                     // 每月频次
@@ -265,18 +265,18 @@ struct TestDataView: View {
                             Spacer()
                             Text("\(attacksPerMonth) 次")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                         
                         Slider(value: Binding(
                             get: { Double(attacksPerMonth) },
                             set: { attacksPerMonth = Int($0) }
                         ), in: 1...15, step: 1)
-                        .tint(Color.accentPrimary)
+                        .tint(Color.primary)
                         
                         Text("每月发作 \(attacksPerMonth) 次，共约 \(monthCount * attacksPerMonth) 条记录")
                             .font(.caption)
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                     
                     // 平均持续时长
@@ -287,15 +287,15 @@ struct TestDataView: View {
                             Spacer()
                             Text(String(format: "%.1f 小时", avgDuration))
                                 .font(.subheadline)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                         
                         Slider(value: $avgDuration, in: 1...24, step: 0.5)
-                            .tint(Color.accentPrimary)
+                            .tint(Color.primary)
                         
                         Text("发作平均持续 \(String(format: "%.1f", avgDuration)) 小时")
                             .font(.caption)
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                     
                     // 时长变化范围
@@ -306,15 +306,15 @@ struct TestDataView: View {
                             Spacer()
                             Text(String(format: "±%.1f 小时", durationVariance))
                                 .font(.subheadline)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                         
                         Slider(value: $durationVariance, in: 0...12, step: 0.5)
-                            .tint(Color.accentPrimary)
+                            .tint(Color.primary)
                         
                         Text("持续时间约在 \(String(format: "%.1f", max(0.5, avgDuration - durationVariance)))-\(String(format: "%.1f", avgDuration + durationVariance)) 小时之间")
                             .font(.caption)
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                 }
                 
@@ -351,7 +351,7 @@ struct TestDataView: View {
                     
                     Text("生成 \(medicationCount) 种药物，包含各类别和库存信息")
                         .font(.caption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.labelTertiary)
                 }
                 
                 PrimaryButton(title: isGenerating ? "生成中..." : "生成药箱", action: generateMedications, isEnabled: !isGenerating)
@@ -387,7 +387,7 @@ struct TestDataView: View {
                     
                     Text("生成 \(customLabelCount) 个自定义标签（症状和诱因）")
                         .font(.caption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.labelTertiary)
                 }
                 
                 PrimaryButton(title: isGenerating ? "生成中..." : "生成标签", action: generateCustomLabels, isEnabled: !isGenerating)
@@ -411,7 +411,7 @@ struct TestDataView: View {
                 
                 Text("以下操作将永久删除数据，无法恢复")
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 VStack(spacing: 12) {
                     Button {
@@ -456,7 +456,7 @@ struct TestDataView: View {
             
             Text(title)
                 .font(.headline)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
     }
     
@@ -474,7 +474,7 @@ struct TestDataView: View {
                     
                     Text("请输入 '确认删除' 以继续")
                         .font(.body)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
                 
                 TextField("请输入：确认删除", text: $clearInputText)
@@ -485,7 +485,7 @@ struct TestDataView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("即将删除：")
                             .font(.caption.bold())
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         HStack {
                             Label("\(stats.recordCount) 条记录", systemImage: "list.bullet")
@@ -503,7 +503,7 @@ struct TestDataView: View {
                         }
                     }
                     .font(.caption)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.labelTertiary)
                     .padding()
                     .background(Color.statusError.opacity(0.1))
                     .cornerRadius(12)

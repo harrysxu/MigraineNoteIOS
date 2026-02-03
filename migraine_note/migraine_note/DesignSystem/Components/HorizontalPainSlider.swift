@@ -46,7 +46,7 @@ struct HorizontalPainSlider: View {
                 // 描述文字
                 Text(painDescription)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                     .multilineTextAlignment(.center)
             }
             
@@ -112,7 +112,7 @@ struct HorizontalPainSlider: View {
                     ForEach(range.lowerBound...range.upperBound, id: \.self) { tick in
                         Text("\(tick)")
                             .font(.caption2)
-                            .foregroundStyle(value == tick ? painColor : Color.textTertiary)
+                            .foregroundStyle(value == tick ? painColor : Color.labelTertiary)
                             .fontWeight(value == tick ? .semibold : .regular)
                             .frame(maxWidth: .infinity)
                     }
@@ -216,7 +216,7 @@ struct HorizontalPainSlider: View {
         
         Text("当前值: \(value)")
             .font(.headline)
-            .foregroundStyle(Color.textSecondary)
+            .foregroundStyle(Color.labelSecondary)
     }
     .padding()
     .background(Color.backgroundPrimary)

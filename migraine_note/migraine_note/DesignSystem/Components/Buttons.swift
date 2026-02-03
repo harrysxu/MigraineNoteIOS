@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+/// 按钮缩放样式
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: configuration.isPressed)
+    }
+}
+
 struct PrimaryButton: View {
     let title: String
     let action: () -> Void
@@ -19,7 +28,7 @@ struct PrimaryButton: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(isEnabled ? Color.accentPrimary : Color.textTertiary)
+                .background(isEnabled ? Color.primary : Color.labelTertiary)
                 .cornerRadius(CornerRadius.xl)
         }
         .disabled(!isEnabled)
@@ -36,14 +45,14 @@ struct SecondaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.headline)
-                .foregroundStyle(isEnabled ? Color.accentPrimary : Color.textTertiary)
+                .foregroundStyle(isEnabled ? Color.primary : Color.labelTertiary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(Color.backgroundSecondary)
                 .cornerRadius(CornerRadius.xl)
                 .overlay(
                     RoundedRectangle(cornerRadius: CornerRadius.xl)
-                        .stroke(isEnabled ? Color.accentPrimary : Color.textTertiary, lineWidth: 2)
+                        .stroke(isEnabled ? Color.primary : Color.labelTertiary, lineWidth: 2)
                 )
         }
         .disabled(!isEnabled)
@@ -59,7 +68,7 @@ struct IconButton: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
                 .frame(width: 44, height: 44)
                 .background(Color.backgroundSecondary)
                 .clipShape(Circle())

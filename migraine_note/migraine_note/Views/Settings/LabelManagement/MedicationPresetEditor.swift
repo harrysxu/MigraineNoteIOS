@@ -21,13 +21,13 @@ struct MedicationPresetEditor: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppSpacing.large) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
                 // 说明卡片
                 InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         HStack {
                             Image(systemName: "info.circle.fill")
-                                .foregroundStyle(AppColors.primary)
+                                .foregroundStyle(Color.primary)
                             Text("药物预设管理")
                                 .font(.headline)
                         }
@@ -45,7 +45,7 @@ struct MedicationPresetEditor: View {
             }
             .padding(.vertical)
         }
-        .background(AppColors.backgroundPrimary)
+        .background(Color.backgroundPrimary)
         .overlay(alignment: .bottomTrailing) {
             // 添加按钮
             Button {
@@ -53,14 +53,14 @@ struct MedicationPresetEditor: View {
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 56))
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.primary)
                     .background(
                         Circle()
                             .fill(.white)
                             .frame(width: 40, height: 40)
                     )
             }
-            .padding(AppSpacing.large)
+            .padding(Spacing.lg)
         }
         .sheet(isPresented: $showAddSheet) {
             AddMedicationPresetSheet()
@@ -84,7 +84,7 @@ struct MedicationPresetEditor: View {
         
         let isExpanded = expandedCategories.contains(category.rawValue)
         
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             // 分类标题（可折叠）
             Button {
                 withAnimation {
@@ -97,11 +97,11 @@ struct MedicationPresetEditor: View {
             } label: {
                 HStack {
                     Image(systemName: "pills.fill")
-                        .foregroundStyle(AppColors.primary)
+                        .foregroundStyle(Color.primary)
                     
                     Text(category.rawValue)
                         .font(.headline)
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(Color.labelPrimary)
                     
                     Spacer()
                     
@@ -114,14 +114,14 @@ struct MedicationPresetEditor: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(AppColors.backgroundSecondary)
-                .cornerRadius(AppSpacing.cornerRadiusSmall)
+                .background(Color.backgroundSecondary)
+                .cornerRadius(CornerRadius.sm)
             }
             .padding(.horizontal)
             
             // 标签列表
             if isExpanded {
-                LazyVStack(spacing: AppSpacing.small) {
+                LazyVStack(spacing: Spacing.xs) {
                     ForEach(categoryLabels) { label in
                         MedicationLabelRow(label: label) { action in
                             handleLabelAction(label: label, action: action)
@@ -160,13 +160,13 @@ struct MedicationLabelRow: View {
     @State private var newName = ""
     
     var body: some View {
-        HStack(spacing: AppSpacing.medium) {
+        HStack(spacing: Spacing.md) {
             // 显示/隐藏图标
             Button {
                 onAction(.toggleVisibility)
             } label: {
                 Image(systemName: label.isHidden ? "eye.slash.fill" : "eye.fill")
-                    .foregroundStyle(label.isHidden ? .gray : AppColors.primary)
+                    .foregroundStyle(label.isHidden ? .gray : Color.primary)
                     .frame(width: 24)
             }
             
@@ -174,7 +174,7 @@ struct MedicationLabelRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(label.displayName)
                     .font(.body)
-                    .foregroundColor(label.isHidden ? .secondary : AppColors.textPrimary)
+                    .foregroundColor(label.isHidden ? .secondary : Color.labelPrimary)
                 
                 if let dosageInfo = parseDosageInfo(from: label.metadata) {
                     Text("\(dosageInfo.dosage, specifier: "%.1f") \(dosageInfo.unit)")
@@ -200,7 +200,7 @@ struct MedicationLabelRow: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(AppColors.primary)
+                    .background(Color.primary)
                     .cornerRadius(4)
             }
             
@@ -226,8 +226,8 @@ struct MedicationLabelRow: View {
             }
         }
         .padding()
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(AppSpacing.cornerRadiusSmall)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(CornerRadius.sm)
         .opacity(label.isHidden ? 0.6 : 1.0)
         .alert("重命名标签", isPresented: $showRenameAlert) {
             TextField("新名称", text: $newName)

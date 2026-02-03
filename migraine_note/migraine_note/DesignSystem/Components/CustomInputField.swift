@@ -19,13 +19,13 @@ struct CustomInputField: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "plus.circle.fill")
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.primary)
                 .font(.title3)
             
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
                 .font(.body)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
                 .focused($isFocused)
                 .submitLabel(.done)
                 .onSubmit {
@@ -37,7 +37,7 @@ struct CustomInputField: View {
                     addCustomItem()
                 } label: {
                     Image(systemName: "arrow.right.circle.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
@@ -48,7 +48,7 @@ struct CustomInputField: View {
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
-                .stroke(isFocused ? Color.accentPrimary : Color.divider, lineWidth: 1)
+                .stroke(isFocused ? Color.primary : Color.separator, lineWidth: 1)
         )
     }
     
@@ -80,13 +80,13 @@ struct LabeledCustomInputField: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
             
             HStack(spacing: 8) {
                 TextField(placeholder, text: $text)
                     .textFieldStyle(.plain)
                     .font(.body)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .focused($isFocused)
                     .submitLabel(.done)
                     .onSubmit {
@@ -101,7 +101,7 @@ struct LabeledCustomInputField: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
-                        .background(text.isEmpty ? Color.textTertiary : Color.accentPrimary)
+                        .background(text.isEmpty ? Color.labelTertiary : Color.primary)
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
@@ -112,7 +112,7 @@ struct LabeledCustomInputField: View {
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(isFocused ? Color.accentPrimary : Color.divider, lineWidth: 1)
+                    .stroke(isFocused ? Color.primary : Color.separator, lineWidth: 1)
             )
         }
     }
@@ -147,7 +147,7 @@ struct CompactCustomInputField: View {
                 TextField(placeholder, text: $text)
                     .textFieldStyle(.plain)
                     .font(.subheadline)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .focused($isFocused)
                     .submitLabel(.done)
                     .onSubmit {
@@ -159,7 +159,7 @@ struct CompactCustomInputField: View {
                     addCustomItem()
                 } label: {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(Color.statusSuccess)
+                        .foregroundStyle(Color.success)
                 }
                 .buttonStyle(.plain)
                 .disabled(text.isEmpty)
@@ -169,7 +169,7 @@ struct CompactCustomInputField: View {
                     text = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.labelTertiary)
                 }
                 .buttonStyle(.plain)
             }
@@ -179,7 +179,7 @@ struct CompactCustomInputField: View {
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.accentPrimary, lineWidth: 1)
+                    .stroke(Color.primary, lineWidth: 1)
             )
             .onAppear {
                 isFocused = true
@@ -193,15 +193,15 @@ struct CompactCustomInputField: View {
                     Text("自定义")
                 }
                 .font(.subheadline)
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.primary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(Color.accentPrimary.opacity(0.1))
+                .background(Color.primary.opacity(0.1))
                 .cornerRadius(8)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 2]))
-                        .foregroundStyle(Color.accentPrimary.opacity(0.3))
+                        .foregroundStyle(Color.primary.opacity(0.3))
                 )
             }
             .buttonStyle(.plain)
@@ -254,7 +254,7 @@ struct CompactCustomInputField: View {
                             .font(.subheadline)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 8)
-                            .background(Color.accentPrimary.opacity(0.2))
+                            .background(Color.primary.opacity(0.2))
                             .cornerRadius(8)
                     }
                     

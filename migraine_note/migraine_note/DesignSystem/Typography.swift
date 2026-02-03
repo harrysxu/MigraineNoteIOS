@@ -55,7 +55,7 @@ struct TextStyles {
         func body(content: Content) -> some View {
             content
                 .font(.displayLarge)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
     }
     
@@ -64,7 +64,7 @@ struct TextStyles {
         func body(content: Content) -> some View {
             content
                 .font(.displayMedium)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
     }
     
@@ -73,7 +73,7 @@ struct TextStyles {
         func body(content: Content) -> some View {
             content
                 .font(.bodyLarge)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
     }
     
@@ -82,7 +82,7 @@ struct TextStyles {
         func body(content: Content) -> some View {
             content
                 .font(.bodyMedium)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
     }
     
@@ -91,7 +91,7 @@ struct TextStyles {
         func body(content: Content) -> some View {
             content
                 .font(.bodySmall)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundStyle(Color.labelTertiary)
         }
     }
 }

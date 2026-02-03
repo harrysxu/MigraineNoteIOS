@@ -31,51 +31,52 @@ struct CollapsibleSection<Content: View>: View {
     }
     
     var body: some View {
-        EmotionalCard(style: .default) {
-            VStack(alignment: .leading, spacing: 0) {
-                // 标题栏（可点击）
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        isExpanded.toggle()
-                    }
-                    // 触觉反馈
-                    let impact = UIImpactFeedbackGenerator(style: .light)
-                    impact.impactOccurred()
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: icon)
-                            .font(.title3)
-                            .foregroundStyle(Color.accentPrimary)
-                            .frame(width: 32)
-                        
-                        Text(title)
-                            .font(.headline)
-                            .foregroundStyle(Color.textPrimary)
-                        
-                        Spacer()
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(Color.textTertiary)
-                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    }
-                    .padding(.vertical, 12)
+        VStack(alignment: .leading, spacing: 0) {
+            // 标题栏（可点击）
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    isExpanded.toggle()
                 }
-                .buttonStyle(.plain)
-                
-                // 内容区域（可展开/收起）
-                if isExpanded {
-                    Divider()
-                        .padding(.vertical, 8)
+                // 触觉反馈
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: icon)
+                        .font(.title3)
+                        .foregroundStyle(Color.primary)
+                        .frame(width: 32)
                     
-                    content()
-                        .transition(.asymmetric(
-                            insertion: .scale(scale: 0.95).combined(with: .opacity),
-                            removal: .scale(scale: 0.95).combined(with: .opacity)
-                        ))
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(Color.labelPrimary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.labelTertiary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            
+            // 内容区域（可展开/收起）
+            if isExpanded {
+                Divider()
+                    .padding(.vertical, 8)
+                
+                content()
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.95).combined(with: .opacity),
+                        removal: .scale(scale: 0.95).combined(with: .opacity)
+                    ))
             }
         }
+        .padding(Spacing.md)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(CornerRadius.lg)
     }
 }
 
@@ -112,13 +113,13 @@ struct CollapsibleSectionSimple<Content: View>: View {
                 HStack {
                     Text(title)
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     Spacer()
                     
                     Image(systemName: "chevron.right")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.labelTertiary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 }
             }
@@ -146,12 +147,12 @@ struct CollapsibleSectionSimple<Content: View>: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("这是疼痛评估的内容区域")
                     .font(.body)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 HStack {
                     ForEach(0..<5) { i in
                         Circle()
-                            .fill(Color.accentPrimary)
+                            .fill(Color.primary)
                             .frame(width: 40, height: 40)
                     }
                 }
@@ -165,7 +166,7 @@ struct CollapsibleSectionSimple<Content: View>: View {
         ) {
             Text("这是症状记录的内容")
                 .font(.body)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
         
         Spacer()

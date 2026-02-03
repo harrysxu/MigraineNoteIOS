@@ -42,11 +42,11 @@ struct HeadMapView: View {
                     Text(view.rawValue)
                         .font(.subheadline)
                         .fontWeight(selectedView == view ? .semibold : .regular)
-                        .foregroundStyle(selectedView == view ? Color.textPrimary : Color.textSecondary)
+                        .foregroundStyle(selectedView == view ? Color.labelPrimary : Color.labelSecondary)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, Spacing.xs)
                         .background(
-                            selectedView == view ? Color.accentPrimary.opacity(0.15) : Color.clear
+                            selectedView == view ? Color.primary.opacity(0.15) : Color.clear
                         )
                         .cornerRadius(8)
                 }
@@ -99,7 +99,7 @@ struct HeadMapView: View {
         VStack(alignment: .leading, spacing: Spacing.xs) {
             Text("已选择的部位：")
                 .font(.caption)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
             
             let sortedLocations = Array(selectedLocations).sorted(by: { $0.rawValue < $1.rawValue })
             FlowLayout(spacing: Spacing.xs) {
@@ -121,7 +121,7 @@ struct HeadMapView: View {
                 .font(.caption)
                 .padding(.horizontal, Spacing.xs)
                 .padding(.vertical, 4)
-                .background(Color.accentPrimary)
+                .background(Color.primary)
                 .foregroundStyle(.white)
                 .cornerRadius(CornerRadius.sm)
         }
@@ -168,7 +168,7 @@ struct FrontHeadView: View {
                 height: height * 0.7
             ))
         }
-        .stroke(Color.textTertiary, lineWidth: 2)
+        .stroke(Color.labelTertiary, lineWidth: 2)
     }
     
     private var clickableRegions: some View {
@@ -244,14 +244,14 @@ struct FrontHeadView: View {
             ZStack {
                 // 区域背景
                 Circle()
-                    .fill(isSelected ? Color.statusError.opacity(0.3) : Color.accentPrimary.opacity(0.1))
+                    .fill(isSelected ? Color.danger.opacity(0.3) : Color.primary.opacity(0.1))
                     .frame(width: width, height: height)
                 
                 // 区域标签
                 Text(location.shortName)
                     .font(.caption2)
                     .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? Color.statusError : Color.textSecondary)
+                    .foregroundStyle(isSelected ? Color.danger : Color.labelSecondary)
             }
         }
         .position(x: x, y: y)
@@ -288,7 +288,7 @@ struct BackHeadView: View {
                 height: height * 0.7
             ))
         }
-        .stroke(Color.textTertiary, lineWidth: 2)
+        .stroke(Color.labelTertiary, lineWidth: 2)
     }
     
     private var clickableRegions: some View {
@@ -336,13 +336,13 @@ struct BackHeadView: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(isSelected ? Color.statusError.opacity(0.3) : Color.accentPrimary.opacity(0.1))
+                    .fill(isSelected ? Color.danger.opacity(0.3) : Color.primary.opacity(0.1))
                     .frame(width: width, height: height)
                 
                 Text(location.shortName)
                     .font(.caption2)
                     .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? Color.statusError : Color.textSecondary)
+                    .foregroundStyle(isSelected ? Color.danger : Color.labelSecondary)
             }
         }
         .position(x: x, y: y)
@@ -392,7 +392,7 @@ struct SideHeadView: View {
                 control: CGPoint(x: width * 0.2, y: height * 0.4)
             )
         }
-        .stroke(Color.textTertiary, lineWidth: 2)
+        .stroke(Color.labelTertiary, lineWidth: 2)
     }
     
     private var clickableRegions: some View {
@@ -465,13 +465,13 @@ struct SideHeadView: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(isSelected ? Color.statusError.opacity(0.3) : Color.accentPrimary.opacity(0.1))
+                    .fill(isSelected ? Color.danger.opacity(0.3) : Color.primary.opacity(0.1))
                     .frame(width: width, height: height)
                 
                 Text(location.shortName)
                     .font(.caption2)
                     .fontWeight(isSelected ? .semibold : .regular)
-                    .foregroundStyle(isSelected ? Color.statusError : Color.textSecondary)
+                    .foregroundStyle(isSelected ? Color.danger : Color.labelSecondary)
             }
         }
         .position(x: x, y: y)

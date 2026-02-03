@@ -44,7 +44,7 @@ struct MainTabView: View {
                     }
                     .tag(3)
             }
-            .tint(Color.accentPrimary) // 使用新的主色调
+            .tint(Color.primary) // 使用新的主色调
             .preferredColorScheme(.dark) // 暗黑模式优先
             
             // Onboarding覆盖层

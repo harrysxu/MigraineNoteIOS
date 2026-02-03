@@ -21,7 +21,7 @@ struct AttackListView: View {
         NavigationStack {
             ZStack {
                 // 背景色
-                AppColors.background.ignoresSafeArea()
+                Color.backgroundPrimary.ignoresSafeArea()
                 
                 if attacks.isEmpty {
                     emptyStateView
@@ -37,7 +37,7 @@ struct AttackListView: View {
                         showingFilterSheet = true
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.primary)
                     }
                 }
             }
@@ -54,28 +54,28 @@ struct AttackListView: View {
     // MARK: - Empty State
     
     private var emptyStateView: some View {
-        VStack(spacing: AppSpacing.large) {
+        VStack(spacing: Spacing.lg) {
             Image(systemName: "list.bullet.clipboard")
                 .font(.system(size: 80))
-                .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                .foregroundStyle(Color.labelSecondary.opacity(0.5))
             
             Text("暂无记录")
                 .appFont(.title)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("开始记录您的第一次偏头痛发作")
                 .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
                 .multilineTextAlignment(.center)
         }
-        .padding(.horizontal, AppSpacing.extraLarge)
+        .padding(.horizontal, Spacing.xl)
     }
     
     // MARK: - List Content
     
     private var attackListContent: some View {
         ScrollView {
-            LazyVStack(spacing: AppSpacing.medium) {
+            LazyVStack(spacing: Spacing.md) {
                 let filteredAttacks = viewModel.filteredAttacks(attacks)
                 
                 if filteredAttacks.isEmpty {
@@ -87,14 +87,14 @@ struct AttackListView: View {
                     .sorted { $0.key > $1.key } // 按年份降序排列
                     
                     ForEach(groupedAttacks, id: \.key) { year, yearAttacks in
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             // 年份标题
                             Text("\(year)年")
                                 .appFont(.title3)
-                                .foregroundStyle(AppColors.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                                 .fontWeight(.semibold)
-                                .padding(.horizontal, AppSpacing.medium)
-                                .padding(.top, AppSpacing.small)
+                                .padding(.horizontal, Spacing.md)
+                                .padding(.top, Spacing.xs)
                             
                             // 该年份的记录
                             ForEach(yearAttacks) { attack in
@@ -114,26 +114,26 @@ struct AttackListView: View {
                     }
                 }
             }
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.small)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.xs)
         }
     }
     
     private var noResultsView: some View {
-        VStack(spacing: AppSpacing.medium) {
+        VStack(spacing: Spacing.md) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 50))
-                .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                .foregroundStyle(Color.labelSecondary.opacity(0.5))
             
             Text("未找到匹配的记录")
                 .appFont(.headline)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("尝试调整搜索或筛选条件")
                 .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
-        .padding(.top, AppSpacing.extraLarge * 2)
+        .padding(.top, Spacing.xl * 2)
     }
 }
 
@@ -143,7 +143,7 @@ struct AttackRowView: View {
     let attack: AttackRecord
     
     private var intensityColor: Color {
-        PainIntensity.from(attack.painIntensity).color
+        Color.painIntensityColor(for: attack.painIntensity)
     }
     
     var body: some View {
@@ -156,7 +156,7 @@ struct AttackRowView: View {
                 
                 Text("强度")
                     .font(.caption2)
-                    .foregroundStyle(AppColors.textTertiary)
+                    .foregroundStyle(Color.labelTertiary)
             }
             .frame(width: 56, height: 56)
             .background(intensityColor.opacity(0.15))
@@ -166,7 +166,7 @@ struct AttackRowView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(attack.startTime.smartFormatted())
                     .font(.body.weight(.medium))
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 HStack(spacing: 8) {
                     if let duration = calculateDuration() {
@@ -176,7 +176,7 @@ struct AttackRowView: View {
                             Text(duration)
                         }
                         .font(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     }
                     
                     if !attack.medicationLogs.isEmpty {
@@ -186,7 +186,7 @@ struct AttackRowView: View {
                             Text("\(attack.medicationLogs.count)种药物")
                         }
                         .font(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     }
                 }
             }
@@ -196,12 +196,11 @@ struct AttackRowView: View {
             // 右侧箭头
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(AppColors.textTertiary)
+                .foregroundStyle(Color.labelTertiary)
         }
         .padding(12)
-        .background(AppColors.surface)
+        .background(Color.backgroundSecondary)
         .cornerRadius(12)
-        .shadow(color: AppColors.shadowColor, radius: AppSpacing.shadowRadiusSmall)
     }
     
     private func calculateDuration() -> String? {
@@ -267,9 +266,9 @@ struct FilterSheetView: View {
                             } label: {
                                 Text("\(intensity)")
                                     .font(.caption)
-                                    .foregroundStyle(isIntensitySelected(intensity) ? .white : AppColors.textPrimary)
+                                    .foregroundStyle(isIntensitySelected(intensity) ? .white : Color.labelPrimary)
                                     .frame(width: 30, height: 30)
-                                    .background(isIntensitySelected(intensity) ? AppColors.primary : AppColors.surfaceElevated)
+                                    .background(isIntensitySelected(intensity) ? Color.primary : Color.backgroundTertiary)
                                     .clipShape(Circle())
                             }
                         }
@@ -281,7 +280,7 @@ struct FilterSheetView: View {
                     Button("重置所有筛选") {
                         viewModel.resetFilters()
                     }
-                    .foregroundStyle(AppColors.warning)
+                    .foregroundStyle(Color.warning)
                 }
             }
             .navigationTitle("筛选和排序")

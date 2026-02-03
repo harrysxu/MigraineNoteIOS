@@ -16,20 +16,20 @@ struct LabelRow: View {
     @State private var newName = ""
     
     var body: some View {
-        HStack(spacing: AppSpacing.medium) {
+        HStack(spacing: Spacing.md) {
             // 显示/隐藏图标
             Button {
                 onAction(.toggleVisibility)
             } label: {
                 Image(systemName: label.isHidden ? "eye.slash.fill" : "eye.fill")
-                    .foregroundStyle(label.isHidden ? .gray : AppColors.primary)
+                    .foregroundStyle(label.isHidden ? .gray : Color.primary)
                     .frame(width: 24)
             }
             
             // 标签名称
             Text(label.displayName)
                 .font(.body)
-                .foregroundColor(label.isHidden ? .secondary : AppColors.textPrimary)
+                .foregroundColor(label.isHidden ? .secondary : Color.labelPrimary)
             
             Spacer()
             
@@ -48,7 +48,7 @@ struct LabelRow: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(AppColors.primary)
+                    .background(Color.primary)
                     .cornerRadius(4)
             }
             
@@ -74,8 +74,8 @@ struct LabelRow: View {
             }
         }
         .padding()
-        .background(AppColors.backgroundSecondary)
-        .cornerRadius(AppSpacing.cornerRadiusSmall)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(CornerRadius.sm)
         .opacity(label.isHidden ? 0.6 : 1.0)
         .alert("重命名标签", isPresented: $showRenameAlert) {
             TextField("新名称", text: $newName)
@@ -99,7 +99,7 @@ enum LabelAction {
 }
 
 #Preview {
-    VStack(spacing: AppSpacing.medium) {
+    VStack(spacing: Spacing.md) {
         // 默认标签（显示）
         LabelRow(
             label: CustomLabelConfig(
@@ -138,5 +138,5 @@ enum LabelAction {
         ) { _ in }
     }
     .padding()
-    .background(AppColors.backgroundPrimary)
+    .background(Color.backgroundPrimary)
 }

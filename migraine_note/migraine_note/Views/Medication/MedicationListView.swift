@@ -22,7 +22,7 @@ struct MedicationListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.background.ignoresSafeArea()
+                Color.backgroundPrimary.ignoresSafeArea()
                 
                 if medications.isEmpty {
                     emptyStateView
@@ -43,7 +43,7 @@ struct MedicationListView: View {
                         }
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.primary)
                     }
                 }
                 
@@ -52,7 +52,7 @@ struct MedicationListView: View {
                         showingAddSheet = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.primary)
                     }
                 }
             }
@@ -69,18 +69,18 @@ struct MedicationListView: View {
     // MARK: - Empty State
     
     private var emptyStateView: some View {
-        VStack(spacing: AppSpacing.large) {
+        VStack(spacing: Spacing.lg) {
             Image(systemName: "pill.circle")
                 .font(.system(size: 80))
-                .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                .foregroundStyle(Color.labelSecondary.opacity(0.5))
             
             Text("药箱是空的")
                 .appFont(.title)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("添加您常用的药物以便快速记录")
                 .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
                 .multilineTextAlignment(.center)
             
             Button {
@@ -89,20 +89,20 @@ struct MedicationListView: View {
                 Label("添加药物", systemImage: "plus.circle.fill")
                     .appFont(.headline)
                     .foregroundStyle(.white)
-                    .padding(.horizontal, AppSpacing.large)
-                    .padding(.vertical, AppSpacing.medium)
-                    .background(AppColors.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
+                    .padding(.horizontal, Spacing.lg)
+                    .padding(.vertical, Spacing.md)
+                    .background(Color.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
             }
         }
-        .padding(.horizontal, AppSpacing.extraLarge)
+        .padding(.horizontal, Spacing.xl)
     }
     
     // MARK: - List Content
     
     private var medicationListContent: some View {
         ScrollView {
-            LazyVStack(spacing: AppSpacing.medium) {
+            LazyVStack(spacing: Spacing.md) {
                 let filteredMeds = viewModel.filteredMedications(medications, logs: medicationLogs)
                 
                 if filteredMeds.isEmpty {
@@ -127,26 +127,26 @@ struct MedicationListView: View {
                     }
                 }
             }
-            .padding(.horizontal, AppSpacing.medium)
-            .padding(.vertical, AppSpacing.small)
+            .padding(.horizontal, Spacing.md)
+            .padding(.vertical, Spacing.xs)
         }
     }
     
     private var noResultsView: some View {
-        VStack(spacing: AppSpacing.medium) {
+        VStack(spacing: Spacing.md) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 50))
-                .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                .foregroundStyle(Color.labelSecondary.opacity(0.5))
             
             Text("未找到匹配的药物")
                 .appFont(.headline)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("尝试调整搜索或筛选条件")
                 .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
-        .padding(.top, AppSpacing.extraLarge * 2)
+        .padding(.top, Spacing.xl * 2)
     }
 }
 
@@ -168,17 +168,17 @@ struct MedicationCardView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.small) {
+        VStack(alignment: .leading, spacing: Spacing.xs) {
             // 顶部：药物名称和类别
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(medication.name)
                         .appFont(.headline)
-                        .foregroundStyle(AppColors.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     Label(medication.category.rawValue, systemImage: "pills")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
                 
                 Spacer()
@@ -189,21 +189,21 @@ struct MedicationCardView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(medication.isAcute ? AppColors.error.opacity(0.8) : AppColors.success.opacity(0.8))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                    .background(medication.isAcute ? Color.danger.opacity(0.8) : Color.success.opacity(0.8))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
             }
             
             Divider()
             
             // 剂量和库存
-            HStack(spacing: AppSpacing.large) {
+            HStack(spacing: Spacing.lg) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("标准剂量")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     Text("\(medication.standardDosage, specifier: "%.1f") \(medication.unit)")
                         .appFont(.body)
-                        .foregroundStyle(AppColors.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 Spacer()
@@ -211,16 +211,16 @@ struct MedicationCardView: View {
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("库存")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     HStack(spacing: 4) {
                         if isLowInventory {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.caption)
-                                .foregroundStyle(AppColors.warning)
+                                .foregroundStyle(Color.warning)
                         }
                         Text("\(medication.inventory)")
                             .appFont(.body)
-                            .foregroundStyle(isLowInventory ? AppColors.warning : AppColors.textPrimary)
+                            .foregroundStyle(isLowInventory ? Color.warning : Color.labelPrimary)
                     }
                 }
             }
@@ -233,23 +233,23 @@ struct MedicationCardView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("本月使用")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         HStack(spacing: 6) {
                             Text("\(usageDays) 天")
                                 .appFont(.body)
-                                .foregroundStyle(AppColors.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             
                             if let limit = medication.monthlyLimit {
                                 Text("/ \(limit) 天")
                                     .appFont(.caption)
-                                    .foregroundStyle(AppColors.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                                 
                                 // 进度条
                                 GeometryReader { geometry in
                                     ZStack(alignment: .leading) {
                                         RoundedRectangle(cornerRadius: 2)
-                                            .fill(AppColors.surfaceElevated)
+                                            .fill(Color.backgroundTertiary)
                                             .frame(height: 4)
                                         
                                         RoundedRectangle(cornerRadius: 2)
@@ -273,37 +273,36 @@ struct MedicationCardView: View {
             if let warning = mohWarning {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(viewModel.isExceedingMOHLimit(medication: medication, usageDays: usageDays) ? AppColors.error : AppColors.warning)
+                        .foregroundStyle(viewModel.isExceedingMOHLimit(medication: medication, usageDays: usageDays) ? Color.danger : Color.warning)
                     Text(warning)
                         .appFont(.caption)
-                        .foregroundStyle(viewModel.isExceedingMOHLimit(medication: medication, usageDays: usageDays) ? AppColors.error : AppColors.warning)
+                        .foregroundStyle(viewModel.isExceedingMOHLimit(medication: medication, usageDays: usageDays) ? Color.danger : Color.warning)
                 }
-                .padding(.horizontal, AppSpacing.small)
+                .padding(.horizontal, Spacing.xs)
                 .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     viewModel.isExceedingMOHLimit(medication: medication, usageDays: usageDays) ? 
-                    AppColors.error.opacity(0.1) : AppColors.warning.opacity(0.1)
+                    Color.danger.opacity(0.1) : Color.warning.opacity(0.1)
                 )
-                .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
             }
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
-        .shadow(color: AppColors.shadowColor, radius: AppSpacing.shadowRadiusSmall)
+        .padding(Spacing.md)
+        .background(Color.backgroundSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
     }
     
     private var progressColor: Color {
         if let limit = medication.monthlyLimit {
             let ratio = Double(usageDays) / Double(limit)
             if ratio >= 1.0 {
-                return AppColors.error
+                return Color.danger
             } else if ratio >= 0.8 {
-                return AppColors.warning
+                return Color.warning
             }
         }
-        return AppColors.success
+        return Color.success
     }
 }
 

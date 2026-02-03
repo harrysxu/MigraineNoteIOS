@@ -19,7 +19,7 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: AppSpacing.large) {
+                VStack(spacing: Spacing.lg) {
                     // 月份统计卡片
                     if let stats = viewModel.monthlyStats {
                         MonthlyStatsCard(stats: stats)
@@ -32,7 +32,7 @@ struct CalendarView: View {
                 }
                 .padding(.vertical)
             }
-            .background(AppColors.background)
+            .background(Color.backgroundPrimary)
             .navigationTitle("日历")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
@@ -40,7 +40,7 @@ struct CalendarView: View {
                     Button(action: viewModel.moveToToday) {
                         Text("今天")
                             .font(.subheadline)
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.primary)
                     }
                 }
             }
@@ -53,7 +53,7 @@ struct CalendarView: View {
     // MARK: - 日历网格部分
     
     private var calendarGridSection: some View {
-        VStack(spacing: AppSpacing.medium) {
+        VStack(spacing: Spacing.md) {
             // 月份标题和导航
             monthHeader
             
@@ -63,9 +63,9 @@ struct CalendarView: View {
             // 日期网格
             dateGrid
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.surface)
-        .cornerRadius(AppSpacing.cornerRadiusMedium)
+        .padding(Spacing.md)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(CornerRadius.md)
     }
     
     // MARK: - 月份标题
@@ -75,7 +75,7 @@ struct CalendarView: View {
             Button(action: viewModel.moveToPreviousMonth) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -84,14 +84,14 @@ struct CalendarView: View {
             
             Text(viewModel.monthTitle)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Spacer()
             
             Button(action: viewModel.moveToNextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -105,11 +105,11 @@ struct CalendarView: View {
             ForEach(["日", "一", "二", "三", "四", "五", "六"], id: \.self) { weekday in
                 Text(weekday)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                     .frame(maxWidth: .infinity)
             }
         }
-        .padding(.bottom, AppSpacing.small)
+        .padding(.bottom, Spacing.xs)
     }
     
     // MARK: - 日期网格
@@ -118,9 +118,9 @@ struct CalendarView: View {
         let days = viewModel.getDaysInMonth()
         let rows = days.count / 7
         
-        return VStack(spacing: AppSpacing.small) {
+        return VStack(spacing: Spacing.xs) {
             ForEach(0..<rows, id: \.self) { row in
-                HStack(spacing: AppSpacing.small) {
+                HStack(spacing: Spacing.xs) {
                     ForEach(0..<7, id: \.self) { col in
                         let index = row * 7 + col
                         if index < days.count {
@@ -154,7 +154,7 @@ struct DayCell: View {
             // 疼痛强度指示器
             if let intensity = viewModel.getMaxPainIntensity(for: date) {
                 Circle()
-                    .fill(AppColors.painIntensityColor(for: intensity))
+                    .fill(Color.painIntensityColor(for: intensity))
                     .frame(width: 6, height: 6)
             } else {
                 Circle()
@@ -165,10 +165,10 @@ struct DayCell: View {
         .frame(maxWidth: .infinity)
         .frame(height: 50)
         .background(backgroundColor)
-        .cornerRadius(AppSpacing.cornerRadiusSmall)
+        .cornerRadius(CornerRadius.sm)
         .overlay(
-            RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall)
-                .stroke(isToday ? AppColors.primary : Color.clear, lineWidth: 2)
+            RoundedRectangle(cornerRadius: CornerRadius.sm)
+                .stroke(isToday ? Color.primary : Color.clear, lineWidth: 2)
         )
         .onTapGesture {
             if isInCurrentMonth {
@@ -188,11 +188,11 @@ struct DayCell: View {
     
     private var textColor: Color {
         if !isInCurrentMonth {
-            return AppColors.textTertiary
+            return Color.labelTertiary
         } else if isToday {
-            return AppColors.primary
+            return Color.primary
         } else {
-            return AppColors.textPrimary
+            return Color.labelPrimary
         }
     }
     
@@ -200,7 +200,7 @@ struct DayCell: View {
         if viewModel.getAttacks(for: date).isEmpty {
             return Color.clear
         } else {
-            return AppColors.surface.opacity(0.5)
+            return Color.backgroundSecondary.opacity(0.5)
         }
     }
 }
@@ -211,14 +211,14 @@ struct MonthlyStatsCard: View {
     let stats: MonthlyStatistics
     
     var body: some View {
-        VStack(spacing: AppSpacing.medium) {
+        VStack(spacing: Spacing.md) {
             // 标题
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.primary)
                 Text("本月统计")
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 Spacer()
             }
             
@@ -226,12 +226,12 @@ struct MonthlyStatsCard: View {
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
-            ], spacing: AppSpacing.medium) {
+            ], spacing: Spacing.md) {
                 StatItem(
                     title: "发作天数",
                     value: "\(stats.attackDays)",
                     icon: "calendar",
-                    color: stats.isChronic ? AppColors.error : AppColors.primary,
+                    color: stats.isChronic ? Color.danger : Color.primary,
                     subtitle: stats.isChronic ? "慢性偏头痛" : nil
                 )
                 
@@ -239,21 +239,21 @@ struct MonthlyStatsCard: View {
                     title: "总发作次数",
                     value: "\(stats.totalAttacks)",
                     icon: "bolt.fill",
-                    color: AppColors.info
+                    color: Color.info
                 )
                 
                 StatItem(
                     title: "平均强度",
                     value: stats.averageIntensityFormatted,
                     icon: "chart.line.uptrend.xyaxis",
-                    color: AppColors.painIntensityColor(for: Int(stats.averagePainIntensity))
+                    color: Color.painIntensityColor(for: Int(stats.averagePainIntensity))
                 )
                 
                 StatItem(
                     title: "用药天数",
                     value: "\(stats.medicationDays)",
                     icon: "pills.fill",
-                    color: stats.mohRisk != .none ? AppColors.warning : AppColors.success
+                    color: stats.mohRisk != .none ? Color.warning : Color.success
                 )
             }
             
@@ -262,42 +262,42 @@ struct MonthlyStatsCard: View {
                 mohRiskWarning
             }
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.surface)
-        .cornerRadius(AppSpacing.cornerRadiusMedium)
+        .padding(Spacing.md)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(CornerRadius.md)
     }
     
     @ViewBuilder
     private var mohRiskWarning: some View {
-        HStack(spacing: AppSpacing.small) {
+        HStack(spacing: Spacing.xs) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(mohRiskColor)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(mohRiskTitle)
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text(mohRiskMessage)
                     .font(.system(size: 12))
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             Spacer()
         }
-        .padding(AppSpacing.small)
+        .padding(Spacing.xs)
         .background(mohRiskColor.opacity(0.1))
-        .cornerRadius(AppSpacing.cornerRadiusSmall)
+        .cornerRadius(CornerRadius.sm)
     }
     
     private var mohRiskColor: Color {
         switch stats.mohRisk {
         case .none, .low:
-            return AppColors.warning
+            return Color.warning
         case .medium:
-            return AppColors.warning
+            return Color.warning
         case .high:
-            return AppColors.error
+            return Color.danger
         }
     }
     
@@ -338,15 +338,15 @@ struct StatItem: View {
     var subtitle: String?
     
     var body: some View {
-        VStack(spacing: AppSpacing.small) {
-            HStack(spacing: AppSpacing.xs) {
+        VStack(spacing: Spacing.xs) {
+            HStack(spacing: Spacing.xs) {
                 Image(systemName: icon)
                     .font(.system(size: 12))
                     .foregroundStyle(color)
                 
                 Text(title)
                     .font(.system(size: 12))
-                    .foregroundStyle(AppColors.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             Text(value)
@@ -364,9 +364,9 @@ struct StatItem: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(AppSpacing.small)
-        .background(AppColors.background)
-        .cornerRadius(AppSpacing.cornerRadiusSmall)
+        .padding(Spacing.xs)
+        .background(Color.backgroundPrimary)
+        .cornerRadius(CornerRadius.sm)
     }
 }
 

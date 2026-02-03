@@ -110,13 +110,13 @@ struct ProgressIndicator: View {
             HStack {
                 Text(currentStep.stepNumber)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Spacer()
                 
                 Text("\(Int(progress * 100))%")
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             // 进度条（带渐变）
@@ -129,12 +129,12 @@ struct ProgressIndicator: View {
                     
                     // 进度（渐变）
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.primaryGradient)
+                        .fill(Color.primary)
                         .frame(
                             width: geometry.size.width * progress,
                             height: 6
                         )
-                        .animation(EmotionalAnimation.fluid, value: currentStep)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: currentStep)
                 }
             }
             .frame(height: 6)

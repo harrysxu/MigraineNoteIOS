@@ -21,13 +21,13 @@ struct TriggerLabelEditor: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: AppSpacing.large) {
+            VStack(alignment: .leading, spacing: Spacing.lg) {
                 // 说明卡片
                 InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         HStack {
                             Image(systemName: "info.circle.fill")
-                                .foregroundStyle(AppColors.primary)
+                                .foregroundStyle(Color.primary)
                             Text("诱因标签管理")
                                 .font(.headline)
                         }
@@ -45,7 +45,7 @@ struct TriggerLabelEditor: View {
             }
             .padding(.vertical)
         }
-        .background(AppColors.backgroundPrimary)
+        .background(Color.backgroundPrimary)
         .overlay(alignment: .bottomTrailing) {
             // 添加按钮
             Button {
@@ -53,14 +53,14 @@ struct TriggerLabelEditor: View {
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 56))
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.primary)
                     .background(
                         Circle()
                             .fill(.white)
                             .frame(width: 40, height: 40)
                     )
             }
-            .padding(AppSpacing.large)
+            .padding(Spacing.lg)
         }
         .sheet(isPresented: $showAddSheet) {
             AddTriggerLabelSheet()
@@ -84,7 +84,7 @@ struct TriggerLabelEditor: View {
         
         let isExpanded = expandedCategories.contains(category.rawValue)
         
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             // 分类标题（可折叠）
             Button {
                 withAnimation {
@@ -97,11 +97,11 @@ struct TriggerLabelEditor: View {
             } label: {
                 HStack {
                     Image(systemName: category.systemImage)
-                        .foregroundStyle(AppColors.primary)
+                        .foregroundStyle(Color.primary)
                     
                     Text(category.rawValue)
                         .font(.headline)
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(Color.labelPrimary)
                     
                     Spacer()
                     
@@ -114,14 +114,14 @@ struct TriggerLabelEditor: View {
                         .foregroundColor(.secondary)
                 }
                 .padding()
-                .background(AppColors.backgroundSecondary)
-                .cornerRadius(AppSpacing.cornerRadiusSmall)
+                .background(Color.backgroundSecondary)
+                .cornerRadius(CornerRadius.sm)
             }
             .padding(.horizontal)
             
             // 标签列表
             if isExpanded {
-                LazyVStack(spacing: AppSpacing.small) {
+                LazyVStack(spacing: Spacing.xs) {
                     ForEach(categoryLabels) { label in
                         LabelRow(label: label) { action in
                             handleLabelAction(label: label, action: action)

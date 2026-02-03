@@ -35,7 +35,7 @@ struct CircularSlider: View {
             // 背景圆环
             Circle()
                 .stroke(
-                    Color.divider.opacity(0.3),
+                    Color.separator.opacity(0.3),
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
             
@@ -47,7 +47,7 @@ struct CircularSlider: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(EmotionalAnimation.fluid, value: value)
+                .animation(.spring(response: 0.3, dampingFraction: 0.8), value: value)
             
             // 拖动手柄
             Circle()
@@ -76,7 +76,7 @@ struct CircularSlider: View {
                 // 描述文字
                 Text(painDescription)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -218,7 +218,7 @@ struct EnhancedPainAssessmentView: View {
                     .font(.title2.weight(.semibold))
                 Text("拖动圆环上的白点来选择")
                     .font(.subheadline)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             // 圆形滑块
@@ -245,13 +245,13 @@ struct EnhancedPainAssessmentView: View {
     private var encouragementText: some View {
         HStack(spacing: 10) {
             Image(systemName: "heart.fill")
-                .foregroundStyle(Color.gentlePink)
+                .foregroundStyle(Color.primary)
             Text("轻度不适也值得记录")
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
         .padding(12)
-        .background(Color.gentlePink.opacity(0.1))
+        .background(Color.primary.opacity(0.1))
         .cornerRadius(12)
     }
 }
@@ -274,7 +274,7 @@ struct EnhancedPainAssessmentView: View {
         
         Text("当前值: \(value)")
             .font(.headline)
-            .foregroundStyle(Color.textSecondary)
+            .foregroundStyle(Color.labelSecondary)
     }
     .padding()
     .background(Color.backgroundPrimary)

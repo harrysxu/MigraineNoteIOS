@@ -25,7 +25,7 @@ struct Step4_TriggersView: View {
             // 说明文字
             Text("选择可能导致本次发作的诱因")
                 .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
             
             // 智能推荐（如果有）
             if !suggestedTriggers.isEmpty {
@@ -43,7 +43,7 @@ struct Step4_TriggersView: View {
                     VStack(alignment: .leading, spacing: Spacing.sm) {
                         Text("已选择 \(viewModel.selectedTriggers.count) 个诱因")
                             .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         FlowLayout(spacing: Spacing.xs) {
                             ForEach(viewModel.selectedTriggers, id: \.self) { trigger in
@@ -59,7 +59,7 @@ struct Step4_TriggersView: View {
                                 }
                                 .padding(.horizontal, Spacing.xs)
                                 .padding(.vertical, 4)
-                                .background(Color.accentPrimary)
+                                .background(Color.primary)
                                 .foregroundStyle(.white)
                                 .cornerRadius(CornerRadius.sm)
                             }
@@ -80,10 +80,10 @@ struct Step4_TriggersView: View {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
                     Image(systemName: "sparkles")
-                        .foregroundStyle(Color.warmAccent)
+                        .foregroundStyle(Color.warning)
                     Text("根据您的记录，这些诱因常见：")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 FlowLayout(spacing: Spacing.xs) {
@@ -106,13 +106,13 @@ struct Step4_TriggersView: View {
                             .padding(.vertical, 8)
                             .background(
                                 viewModel.selectedTriggers.contains(trigger)
-                                    ? Color.warmAccent
-                                    : Color.warmAccent.opacity(0.2)
+                                    ? Color.warning
+                                    : Color.warning.opacity(0.2)
                             )
                             .foregroundStyle(
                                 viewModel.selectedTriggers.contains(trigger)
                                     ? .white
-                                    : Color.textPrimary
+                                    : Color.labelPrimary
                             )
                             .cornerRadius(CornerRadius.sm)
                         }

@@ -16,178 +16,193 @@ struct HomeView: View {
     @State private var selectedTab: Int?
     @State private var selectedAttackForDetail: AttackRecord?
     @State private var selectedAttackForEdit: AttackRecord?
+    @State private var toastManager = ToastManager()
+    @State private var showQuickRecordSuccess = false
     
     var body: some View {
-        ZStack {
-            NavigationStack {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        if let vm = viewModel {
-                            // 动态问候 - 左对齐
-                            DynamicGreeting()
-                                .fadeIn(delay: 0.1)
-                                .padding(.horizontal, 20)
-                                .padding(.top, 8)
-                            
-                            // 状态卡片 - 全宽
-                            CompactStatusCard(
-                                streakDays: vm.streakDays,
-                                ongoingAttack: vm.ongoingAttack
-                            )
-                            .fadeIn(delay: 0.2)
-                            .padding(.horizontal, 20)
-                            
-                            // 主操作按钮
-                            MainActionButton(
-                                ongoingAttack: vm.ongoingAttack,
-                                onTap: {
-                                    if let attack = vm.ongoingAttack {
-                                        selectedAttackForEdit = attack
-                                    } else {
-                                        showRecordingView = true
-                                    }
-                                }
-                            )
-                            .fadeIn(delay: 0.3)
-                            .padding(.horizontal, 20)
-                            
-                            // 天气卡片 + 月度概况 - 网格布局
-                            VStack(spacing: 16) {
-                                WeatherInsightCard(
-                                    weather: vm.currentWeather,
-                                    error: vm.weatherError,
-                                    isRefreshing: vm.isRefreshingWeather,
-                                    onRefresh: {
-                                        vm.refreshWeather()
-                                    }
-                                )
-                                    .fadeIn(delay: 0.4)
-                                
-                                MonthlyOverviewCard(modelContext: modelContext, selectedTab: $selectedTab)
-                                    .fadeIn(delay: 0.5)
-                            }
-                            .padding(.horizontal, 20)
-                            
-                            // 最近记录 - 列表布局
-                            if !vm.recentAttacks.isEmpty {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Text("最近记录")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(Color.textPrimary)
-                                        
-                                        Spacer()
-                                        
-                                        Button {
-                                            NotificationCenter.default.post(
-                                                name: NSNotification.Name("SwitchToRecordListTab"),
-                                                object: nil
-                                            )
-                                        } label: {
-                                            Text("查看全部")
-                                                .font(.subheadline)
-                                                .foregroundStyle(Color.accentPrimary)
-                                        }
-                                    }
-                                    
-                                    VStack(spacing: 12) {
-                                        ForEach(vm.recentAttacks.prefix(3)) { attack in
-                                            CompactAttackRow(attack: attack)
-                                                .onTapGesture {
-                                                    selectedAttackForDetail = attack
-                                                }
-                                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                                    Button(role: .destructive) {
-                                                        deleteAttack(attack)
-                                                    } label: {
-                                                        Label("删除", systemImage: "trash")
-                                                    }
-                                                }
-                                        }
-                                    }
-                                }
-                                .fadeIn(delay: 0.6)
-                                .padding(.horizontal, 20)
-                            }
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: Spacing.lg) {
+                    if let vm = viewModel {
+                        // 1. 连续无头痛天数（大数值显示）
+                        if let attack = vm.ongoingAttack {
+                            // 发作进行中状态
+                            OngoingAttackView(attack: attack)
+                                .padding(.horizontal, Spacing.pageHorizontal)
                         } else {
-                            ProgressView()
-                                .tint(Color.accentPrimary)
-                                .frame(maxWidth: .infinity, maxHeight: 300)
+                            // 无头痛状态
+                            LargeNumberDisplay(
+                                value: "\(vm.streakDays)",
+                                label: "连续无头痛天数",
+                                unit: "天"
+                            )
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, Spacing.xl)
+                            .background(Color.backgroundSecondary)
+                            .cornerRadius(CornerRadius.lg)
+                            .padding(.horizontal, Spacing.pageHorizontal)
                         }
                         
-                        Spacer(minLength: 80)
-                    }
-                    .padding(.vertical, 12)
-                }
-                .navigationTitle("")
-                .navigationBarTitleDisplayMode(.inline)
-                .background(Color.backgroundPrimary.ignoresSafeArea())
-                .sheet(isPresented: $showRecordingView) {
-                    RecordingSheetView(
-                        modelContext: modelContext,
-                        weatherManager: weatherManager,
-                        isPresented: $showRecordingView,
-                        onDismiss: {
-                            viewModel?.refreshData()
-                        }
-                    )
-                }
-                .sheet(item: $selectedAttackForDetail) { attack in
-                    AttackDetailView(attack: attack)
-                        .onDisappear {
-                            viewModel?.refreshData()
-                        }
-                }
-                .sheet(item: $selectedAttackForEdit) { attack in
-                    NavigationStack {
-                        SimplifiedRecordingView(
-                            modelContext: modelContext,
-                            weatherManager: weatherManager,
-                            existingAttack: attack,
-                            onCancel: {
-                                selectedAttackForEdit = nil
+                        // 2. 超大快速记录按钮
+                        QuickRecordButton {
+                            if let attack = vm.ongoingAttack {
+                                // 有进行中的记录，打开编辑界面
+                                selectedAttackForEdit = attack
+                            } else {
+                                // 没有进行中的记录，执行快速记录
+                                performQuickRecord()
                             }
-                        )
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("取消") {
-                                    selectedAttackForEdit = nil
+                        }
+                        .padding(.horizontal, Spacing.pageHorizontal)
+                        
+                        // 3. 本月概览
+                        VStack(alignment: .leading, spacing: Spacing.md) {
+                            Text("本月概览")
+                                .font(.title3.weight(.semibold))
+                                .foregroundColor(.labelPrimary)
+                            
+                            ThreeColumnStat(
+                                stat1: ("\(monthlyAttackDays(vm.recentAttacks))天", "发作天数"),
+                                stat2: (String(format: "%.1f/10", averageIntensity(vm.recentAttacks)), "平均强度"),
+                                stat3: ("\(medicationCount(vm.recentAttacks))次", "用药次数")
+                            )
+                        }
+                        .padding(.horizontal, Spacing.pageHorizontal)
+                        
+                        // 4. 最近记录列表
+                        if !vm.recentAttacks.isEmpty {
+                            VStack(alignment: .leading, spacing: Spacing.md) {
+                                HStack {
+                                    Text("最近记录")
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundColor(.labelPrimary)
+                                    
+                                    Spacer()
+                                    
+                                    Button {
+                                        NotificationCenter.default.post(
+                                            name: NSNotification.Name("SwitchToRecordListTab"),
+                                            object: nil
+                                        )
+                                    } label: {
+                                        Text("查看全部")
+                                            .font(.subheadline)
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                                
+                                VStack(spacing: 0) {
+                                    ForEach(Array(vm.recentAttacks.prefix(3).enumerated()), id: \.element.id) { index, attack in
+                                        MinimalAttackRow(attack: attack)
+                                            .onTapGesture {
+                                                selectedAttackForDetail = attack
+                                            }
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                                Button(role: .destructive) {
+                                                    deleteAttack(attack)
+                                                } label: {
+                                                    Label("删除", systemImage: "trash")
+                                                }
+                                            }
+                                        
+                                        if index < vm.recentAttacks.prefix(3).count - 1 {
+                                            Divider()
+                                                .padding(.leading, Spacing.pageHorizontal)
+                                        }
+                                    }
                                 }
                             }
+                            .padding(.horizontal, Spacing.pageHorizontal)
                         }
+                    } else {
+                        ProgressView()
+                            .tint(Color.primary)
+                            .frame(maxWidth: .infinity, maxHeight: 300)
                     }
+                    
+                    Spacer(minLength: 80)
+                }
+                .padding(.vertical, Spacing.pageTop)
+            }
+            .navigationTitle("头痛记录")
+            .navigationBarTitleDisplayMode(.large)
+            .background(Color.backgroundPrimary.ignoresSafeArea())
+            .refreshable {
+                viewModel?.refreshData()
+            }
+            .sheet(isPresented: $showRecordingView) {
+                RecordingSheetView(
+                    modelContext: modelContext,
+                    weatherManager: weatherManager,
+                    isPresented: $showRecordingView,
+                    onDismiss: {
+                        viewModel?.refreshData()
+                    }
+                )
+            }
+            .sheet(item: $selectedAttackForDetail) { attack in
+                AttackDetailView(attack: attack)
                     .onDisappear {
                         viewModel?.refreshData()
                     }
-                }
             }
-            .onAppear {
-                if viewModel == nil {
-                    viewModel = HomeViewModel(modelContext: modelContext, weatherManager: weatherManager)
-                }
-            }
-            
-            // 浮动快速操作按钮
-            if let vm = viewModel {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        FloatingQuickActionButton(
-                            ongoingAttack: vm.ongoingAttack,
-                            onQuickStart: {
-                                _ = vm.quickStartRecording()
-                            },
-                            onQuickEnd: { attack in
-                                vm.quickEndRecording(attack)
+            .sheet(item: $selectedAttackForEdit) { attack in
+                NavigationStack {
+                    SimplifiedRecordingView(
+                        modelContext: modelContext,
+                        weatherManager: weatherManager,
+                        existingAttack: attack,
+                        onCancel: {
+                            selectedAttackForEdit = nil
+                        }
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("取消") {
+                                selectedAttackForEdit = nil
                             }
-                        )
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
+                        }
                     }
+                }
+                .onDisappear {
+                    viewModel?.refreshData()
                 }
             }
         }
+        .onAppear {
+            if viewModel == nil {
+                viewModel = HomeViewModel(modelContext: modelContext, weatherManager: weatherManager)
+            }
+        }
+        .toast(
+            isPresented: $toastManager.isPresented,
+            config: toastManager.config ?? ToastConfig(message: "")
+        )
+    }
+    
+    // MARK: - 快速记录
+    
+    private func performQuickRecord() {
+        guard let vm = viewModel else { return }
+        
+        // 执行快速记录
+        _ = vm.quickStartRecording()
+        
+        // 触觉反馈
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        
+        // 显示Toast提示
+        toastManager.show(
+            message: "已记录 \(formatTime(Date()))，稍后可补充详情",
+            type: .success,
+            duration: 2.5
+        )
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
     
     // MARK: - Helper Methods
@@ -201,140 +216,73 @@ struct HomeView: View {
             print("删除失败: \(error)")
         }
     }
-}
-
-// MARK: - 动态问候语
-
-struct DynamicGreeting: View {
-    @State private var currentHour = Calendar.current.component(.hour, from: Date())
     
-    var greeting: String {
-        switch currentHour {
-        case 6..<11:
-            return "早安"
-        case 11..<14:
-            return "中午好"
-        case 14..<18:
-            return "下午好"
-        case 18..<22:
-            return "晚上好"
-        default:
-            return "夜深了"
-        }
+    // MARK: - 统计计算
+    
+    private func monthlyAttackDays(_ attacks: [AttackRecord]) -> Int {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        let monthlyAttacks = attacks.filter { $0.startTime >= startOfMonth }
+        let uniqueDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
+        return uniqueDays.count
     }
     
-    var greetingColor: LinearGradient {
-        switch currentHour {
-        case 6..<11:
-            return LinearGradient(
-                colors: [Color.warmAccent.opacity(0.8), Color.warmAccent],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        case 11..<18:
-            return Color.primaryGradient
-        case 18..<22:
-            return LinearGradient(
-                colors: [Color.accentSecondary.opacity(0.8), Color.accentSecondary],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        default:
-            return LinearGradient(
-                colors: [Color.accentSecondary.opacity(0.6), Color.accentPrimary.opacity(0.6)],
-                startPoint: .leading,
-                endPoint: .trailing
-            )
-        }
+    private func averageIntensity(_ attacks: [AttackRecord]) -> Double {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        let monthlyAttacks = attacks.filter { $0.startTime >= startOfMonth }
+        guard !monthlyAttacks.isEmpty else { return 0 }
+        
+        let total = monthlyAttacks.reduce(0) { $0 + $1.painIntensity }
+        return Double(total) / Double(monthlyAttacks.count)
     }
     
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(greeting)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(greetingColor)
-            
-            Text("今天感觉如何？")
-                .font(.body)
-                .foregroundStyle(Color.textSecondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    private func medicationCount(_ attacks: [AttackRecord]) -> Int {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        let monthlyAttacks = attacks.filter { $0.startTime >= startOfMonth }
+        return monthlyAttacks.filter { !$0.medications.isEmpty }.count
     }
 }
 
-// MARK: - 紧凑状态卡片
+// MARK: - 发作进行中视图
 
-struct CompactStatusCard: View {
-    let streakDays: Int
-    let ongoingAttack: AttackRecord?
-    
-    var streakEmoji: String {
-        switch streakDays {
-        case 0:
-            return "🌱"
-        case 1...3:
-            return "💪"
-        case 4...6:
-            return "✨"
-        case 7...13:
-            return "🌟"
-        case 14...29:
-            return "🎯"
-        case 30...:
-            return "🎉"
-        default:
-            return "🌱"
-        }
-    }
+struct OngoingAttackView: View {
+    let attack: AttackRecord
     
     var body: some View {
-        EmotionalCard(style: .elevated) {
-            if let attack = ongoingAttack {
-                // 发作进行中 - 显示持续时间
-                HStack(spacing: 16) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: 36))
-                        .foregroundStyle(Color.statusWarning)
+        VStack(spacing: Spacing.sm) {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(.warning)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("发作进行中")
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.labelPrimary)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("发作进行中")
-                            .font(.headline)
-                            .foregroundStyle(Color.textPrimary)
-                        Text("已持续 \(formatDuration(attack.startTime))")
-                            .font(.subheadline)
-                            .foregroundStyle(Color.textSecondary)
-                    }
-                    
-                    Spacer()
+                    Text("已持续 \(formatDuration(attack.startTime))")
+                        .font(.subheadline)
+                        .foregroundColor(.labelSecondary)
                 }
-            } else {
-                // 无发作状态 - 横向布局
-                HStack(spacing: 16) {
-                    Text(streakEmoji)
-                        .font(.system(size: 48))
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        if streakDays > 0 {
-                            Text("\(streakDays) 天")
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundStyle(Color.accentPrimary)
-                            Text("无头痛")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.textSecondary)
-                        } else {
-                            Text("开始记录")
-                                .font(.headline)
-                                .foregroundStyle(Color.textPrimary)
-                            Text("发现健康规律")
-                                .font(.subheadline)
-                                .foregroundStyle(Color.textSecondary)
-                        }
-                    }
-                    
-                    Spacer()
-                }
+                
+                Spacer()
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xl)
+        .padding(.horizontal, Spacing.md)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(CornerRadius.lg)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("发作进行中，已持续\(formatDuration(attack.startTime))")
     }
     
     private func formatDuration(_ startTime: Date) -> String {
@@ -350,648 +298,62 @@ struct CompactStatusCard: View {
     }
 }
 
-// MARK: - 微型趋势图（占位）
+// MARK: - 极简记录行
 
-struct MiniTrendSparkline: View {
-    // 模拟过去7天的数据（0表示无发作，1-10表示疼痛强度）
-    let mockData: [CGFloat] = [0, 0, 5, 0, 0, 7, 0]
-    
-    var body: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            let height = geometry.size.height
-            let spacing = width / CGFloat(mockData.count)
-            
-            ZStack {
-                // 背景线
-                Path { path in
-                    for i in 0..<mockData.count {
-                        let x = CGFloat(i) * spacing + spacing / 2
-                        let y = height - (mockData[i] / 10 * height)
-                        
-                        if i == 0 {
-                            path.move(to: CGPoint(x: x, y: y))
-                        } else {
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                    }
-                }
-                .stroke(
-                    Color.accentPrimary.opacity(0.3),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
-                )
-                
-                // 数据点
-                ForEach(0..<mockData.count, id: \.self) { index in
-                    let x = CGFloat(index) * spacing + spacing / 2
-                    let y = height - (mockData[index] / 10 * height)
-                    
-                    Circle()
-                        .fill(mockData[index] > 0 ? Color.statusWarning : Color.statusSuccess)
-                        .frame(width: 6, height: 6)
-                        .position(x: x, y: y)
-                }
-            }
-        }
-    }
-}
-
-// MARK: - 主操作按钮
-
-struct MainActionButton: View {
-    let ongoingAttack: AttackRecord?
-    let onTap: () -> Void
-    
-    var body: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            onTap()
-        }) {
-            HStack(spacing: 12) {
-                Image(systemName: ongoingAttack == nil ? "plus.circle.fill" : "square.and.pencil")
-                    .font(.system(size: 24))
-                
-                Text(ongoingAttack == nil ? "开始记录" : "编辑记录")
-                    .font(.headline)
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color.primaryGradient)
-            .cornerRadius(16)
-            .shadow(color: Color.accentPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - 浮动快速操作按钮 (FAB)
-
-struct FloatingQuickActionButton: View {
-    let ongoingAttack: AttackRecord?
-    let onQuickStart: () -> Void
-    let onQuickEnd: (AttackRecord) -> Void
-    
-    @State private var isBreathing = false
-    
-    var body: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            
-            if let attack = ongoingAttack {
-                // 有进行中的记录，执行快速结束
-                onQuickEnd(attack)
-            } else {
-                // 没有进行中的记录，执行快速开始
-                onQuickStart()
-            }
-        }) {
-            ZStack {
-                // 外圈呼吸光晕
-                Circle()
-                    .fill(ongoingAttack == nil ? Color.primaryGradient : LinearGradient(
-                        colors: [Color.statusSuccess, Color.statusSuccess.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 64, height: 64)
-                    .scaleEffect(isBreathing ? 1.15 : 1.0)
-                    .opacity(isBreathing ? 0.3 : 0.5)
-                
-                // 主按钮
-                Circle()
-                    .fill(ongoingAttack == nil ? Color.primaryGradient : LinearGradient(
-                        colors: [Color.statusSuccess, Color.statusSuccess.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 56, height: 56)
-                    .shadow(color: (ongoingAttack == nil ? Color.accentPrimary : Color.statusSuccess).opacity(0.4), radius: 12, x: 0, y: 6)
-                
-                Image(systemName: ongoingAttack == nil ? "bolt.fill" : "checkmark")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-        }
-        .buttonStyle(.plain)
-        .onAppear {
-            withAnimation(EmotionalAnimation.breathe) {
-                isBreathing = true
-            }
-        }
-    }
-}
-
-// MARK: - 天气洞察卡片
-
-struct WeatherInsightCard: View {
-    let weather: WeatherSnapshot?
-    let error: String?
-    var isRefreshing: Bool = false
-    var onRefresh: (() -> Void)?
-    
-    var body: some View {
-        EmotionalCard(style: .gentle) {
-            if let weather = weather {
-                VStack(alignment: .leading, spacing: 16) {
-                    // 标题行
-                    HStack {
-                        Image(systemName: weatherIcon(for: weather.condition))
-                            .font(.system(size: 32))
-                            .foregroundStyle(Color.accentPrimary)
-                            .frame(width: 48, height: 48)
-                            .background(Color.accentPrimary.opacity(0.15))
-                            .clipShape(Circle())
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("当前天气")
-                                .font(.headline)
-                                .foregroundStyle(Color.textPrimary)
-                            
-                            if !weather.location.isEmpty {
-                                Text(weather.location)
-                                    .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        // 温度显示
-                        Text("\(Int(weather.temperature))°C")
-                            .font(.system(size: 32, weight: .bold))
-                            .foregroundStyle(Color.accentPrimary)
-                        
-                        // 刷新按钮
-                        if let onRefresh = onRefresh {
-                            Button(action: onRefresh) {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.body)
-                                    .foregroundStyle(Color.accentPrimary)
-                                    .frame(width: 36, height: 36)
-                                    .background(Color.accentPrimary.opacity(0.1))
-                                    .clipShape(Circle())
-                                    .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                                    .animation(
-                                        isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default,
-                                        value: isRefreshing
-                                    )
-                            }
-                            .disabled(isRefreshing)
-                        }
-                    }
-                    
-                    // 详细信息网格
-                    VStack(spacing: 8) {
-                        HStack(spacing: 12) {
-                            WeatherDetailItem(
-                                icon: "gauge.high",
-                                label: "气压",
-                                value: String(format: "%.0f hPa", weather.pressure),
-                                trend: weather.pressureTrend
-                            )
-                            
-                            WeatherDetailItem(
-                                icon: "humidity",
-                                label: "湿度",
-                                value: String(format: "%.0f%%", weather.humidity)
-                            )
-                        }
-                        
-                        // 风险警告
-                        if !weather.warnings.isEmpty {
-                            Divider()
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                ForEach(weather.warnings, id: \.self) { warning in
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .font(.caption)
-                                            .foregroundStyle(Color.statusWarning)
-                                        Text(warning)
-                                            .font(.caption)
-                                            .foregroundStyle(Color.textSecondary)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            } else if let error = error {
-                // 错误状态 - 显示友好的提示信息
-                HStack(spacing: 16) {
-                    Image(systemName: "location.slash.fill")
-                        .font(.system(size: 32))
-                        .foregroundStyle(Color.statusInfo)
-                        .frame(width: 48, height: 48)
-                        .background(Color.statusInfo.opacity(0.15))
-                        .clipShape(Circle())
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("天气数据不可用")
-                            .font(.headline)
-                            .foregroundStyle(Color.textPrimary)
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
-                            .lineLimit(2)
-                    }
-                    
-                    Spacer()
-                    
-                    // 刷新按钮
-                    if let onRefresh = onRefresh {
-                        Button(action: onRefresh) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.body)
-                                .foregroundStyle(Color.accentPrimary)
-                                .frame(width: 36, height: 36)
-                                .background(Color.accentPrimary.opacity(0.1))
-                                .clipShape(Circle())
-                        }
-                    }
-                }
-            } else {
-                // 加载状态
-                HStack(spacing: 16) {
-                    ProgressView()
-                        .frame(width: 48, height: 48)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("正在获取天气数据...")
-                            .font(.headline)
-                            .foregroundStyle(Color.textPrimary)
-                        Text("需要位置权限")
-                            .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
-                    }
-                    
-                    Spacer()
-                }
-            }
-        }
-    }
-    
-    private func weatherIcon(for condition: String) -> String {
-        // 根据天气状况返回对应图标
-        let lowercased = condition.lowercased()
-        if lowercased.contains("晴") || lowercased.contains("clear") {
-            return "sun.max.fill"
-        } else if lowercased.contains("云") || lowercased.contains("cloud") {
-            return "cloud.fill"
-        } else if lowercased.contains("雨") || lowercased.contains("rain") {
-            return "cloud.rain.fill"
-        } else if lowercased.contains("雪") || lowercased.contains("snow") {
-            return "cloud.snow.fill"
-        } else {
-            return "cloud.sun.fill"
-        }
-    }
-}
-
-// MARK: - 天气详情项
-
-struct WeatherDetailItem: View {
-    let icon: String
-    let label: String
-    let value: String
-    var trend: PressureTrend?
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(Color.accentPrimary)
-                .frame(width: 28)
-            
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(Color.textTertiary)
-                
-                HStack(spacing: 4) {
-                    Text(value)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.textPrimary)
-                    
-                    if let trend = trend {
-                        Image(systemName: trend.icon)
-                            .font(.caption2)
-                            .foregroundStyle(trendColor(for: trend))
-                    }
-                }
-            }
-            
-            Spacer()
-        }
-        .padding(10)
-        .background(Color.backgroundPrimary)
-        .cornerRadius(8)
-    }
-    
-    private func trendColor(for trend: PressureTrend) -> Color {
-        switch trend {
-        case .rising:
-            return .statusSuccess
-        case .falling:
-            return .statusWarning
-        case .steady:
-            return .textSecondary
-        }
-    }
-}
-
-// MARK: - 天气卡片占位
-
-struct WeatherRiskCardPlaceholder: View {
-    var body: some View {
-        InfoCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "cloud.sun.fill")
-                        .foregroundStyle(Color.statusInfo)
-                    Text("环境提示")
-                        .font(.headline)
-                    Spacer()
-                }
-                
-                Text("天气数据将在集成WeatherKit后显示")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.textSecondary)
-            }
-        }
-    }
-}
-
-// MARK: - 月度概况卡片
-
-struct MonthlyOverviewCard: View {
-    let modelContext: ModelContext
-    @Binding var selectedTab: Int?
-    
-    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
-    
-    var body: some View {
-        EmotionalCard(style: .gentle) {
-            VStack(alignment: .leading, spacing: 16) {
-                // 标题行
-                HStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                            .font(.title3)
-                            .foregroundStyle(Color.accentPrimary)
-                        Text("本月概况")
-                            .font(.headline)
-                    }
-                    
-                    Spacer()
-                    
-                    Button {
-                        // 先切换到数据标签页
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("SwitchToDataTab"),
-                            object: nil
-                        )
-                        // 延迟一下再切换到日历视图，确保标签页已经切换
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            NotificationCenter.default.post(
-                                name: NSNotification.Name("SwitchToDataCalendarView"),
-                                object: nil
-                            )
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("日历")
-                                .font(.caption.weight(.medium))
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                        }
-                        .foregroundStyle(Color.accentPrimary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.accentPrimary.opacity(0.1))
-                        .cornerRadius(12)
-                    }
-                }
-                
-                // 统计数据网格 - 2x2布局
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        CompactStatCard(
-                            value: "\(monthlyAttackDays)",
-                            label: "发作天数",
-                            icon: "exclamationmark.circle.fill",
-                            color: monthlyAttackDays >= 15 ? .statusError : .accentPrimary
-                        )
-                        
-                        CompactStatCard(
-                            value: "\(monthlyAttackCount)",
-                            label: "发作次数",
-                            icon: "chart.bar.fill",
-                            color: .accentPrimary
-                        )
-                    }
-                    
-                    HStack(spacing: 12) {
-                        CompactStatCard(
-                            value: String(format: "%.1f", averageIntensity),
-                            label: "平均强度",
-                            icon: "waveform.path.ecg",
-                            color: Color.painIntensityColor(for: Int(averageIntensity))
-                        )
-                        
-                        CompactStatCard(
-                            value: "\(getMedicationDays())",
-                            label: "用药天数",
-                            icon: "pills.fill",
-                            color: getMedicationDays() >= 10 ? .statusWarning : .accentPrimary
-                        )
-                    }
-                }
-            }
-        }
-    }
-    
-    // MARK: - 计算属性
-    
-    private var monthlyAttacks: [AttackRecord] {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        
-        return attacks.filter { $0.startTime >= startOfMonth }
-    }
-    
-    private var monthlyAttackDays: Int {
-        let calendar = Calendar.current
-        let uniqueDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
-        return uniqueDays.count
-    }
-    
-    private var monthlyAttackCount: Int {
-        monthlyAttacks.count
-    }
-    
-    private var averageIntensity: Double {
-        guard !monthlyAttacks.isEmpty else { return 0 }
-        let total = monthlyAttacks.reduce(0) { $0 + $1.painIntensity }
-        return Double(total) / Double(monthlyAttacks.count)
-    }
-    
-    private func getMedicationDays() -> Int {
-        let calendar = Calendar.current
-        let medicationDays = Set(
-            monthlyAttacks
-                .filter { !$0.medications.isEmpty }
-                .map { calendar.startOfDay(for: $0.startTime) }
-        )
-        return medicationDays.count
-    }
-}
-
-// MARK: - 紧凑统计卡片
-
-struct CompactStatCard: View {
-    let value: String
-    let label: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // 图标
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-                .frame(width: 36, height: 36)
-                .background(color.opacity(0.15))
-                .clipShape(Circle())
-            
-            // 数值和标签
-            VStack(alignment: .leading, spacing: 2) {
-                Text(value)
-                    .font(.title3.weight(.bold))
-                    .foregroundStyle(Color.textPrimary)
-                
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-            }
-            
-            Spacer()
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity)
-        .background(Color.backgroundPrimary)
-        .cornerRadius(12)
-    }
-}
-
-// MARK: - 简化的日历热力图
-
-struct MiniCalendarHeatmap: View {
-    let attacks: [AttackRecord]
-    
-    var body: some View {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let daysInMonth = calendar.range(of: .day, in: .month, for: now)!.count
-        
-        GeometryReader { geometry in
-            let cellWidth = geometry.size.width / CGFloat(daysInMonth)
-            
-            HStack(spacing: 2) {
-                ForEach(1...daysInMonth, id: \.self) { day in
-                    let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth)!
-                    let dayAttacks = attacks.filter {
-                        calendar.isDate($0.startTime, inSameDayAs: date)
-                    }
-                    
-                    Rectangle()
-                        .fill(cellColor(for: dayAttacks))
-                        .frame(width: max(2, cellWidth - 2))
-                        .cornerRadius(2)
-                }
-            }
-            .frame(height: 60)
-        }
-    }
-    
-    private func cellColor(for attacks: [AttackRecord]) -> Color {
-        guard !attacks.isEmpty else {
-            return Color.backgroundSecondary
-        }
-        
-        let maxIntensity = attacks.map(\.painIntensity).max() ?? 0
-        return Color.painIntensityColor(for: maxIntensity).opacity(0.8)
-    }
-}
-
-// MARK: - 紧凑记录行
-
-struct CompactAttackRow: View {
+struct MinimalAttackRow: View {
     let attack: AttackRecord
     
     var body: some View {
-        HStack(spacing: 16) {
-            // 左侧疼痛强度指示器
-            VStack(spacing: 4) {
-                Text("\(attack.painIntensity)")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.painIntensityColor(for: attack.painIntensity))
-                
-                Text("强度")
-                    .font(.caption2)
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .frame(width: 56, height: 56)
-            .background(Color.painIntensityColor(for: attack.painIntensity).opacity(0.15))
-            .cornerRadius(12)
+        HStack(spacing: Spacing.md) {
+            // 左侧：疼痛强度
+            Text("\(attack.painIntensity)")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(Color.painIntensityColor(for: attack.painIntensity))
+                .frame(width: 44, height: 44)
+                .background(Color.painIntensityColor(for: attack.painIntensity).opacity(0.1))
+                .cornerRadius(CornerRadius.sm)
             
-            // 中间内容
+            // 中间：信息
             VStack(alignment: .leading, spacing: 4) {
                 Text(attack.startTime.smartFormatted())
                     .font(.body.weight(.medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundColor(.labelPrimary)
                 
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.xs) {
                     if let duration = calculateDuration() {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 2) {
                             Image(systemName: "clock")
                                 .font(.caption2)
                             Text(duration)
                         }
                         .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundColor(.labelSecondary)
                     }
                     
                     if !attack.medications.isEmpty {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 2) {
                             Image(systemName: "pills")
                                 .font(.caption2)
-                            Text("\(attack.medications.count)种药物")
+                            Text("已用药")
                         }
                         .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundColor(.labelSecondary)
                     }
                 }
             }
             
             Spacer()
             
-            // 右侧箭头
+            // 右侧：箭头
             Image(systemName: "chevron.right")
                 .font(.caption)
-                .foregroundStyle(Color.textTertiary)
+                .foregroundColor(.labelTertiary)
         }
-        .padding(12)
-        .background(Color.backgroundSecondary)
-        .cornerRadius(12)
+        .padding(.vertical, Spacing.sm)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("疼痛强度\(attack.painIntensity)，\(attack.startTime.smartFormatted())，\(calculateDuration() ?? "")")
     }
-    
     
     private func calculateDuration() -> String? {
         guard let endTime = attack.endTime else { return nil }
@@ -1001,14 +363,16 @@ struct CompactAttackRow: View {
         let minutes = (Int(duration) % 3600) / 60
         
         if hours > 0 {
-            return "\(hours)h\(minutes)m"
+            return "\(hours)小时\(minutes)分钟"
         } else if minutes > 0 {
-            return "\(minutes)m"
+            return "\(minutes)分钟"
         } else {
             return nil
         }
     }
 }
+
+// 装饰性组件已移除，采用医疗极简主义设计
 
 // MARK: - 记录页面Sheet包装器
 
@@ -1200,16 +564,16 @@ struct SimplifiedRecordingViewWrapper: View {
         HStack(spacing: 12) {
             Image(systemName: "heart.text.square.fill")
                 .font(.title3)
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.primary)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text("记录偏头痛发作")
                     .font(.headline)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text("所有字段均可选，随时保存")
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             Spacer()
@@ -1226,7 +590,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 // 开始时间
                 HStack(spacing: 12) {
                     Image(systemName: "clock.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("开始时间")
                         .font(.subheadline.weight(.medium))
                     Spacer()
@@ -1251,10 +615,10 @@ struct SimplifiedRecordingViewWrapper: View {
                             Text("进行中")
                         }
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(viewModel.isOngoing ? .white : Color.textPrimary)
+                        .foregroundStyle(viewModel.isOngoing ? .white : Color.labelPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(viewModel.isOngoing ? Color.accentPrimary : Color.backgroundSecondary)
+                        .background(viewModel.isOngoing ? Color.primary : Color.backgroundSecondary)
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -1270,10 +634,10 @@ struct SimplifiedRecordingViewWrapper: View {
                             Text("已结束")
                         }
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(!viewModel.isOngoing ? .white : Color.textPrimary)
+                        .foregroundStyle(!viewModel.isOngoing ? .white : Color.labelPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(!viewModel.isOngoing ? Color.accentPrimary : Color.backgroundSecondary)
+                        .background(!viewModel.isOngoing ? Color.primary : Color.backgroundSecondary)
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -1324,7 +688,7 @@ struct SimplifiedRecordingViewWrapper: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("疼痛部位")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 HeadMapView(selectedLocations: $viewModel.selectedPainLocations)
             }
@@ -1335,7 +699,7 @@ struct SimplifiedRecordingViewWrapper: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("疼痛性质")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(PainQuality.allCases, id: \.self) { quality in
@@ -1401,7 +765,7 @@ struct SimplifiedRecordingViewWrapper: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("伴随症状")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(westernSymptoms, id: \.id) { label in
@@ -1437,7 +801,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 HStack {
                     Text("中医症状")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     Spacer()
                     Image(systemName: "leaf.fill")
                         .font(.caption)
@@ -1479,7 +843,7 @@ struct SimplifiedRecordingViewWrapper: View {
                                 .font(.title3)
                             Text(category.rawValue)
                                 .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         
                         FlowLayout(spacing: 8) {
@@ -1521,14 +885,14 @@ struct SimplifiedRecordingViewWrapper: View {
             } label: {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("添加用药")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Color.accentPrimary.opacity(0.1))
+                .background(Color.primary.opacity(0.1))
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -1545,10 +909,10 @@ struct SimplifiedRecordingViewWrapper: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(medInfo.medication?.name ?? "未知药物")
                                 .font(.body.weight(.medium))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.medication?.unit ?? "mg") - \(medInfo.timeTaken.shortTime())")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         Spacer()
                         Button {
@@ -1567,7 +931,7 @@ struct SimplifiedRecordingViewWrapper: View {
             } else {
                 Text("未记录用药")
                     .font(.subheadline)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.labelTertiary)
             }
         }
     }
@@ -1605,7 +969,7 @@ struct SimplifiedRecordingViewWrapper: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         .offset(x: 8, y: -8),
                         alignment: .topTrailing
@@ -1631,7 +995,7 @@ struct SimplifiedRecordingViewWrapper: View {
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.divider, lineWidth: 1)
+                    .stroke(Color.separator, lineWidth: 1)
             )
     }
     
@@ -1643,7 +1007,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 .foregroundStyle(Color.statusInfo)
             Text("建议填写疼痛强度和部位以获得更准确的分析")
                 .font(.subheadline)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1690,7 +1054,7 @@ struct SimplifiedRecordingViewWrapper: View {
         HStack {
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
             
             Spacer()
             
@@ -1703,7 +1067,7 @@ struct SimplifiedRecordingViewWrapper: View {
                     Text("管理")
                         .font(.caption)
                 }
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.primary)
             }
         }
     }

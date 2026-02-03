@@ -65,10 +65,10 @@ struct MedicationDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppColors.background.ignoresSafeArea()
+                Color.backgroundPrimary.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: AppSpacing.large) {
+                    VStack(spacing: Spacing.lg) {
                         // 基本信息卡片
                         basicInfoCard
                         
@@ -93,7 +93,7 @@ struct MedicationDetailView: View {
                             notesCard(notes)
                         }
                     }
-                    .padding(AppSpacing.medium)
+                    .padding(Spacing.md)
                 }
             }
             .navigationTitle(medication.name)
@@ -154,7 +154,7 @@ struct MedicationDetailView: View {
     
     private var basicInfoCard: some View {
         DetailCard(title: "基本信息", icon: "info.circle") {
-            VStack(spacing: AppSpacing.small) {
+            VStack(spacing: Spacing.xs) {
                 InfoRow(label: "药物类别", value: medication.category.rawValue)
                 InfoRow(label: "用药类型", value: medication.isAcute ? "急性用药" : "预防性用药")
                 InfoRow(label: "标准剂量", value: String(format: "%.1f %@", medication.standardDosage, medication.unit))
@@ -170,12 +170,12 @@ struct MedicationDetailView: View {
     
     private var usageStatsCard: some View {
         DetailCard(title: "使用统计", icon: "chart.bar") {
-            HStack(spacing: AppSpacing.large) {
+            HStack(spacing: Spacing.lg) {
                 StatItem(
                     title: "本月使用",
                     value: "\(monthlyUsageDays)",
                     icon: "calendar",
-                    color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? AppColors.error : AppColors.primary,
+                    color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? Color.danger : Color.primary,
                     subtitle: "天"
                 )
                 
@@ -185,7 +185,7 @@ struct MedicationDetailView: View {
                     title: "总使用",
                     value: "\(totalUsageCount)",
                     icon: "number",
-                    color: AppColors.info,
+                    color: Color.info,
                     subtitle: "次"
                 )
                 
@@ -215,23 +215,23 @@ struct MedicationDetailView: View {
             title: "MOH风险",
             icon: "exclamationmark.triangle.fill"
         ) {
-            VStack(alignment: .leading, spacing: AppSpacing.medium) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
                 // 进度条
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Text("\(monthlyUsageDays) / \(limit) 天")
                             .appFont(.headline)
-                            .foregroundStyle(AppColors.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         Spacer()
                         Text("\(Int(progress * 100))%")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                     }
                     
                     GeometryReader { geometry in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 4)
-                                .fill(AppColors.surfaceElevated)
+                                .fill(Color.backgroundTertiary)
                                 .frame(height: 8)
                             
                             RoundedRectangle(cornerRadius: 4)
@@ -255,34 +255,34 @@ struct MedicationDetailView: View {
                 if isExceeding {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.error)
+                            .foregroundStyle(Color.danger)
                         Text("已超过MOH阈值，请咨询医生")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.error)
+                            .foregroundStyle(Color.danger)
                     }
-                    .padding(AppSpacing.small)
+                    .padding(Spacing.xs)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.error.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                    .background(Color.danger.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                 } else if isApproaching {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(AppColors.warning)
+                            .foregroundStyle(Color.warning)
                         Text("接近MOH阈值，请注意控制用药频率")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.warning)
+                            .foregroundStyle(Color.warning)
                     }
-                    .padding(AppSpacing.small)
+                    .padding(Spacing.xs)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(AppColors.warning.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                    .background(Color.warning.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                 } else {
                     HStack(spacing: 6) {
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(AppColors.success)
+                            .foregroundStyle(Color.success)
                         Text("用药频率正常")
                             .appFont(.caption)
-                            .foregroundStyle(AppColors.success)
+                            .foregroundStyle(Color.success)
                     }
                 }
             }
@@ -297,7 +297,7 @@ struct MedicationDetailView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("当前库存")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     
                     HStack(spacing: 8) {
                         Text("\(medication.inventory)")
@@ -306,17 +306,17 @@ struct MedicationDetailView: View {
                         
                         if medication.inventory <= 5 && medication.inventory > 0 {
                             Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(AppColors.warning)
+                                .foregroundStyle(Color.warning)
                         } else if medication.inventory == 0 {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(AppColors.error)
+                                .foregroundStyle(Color.danger)
                         }
                     }
                     
                     if medication.inventory <= 5 {
                         Text(medication.inventory == 0 ? "库存已用完" : "库存不足，请及时补充")
                             .appFont(.caption)
-                            .foregroundStyle(medication.inventory == 0 ? AppColors.error : AppColors.warning)
+                            .foregroundStyle(medication.inventory == 0 ? Color.danger : Color.warning)
                     }
                 }
                 
@@ -328,10 +328,10 @@ struct MedicationDetailView: View {
                     Label("调整", systemImage: "slider.horizontal.3")
                         .appFont(.body)
                         .foregroundStyle(.white)
-                        .padding(.horizontal, AppSpacing.medium)
-                        .padding(.vertical, AppSpacing.small)
-                        .background(AppColors.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
+                        .padding(.horizontal, Spacing.md)
+                        .padding(.vertical, Spacing.xs)
+                        .background(Color.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.sm))
                 }
             }
         }
@@ -341,7 +341,7 @@ struct MedicationDetailView: View {
     
     private var usageHistoryCard: some View {
         DetailCard(title: "使用历史", icon: "clock.arrow.circlepath") {
-            VStack(spacing: AppSpacing.small) {
+            VStack(spacing: Spacing.xs) {
                 ForEach(medicationLogs.prefix(10)) { log in
                     UsageHistoryRow(log: log)
                 }
@@ -349,9 +349,9 @@ struct MedicationDetailView: View {
                 if medicationLogs.count > 10 {
                     Text("显示最近10条记录，共\(medicationLogs.count)条")
                         .appFont(.caption)
-                        .foregroundStyle(AppColors.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, AppSpacing.small)
+                        .padding(.top, Spacing.xs)
                 }
             }
         }
@@ -363,7 +363,7 @@ struct MedicationDetailView: View {
         DetailCard(title: "备注", icon: "note.text") {
             Text(notes)
                 .appFont(.body)
-                .foregroundStyle(AppColors.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -372,31 +372,31 @@ struct MedicationDetailView: View {
     
     private func effectivenessColor(_ value: Double) -> Color {
         if value >= 4.0 {
-            return AppColors.success
+            return Color.success
         } else if value >= 3.0 {
-            return AppColors.warning
+            return Color.warning
         } else {
-            return AppColors.error
+            return Color.danger
         }
     }
     
     private var inventoryColor: Color {
         if medication.inventory == 0 {
-            return AppColors.error
+            return Color.danger
         } else if medication.inventory <= 5 {
-            return AppColors.warning
+            return Color.warning
         } else {
-            return AppColors.textPrimary
+            return Color.labelPrimary
         }
     }
     
     private func progressGradientColors(_ progress: Double) -> [Color] {
         if progress >= 1.0 {
-            return [AppColors.error, AppColors.error]
+            return [Color.danger, Color.danger]
         } else if progress >= 0.8 {
-            return [AppColors.warning, AppColors.error]
+            return [Color.warning, Color.danger]
         } else {
-            return [AppColors.success, AppColors.warning]
+            return [Color.success, Color.warning]
         }
     }
     
@@ -417,7 +417,7 @@ struct UsageHistoryRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(log.takenAt.fullDateTime())
                     .appFont(.body)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 if let effectiveness = log.effectiveness {
                     HStack(spacing: 4) {
@@ -434,7 +434,7 @@ struct UsageHistoryRow: View {
             
             Text(log.dosageString)
                 .appFont(.body)
-                .foregroundStyle(AppColors.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
         .padding(.vertical, 4)
     }
@@ -442,11 +442,11 @@ struct UsageHistoryRow: View {
     private func effectivenessColor(_ effectiveness: MedicationLog.Effectiveness) -> Color {
         switch effectiveness {
         case .excellent, .good:
-            return AppColors.success
+            return Color.success
         case .moderate:
-            return AppColors.warning
+            return Color.warning
         case .poor, .none:
-            return AppColors.error
+            return Color.danger
         }
     }
 }
@@ -476,7 +476,7 @@ struct InventoryAdjustmentSheet: View {
                         Text("当前库存")
                         Spacer()
                         Text("\(currentInventory)")
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                     }
                 }
                 
@@ -486,7 +486,7 @@ struct InventoryAdjustmentSheet: View {
                             Text("新库存")
                             Spacer()
                             Text("\(newInventory)")
-                                .foregroundStyle(AppColors.primary)
+                                .foregroundStyle(Color.primary)
                                 .fontWeight(.semibold)
                         }
                     }
@@ -496,7 +496,7 @@ struct InventoryAdjustmentSheet: View {
                         Spacer()
                         let diff = newInventory - currentInventory
                         Text(diff >= 0 ? "+\(diff)" : "\(diff)")
-                            .foregroundStyle(diff >= 0 ? AppColors.success : AppColors.error)
+                            .foregroundStyle(diff >= 0 ? Color.success : Color.danger)
                             .fontWeight(.medium)
                     }
                 }

@@ -19,11 +19,11 @@ struct Step2_PainAssessmentView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("疼痛评估")
                     .font(.title2.weight(.bold))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text("请如实评估您的疼痛程度")
                     .font(.subheadline)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             .padding(.horizontal, 4)
             
@@ -38,10 +38,17 @@ struct Step2_PainAssessmentView: View {
                 
                 // 鼓励性提示
                 if showEncouragement {
-                    EncouragingText(type: .custom(
-                        text: "记录每次不适，帮助医生更好地了解您的情况",
-                        icon: "heart.text.square.fill"
-                    ))
+                    HStack(spacing: 8) {
+                        Image(systemName: "heart.text.square.fill")
+                            .foregroundColor(.info)
+                        Text("记录每次不适，帮助医生更好地了解您的情况")
+                            .font(.caption)
+                            .foregroundColor(.labelSecondary)
+                    }
+                    .padding(.horizontal, Spacing.md)
+                    .padding(.vertical, Spacing.sm)
+                    .background(Color.info.opacity(0.1))
+                    .cornerRadius(CornerRadius.md)
                     .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -52,16 +59,16 @@ struct Step2_PainAssessmentView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "waveform.path.ecg")
                         .font(.headline)
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("疼痛性质")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     Spacer()
                     
                     Text("可多选")
                         .font(.caption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.labelTertiary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(Color.backgroundTertiary)
@@ -96,10 +103,10 @@ struct Step2_PainAssessmentView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "figure.stand")
                             .font(.headline)
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                         Text("疼痛部位")
                             .font(.headline)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                     }
                     
                     HeadMapView(selectedLocations: $viewModel.selectedPainLocations)
@@ -113,7 +120,7 @@ struct Step2_PainAssessmentView: View {
                         .foregroundStyle(Color.statusInfo)
                     Text("请至少选择疼痛强度和部位")
                         .font(.subheadline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)

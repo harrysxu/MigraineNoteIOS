@@ -169,7 +169,7 @@ struct SimplifiedRecordingView: View {
                 // 开始时间
                 HStack(spacing: 12) {
                     Image(systemName: "clock.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("开始时间")
                         .font(.subheadline.weight(.medium))
                     Spacer()
@@ -194,10 +194,10 @@ struct SimplifiedRecordingView: View {
                             Text("进行中")
                         }
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(viewModel.isOngoing ? .white : Color.textPrimary)
+                        .foregroundStyle(viewModel.isOngoing ? .white : Color.labelPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(viewModel.isOngoing ? Color.accentPrimary : Color.backgroundSecondary)
+                        .background(viewModel.isOngoing ? Color.primary : Color.backgroundSecondary)
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -213,10 +213,10 @@ struct SimplifiedRecordingView: View {
                             Text("已结束")
                         }
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(!viewModel.isOngoing ? .white : Color.textPrimary)
+                        .foregroundStyle(!viewModel.isOngoing ? .white : Color.labelPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background(!viewModel.isOngoing ? Color.accentPrimary : Color.backgroundSecondary)
+                        .background(!viewModel.isOngoing ? Color.primary : Color.backgroundSecondary)
                         .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -267,7 +267,7 @@ struct SimplifiedRecordingView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("疼痛部位")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 HeadMapView(selectedLocations: $viewModel.selectedPainLocations)
             }
@@ -278,7 +278,7 @@ struct SimplifiedRecordingView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("疼痛性质")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(PainQuality.allCases, id: \.self) { quality in
@@ -344,7 +344,7 @@ struct SimplifiedRecordingView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("伴随症状")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 FlowLayout(spacing: 8) {
                     ForEach(westernSymptoms, id: \.id) { label in
@@ -380,7 +380,7 @@ struct SimplifiedRecordingView: View {
                 HStack {
                     Text("中医症状")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                     Spacer()
                     Image(systemName: "leaf.fill")
                         .font(.caption)
@@ -422,7 +422,7 @@ struct SimplifiedRecordingView: View {
                                 .font(.title3)
                             Text(category.rawValue)
                                 .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         
                         FlowLayout(spacing: 8) {
@@ -464,14 +464,14 @@ struct SimplifiedRecordingView: View {
             } label: {
                 HStack {
                     Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("添加用药")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Color.accentPrimary.opacity(0.1))
+                .background(Color.primary.opacity(0.1))
                 .cornerRadius(8)
             }
             .buttonStyle(.plain)
@@ -488,10 +488,10 @@ struct SimplifiedRecordingView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(medInfo.medication?.name ?? medInfo.customName ?? "未知药物")
                                 .font(.body.weight(.medium))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.unit) - \(medInfo.timeTaken.shortTime())")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         Spacer()
                         Button {
@@ -510,7 +510,7 @@ struct SimplifiedRecordingView: View {
             } else {
                 Text("未记录用药")
                     .font(.subheadline)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(Color.labelTertiary)
             }
         }
     }
@@ -548,7 +548,7 @@ struct SimplifiedRecordingView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         .offset(x: 8, y: -8),
                         alignment: .topTrailing
@@ -574,7 +574,7 @@ struct SimplifiedRecordingView: View {
             .cornerRadius(8)
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.divider, lineWidth: 1)
+                    .stroke(Color.separator, lineWidth: 1)
             )
     }
     
@@ -586,7 +586,7 @@ struct SimplifiedRecordingView: View {
                 .foregroundStyle(Color.statusInfo)
             Text("建议填写疼痛强度和部位以获得更准确的分析")
                 .font(.subheadline)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -633,7 +633,7 @@ struct SimplifiedRecordingView: View {
         HStack {
             Text(title)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
             
             Spacer()
             
@@ -646,7 +646,7 @@ struct SimplifiedRecordingView: View {
                     Text("管理")
                         .font(.caption)
                 }
-                .foregroundStyle(Color.accentPrimary)
+                .foregroundStyle(Color.primary)
             }
         }
     }

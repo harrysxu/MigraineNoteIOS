@@ -40,11 +40,11 @@ struct PainIntensitySlider: View {
             HStack {
                 Text("无痛")
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 Spacer()
                 Text("剧痛")
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
         }
         .padding()
@@ -82,7 +82,7 @@ struct PainIntensitySlider: View {
                     .padding()
                 
                 Text("当前疼痛级别: \(painValue)")
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             .background(Color.backgroundPrimary)
         }

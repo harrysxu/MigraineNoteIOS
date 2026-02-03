@@ -61,7 +61,7 @@ struct ProfileView: View {
                 HStack(spacing: Spacing.md) {
                     // 头像
                     Circle()
-                        .fill(Color.primaryGradient)
+                        .fill(Color.primary)
                         .frame(width: 64, height: 64)
                         .overlay {
                             Image(systemName: "person.fill")
@@ -73,32 +73,32 @@ struct ProfileView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(userProfile?.name ?? "未设置姓名")
                             .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         HStack(spacing: 4) {
                             if let age = userProfile?.age {
                                 Text("\(age)岁")
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                             
                             if let gender = userProfile?.gender {
                                 Text("· \(gender.rawValue)")
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                         }
                         
                         Text("点击编辑个人信息")
                             .font(.caption)
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                     }
                     
                     Spacer()
                     
                     Image(systemName: "chevron.right")
                         .font(.caption)
-                        .foregroundStyle(Color.textTertiary)
+                        .foregroundStyle(Color.labelTertiary)
                 }
             }
         }
@@ -121,19 +121,19 @@ struct ProfileView: View {
                                 .font(.title2)
                                 .foregroundStyle(.white)
                                 .frame(width: 44, height: 44)
-                                .background(Color.accentPrimary)
+                                .background(Color.primary)
                                 .clipShape(Circle())
                             
                             Text("药箱管理")
                                 .font(.title3.weight(.semibold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                         }
                         
                         Spacer()
                         
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(Color.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                     
                     // 统计卡片网格 - 2x1
@@ -143,15 +143,15 @@ struct ProfileView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "pill.fill")
                                     .font(.caption)
-                                    .foregroundStyle(Color.accentPrimary)
+                                    .foregroundStyle(Color.primary)
                                 Text("药物总数")
                                     .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                             
                             Text("\(medications.count)")
                                 .font(.system(size: 28, weight: .bold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,19 +163,19 @@ struct ProfileView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "calendar")
                                     .font(.caption)
-                                    .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.accentPrimary)
+                                    .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.primary)
                                 Text("本月用药")
                                     .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                             
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text("\(monthlyMedicationDays)")
                                     .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.textPrimary)
+                                    .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.labelPrimary)
                                 Text("天")
                                     .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                         }
                         .padding(12)
@@ -192,7 +192,7 @@ struct ProfileView: View {
                                 .foregroundStyle(mohRiskColor)
                             Text(mohRiskMessage)
                                 .font(.caption)
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -208,7 +208,7 @@ struct ProfileView: View {
                                 .foregroundStyle(Color.statusWarning)
                             Text("\(lowInventoryCount)种药物库存不足")
                                 .font(.caption)
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                         }
                         .padding(10)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -231,7 +231,7 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("数据与隐私")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, Spacing.sm)
                     
@@ -283,7 +283,7 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("功能设置")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, Spacing.sm)
                     
@@ -352,7 +352,7 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("测试与调试")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, Spacing.sm)
                     
@@ -371,7 +371,7 @@ struct ProfileView: View {
                                 HStack(spacing: 8) {
                                     Text("测试数据")
                                         .font(.body.weight(.medium))
-                                        .foregroundStyle(Color.textPrimary)
+                                        .foregroundStyle(Color.labelPrimary)
                                     
                                     Text("DEBUG")
                                         .font(.caption2.bold())
@@ -384,14 +384,14 @@ struct ProfileView: View {
                                 
                                 Text("生成和管理测试数据")
                                     .font(.caption)
-                                    .foregroundStyle(Color.textTertiary)
+                                    .foregroundStyle(Color.labelTertiary)
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundStyle(Color.textTertiary)
+                                .foregroundStyle(Color.labelTertiary)
                         }
                         .padding(.vertical, 12)
                     }

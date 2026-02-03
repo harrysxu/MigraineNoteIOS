@@ -78,7 +78,7 @@ struct AnalyticsView: View {
                                 Image(systemName: "chevron.down")
                                     .font(.caption)
                             }
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                         }
                     } else {
                         Button(action: {
@@ -86,7 +86,7 @@ struct AnalyticsView: View {
                         }) {
                             Text("今天")
                                 .font(.subheadline)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                     }
                 }
@@ -130,27 +130,27 @@ struct AnalyticsView: View {
             // 空状态图标
             ZStack {
                 Circle()
-                    .fill(Color.accentPrimary.opacity(0.1))
+                    .fill(Color.primary.opacity(0.1))
                     .frame(width: 120, height: 120)
                 
                 Image(systemName: "chart.bar.doc.horizontal")
                     .font(.system(size: 50, weight: .ultraLight))
-                    .foregroundStyle(Color.accentPrimary)
+                    .foregroundStyle(Color.primary)
             }
             
             VStack(spacing: 8) {
                 Text("记录3次以上")
                     .font(.title2.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text("解锁数据统计")
                     .font(.title3.weight(.medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
             }
             
             Text("记录更多数据，获得更完整的统计信息")
                 .font(.body)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
         }
@@ -225,7 +225,7 @@ struct AnalyticsView: View {
                     
                     Text(selectedTimeRange.displayName)
                         .font(.subheadline)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(Color.backgroundTertiary)
@@ -296,10 +296,10 @@ struct AnalyticsView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "pills.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary)
+                        .foregroundStyle(currentMonthStats >= 10 ? Color.statusWarning : Color.primary)
                     Text("用药频次提醒")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     Spacer()
                 }
@@ -310,16 +310,16 @@ struct AnalyticsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("本月用药天数")
                             .font(.subheadline)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                             Text("\(currentMonthStats)")
                                 .font(.system(size: 36, weight: .bold))
-                                .foregroundStyle(currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary)
+                                .foregroundStyle(currentMonthStats >= 10 ? Color.statusWarning : Color.primary)
                             
                             Text("天")
                                 .font(.title3)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         
                         // 进度条
@@ -331,7 +331,7 @@ struct AnalyticsView: View {
                                         .frame(height: 8)
                                     
                                     RoundedRectangle(cornerRadius: 4)
-                                        .fill(currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary)
+                                        .fill(currentMonthStats >= 10 ? Color.statusWarning : Color.primary)
                                         .frame(
                                             width: geometry.size.width * min(Double(currentMonthStats) / 15.0, 1.0),
                                             height: 8
@@ -342,7 +342,7 @@ struct AnalyticsView: View {
                             
                             Text("建议不超过 10 天")
                                 .font(.caption2)
-                                .foregroundStyle(Color.textTertiary)
+                                .foregroundStyle(Color.labelTertiary)
                         }
                     }
                     
@@ -351,13 +351,13 @@ struct AnalyticsView: View {
                     // 右侧环形进度
                     ZStack {
                         Circle()
-                            .stroke(Color.divider, lineWidth: 6)
+                            .stroke(Color.separator, lineWidth: 6)
                             .frame(width: 64, height: 64)
                         
                         Circle()
                             .trim(from: 0, to: min(Double(currentMonthStats) / 15.0, 1.0))
                             .stroke(
-                                currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary,
+                                currentMonthStats >= 10 ? Color.statusWarning : Color.primary,
                                 style: StrokeStyle(lineWidth: 6, lineCap: .round)
                             )
                             .frame(width: 64, height: 64)
@@ -365,7 +365,7 @@ struct AnalyticsView: View {
                         
                         Text(String(format: "%.0f%%", min(Double(currentMonthStats) / 10.0 * 100, 100)))
                             .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                     }
                 }
                 
@@ -378,7 +378,7 @@ struct AnalyticsView: View {
                         
                         Text("当月用药天数已达到或超过10天，建议就医咨询专业医生")
                             .font(.caption)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -396,10 +396,10 @@ struct AnalyticsView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
                     Image(systemName: "chart.bar.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("月度趋势")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 let monthlyData = getMonthlyTrendData()
@@ -407,7 +407,7 @@ struct AnalyticsView: View {
                 if monthlyData.isEmpty {
                     Text("数据不足")
                         .font(.body)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 } else {
                     Chart {
                         ForEach(monthlyData) { item in
@@ -418,8 +418,8 @@ struct AnalyticsView: View {
                             .foregroundStyle(
                                 LinearGradient(
                                     colors: [
-                                        item.attackDays >= 15 ? Color.statusError : Color.accentPrimary,
-                                        (item.attackDays >= 15 ? Color.statusError : Color.accentPrimary).opacity(0.6)
+                                        item.attackDays >= 15 ? Color.statusError : Color.primary,
+                                        (item.attackDays >= 15 ? Color.statusError : Color.primary).opacity(0.6)
                                     ],
                                     startPoint: .top,
                                     endPoint: .bottom
@@ -429,7 +429,7 @@ struct AnalyticsView: View {
                             .annotation(position: .top) {
                                 Text("\(item.attackDays)")
                                     .font(.caption2.weight(.semibold))
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                         }
                         
@@ -472,7 +472,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.statusWarning)
                     Text("诱因频次统计")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 let triggerData = analyticsEngine.analyzeTriggerFrequency(in: selectedTimeRange.dateRange)
@@ -480,7 +480,7 @@ struct AnalyticsView: View {
                 if triggerData.isEmpty {
                     Text("暂无诱因数据")
                         .font(.body)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 } else {
                     VStack(spacing: Spacing.sm) {
                         ForEach(Array(triggerData.prefix(5).enumerated()), id: \.element.triggerName) { index, item in
@@ -504,10 +504,10 @@ struct AnalyticsView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
                     Image(systemName: "clock.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("发作时间分布")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 let circadianData = analyticsEngine.analyzeCircadianPattern(in: selectedTimeRange.dateRange)
@@ -515,7 +515,7 @@ struct AnalyticsView: View {
                 if circadianData.isEmpty {
                     Text("数据不足")
                         .font(.body)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 } else {
                     Chart {
                         ForEach(circadianData) { item in
@@ -523,12 +523,11 @@ struct AnalyticsView: View {
                                 x: .value("小时", item.hour),
                                 y: .value("次数", item.count)
                             )
-                            .foregroundStyle(Color.accentPrimary.opacity(0.8))
+                            .foregroundStyle(Color.primary.opacity(0.8))
                             .symbolSize(100)
                             .symbol {
                                 Circle()
-                                    .fill(Color.accentPrimary)
-                                    .shadow(color: Color.accentPrimary.opacity(0.5), radius: 4)
+                                    .fill(Color.primary)
                             }
                         }
                     }
@@ -551,11 +550,11 @@ struct AnalyticsView: View {
                     if let peakHour = circadianData.max(by: { $0.count < $1.count }) {
                         Text("高发时段：\(peakHour.hour)时-\(peakHour.hour + 1)时")
                             .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                             .padding(Spacing.xs)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .background(Color.backgroundSecondary)
-                            .cornerRadius(Spacing.cornerRadiusSmall)
+                            .cornerRadius(CornerRadius.sm)
                     }
                 }
             }
@@ -572,7 +571,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.statusError)
                     Text("疼痛评估统计")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: selectedTimeRange.dateRange)
@@ -583,7 +582,7 @@ struct AnalyticsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("疼痛强度分布")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                     
                     if intensityDist.total > 0 {
                         VStack(spacing: 8) {
@@ -611,7 +610,7 @@ struct AnalyticsView: View {
                     } else {
                         Text("暂无数据")
                             .font(.caption)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                     }
                 }
                 
@@ -623,7 +622,7 @@ struct AnalyticsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("疼痛部位频次 (Top 5)")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         ForEach(Array(locationFreq.prefix(5))) { location in
                             FrequencyRow(
@@ -643,7 +642,7 @@ struct AnalyticsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("疼痛性质频次")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         ForEach(qualityFreq) { quality in
                             FrequencyRow(
@@ -668,7 +667,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.statusInfo)
                     Text("症状统计")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 let symptomFreq = analyticsEngine.analyzeSymptomFrequency(in: selectedTimeRange.dateRange)
@@ -679,7 +678,7 @@ struct AnalyticsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("伴随症状频次")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         ForEach(Array(symptomFreq.prefix(6))) { symptom in
                             FrequencyRow(
@@ -692,7 +691,7 @@ struct AnalyticsView: View {
                 } else {
                     Text("暂无症状数据")
                         .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
                 
                 // 先兆统计
@@ -703,22 +702,22 @@ struct AnalyticsView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("先兆统计")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         HStack {
                             Text("有先兆发作")
                                 .font(.body)
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             
                             Spacer()
                             
                             Text("\(auraStats.attacksWithAura) 次")
                                 .font(.body.weight(.semibold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             
                             Text("(\(String(format: "%.1f%%", auraStats.auraPercentage)))")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         
                         if !auraStats.auraTypeFrequency.isEmpty {
@@ -743,10 +742,10 @@ struct AnalyticsView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 HStack {
                     Image(systemName: "cross.case.fill")
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     Text("用药统计")
                         .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.labelPrimary)
                 }
                 
                 let medicationStats = analyticsEngine.analyzeMedicationUsage(in: selectedTimeRange.dateRange)
@@ -757,10 +756,10 @@ struct AnalyticsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("总用药次数")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                             Text("\(medicationStats.totalMedicationUses) 次")
                                 .font(.title3.weight(.bold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                         }
                         
                         Spacer()
@@ -768,10 +767,10 @@ struct AnalyticsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("用药天数")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                             Text("\(medicationStats.medicationDays) 天")
                                 .font(.title3.weight(.bold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                         }
                     }
                     
@@ -783,7 +782,7 @@ struct AnalyticsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("药物分类统计")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             
                             ForEach(medicationStats.categoryBreakdown) { category in
                                 FrequencyRow(
@@ -803,7 +802,7 @@ struct AnalyticsView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("最常用药物 (Top 5)")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             
                             ForEach(Array(medicationStats.topMedications.prefix(5))) { medication in
                                 FrequencyRow(
@@ -817,7 +816,7 @@ struct AnalyticsView: View {
                 } else {
                     Text("暂无用药数据")
                         .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
             }
         }
@@ -933,7 +932,7 @@ struct CompactAnalyticStatCard: View {
                 
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
             
             Spacer()
@@ -957,13 +956,13 @@ struct IntensityBar: View {
             HStack {
                 Text(label)
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                 
                 Spacer()
                 
                 Text("\(count)次")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
             }
             
             // 进度条
@@ -1001,17 +1000,17 @@ struct FrequencyRow: View {
         HStack(spacing: 8) {
             Text(name)
                 .font(.body)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Spacer()
             
             Text("\(count)次")
                 .font(.body.weight(.semibold))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Text("(\(String(format: "%.1f%%", percentage)))")
                 .font(.caption)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
     }
 }
@@ -1077,7 +1076,7 @@ struct TriggerFrequencyRow: View {
             // 诱因名称
             Text(triggerName)
                 .font(.body)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Spacer()
             
@@ -1085,11 +1084,11 @@ struct TriggerFrequencyRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(count)次")
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                 
                 Text(String(format: "%.1f%%", percentage))
                     .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
             }
         }
         .padding(.vertical, Spacing.xs)
@@ -1104,7 +1103,7 @@ struct TriggerFrequencyRow: View {
         case 3:
             return Color.statusInfo
         default:
-            return Color.textSecondary
+            return Color.labelSecondary
         }
     }
 }
@@ -1126,7 +1125,7 @@ struct CalendarGridSection: View {
             dateGrid
         }
         .padding(Spacing.md)
-        .background(Color.surface)
+        .background(Color.backgroundSecondary)
         .cornerRadius(CornerRadius.md)
     }
     
@@ -1137,7 +1136,7 @@ struct CalendarGridSection: View {
             Button(action: viewModel.moveToPreviousMonth) {
                 Image(systemName: "chevron.left")
                     .font(.title3)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -1146,14 +1145,14 @@ struct CalendarGridSection: View {
             
             Text(viewModel.monthTitle)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.labelPrimary)
             
             Spacer()
             
             Button(action: viewModel.moveToNextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.title3)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -1167,7 +1166,7 @@ struct CalendarGridSection: View {
             ForEach(["日", "一", "二", "三", "四", "五", "六"], id: \.self) { weekday in
                 Text(weekday)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color.labelSecondary)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -1244,11 +1243,11 @@ struct CalendarDayCell: View {
     
     private var textColor: Color {
         if !isInCurrentMonth {
-            return Color.textTertiary
+            return Color.labelTertiary
         } else if isToday {
             return Color.primary
         } else {
-            return Color.textPrimary
+            return Color.labelPrimary
         }
     }
     
@@ -1256,7 +1255,7 @@ struct CalendarDayCell: View {
         if viewModel.getAttacks(for: date).isEmpty {
             return Color.clear
         } else {
-            return Color.surface.opacity(0.5)
+            return Color.backgroundSecondary.opacity(0.5)
         }
     }
 }

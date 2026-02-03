@@ -20,22 +20,21 @@ struct DetailCard<Content: View>: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.medium) {
+        VStack(alignment: .leading, spacing: Spacing.md) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.primary)
                 Text(title)
                     .font(.headline)
-                    .foregroundStyle(AppColors.textPrimary)
+                    .foregroundStyle(Color.labelPrimary)
             }
             
             content
         }
-        .padding(AppSpacing.medium)
+        .padding(Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(AppColors.surface)
-        .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusMedium))
-        .shadow(color: AppColors.shadowColor, radius: AppSpacing.shadowRadiusSmall)
+        .background(Color.backgroundSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: CornerRadius.md))
     }
 }
 
@@ -46,7 +45,7 @@ struct DetailCard<Content: View>: View {
                 .font(.body)
             Text("第二行内容")
                 .font(.caption)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
     }
     .padding()

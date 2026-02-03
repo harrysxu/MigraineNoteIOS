@@ -28,12 +28,12 @@ struct SettingsView: View {
                         HStack {
                             Image(systemName: "person.circle.fill")
                                 .font(.title2)
-                                .foregroundStyle(AppColors.primary)
+                                .foregroundStyle(Color.primary)
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(userProfile?.name ?? "未设置姓名")
                                     .font(.headline)
-                                    .foregroundColor(AppColors.textPrimary)
+                                    .foregroundColor(Color.labelPrimary)
                                 
                                 Text("点击编辑个人信息")
                                     .font(.caption)
@@ -169,7 +169,7 @@ struct SettingRow: View {
     }
     
     var body: some View {
-        HStack(spacing: AppSpacing.medium) {
+        HStack(spacing: Spacing.md) {
             Image(systemName: icon)
                 .font(.title3)
                 .foregroundStyle(iconColor)
@@ -178,12 +178,12 @@ struct SettingRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.body.weight(.medium))
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(Color.labelPrimary)
                 
                 if let subtitle = subtitle {
                     Text(subtitle)
                         .font(.caption)
-                        .foregroundColor(AppColors.textTertiary)
+                        .foregroundColor(Color.labelTertiary)
                 }
             }
             
@@ -309,10 +309,10 @@ struct HealthKitSettingsView: View {
             Section {
                 if !isHealthKitAvailable {
                     InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("HealthKit不可用")
                                 .font(.headline)
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(Color.primary)
                             Text("当前设备不支持HealthKit功能。")
                                 .font(.body)
                                 .foregroundColor(.secondary)
@@ -320,7 +320,7 @@ struct HealthKitSettingsView: View {
                     }
                 } else if authorizationStatus == .sharingDenied {
                     InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("权限已拒绝")
                                 .font(.headline)
                                 .foregroundColor(.red)
@@ -331,10 +331,10 @@ struct HealthKitSettingsView: View {
                     }
                 } else {
                     InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
+                        VStack(alignment: .leading, spacing: Spacing.xs) {
                             Text("健康数据集成")
                                 .font(.headline)
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(Color.primary)
                             Text("允许读取睡眠、月经周期、心率等健康数据，并将偏头痛发作记录同步到健康App。")
                                 .font(.body)
                                 .foregroundColor(.secondary)
@@ -471,10 +471,10 @@ struct LocationSettingsView: View {
         List {
             Section {
                 InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text("位置服务")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.primary)
                         Text("允许访问位置信息以获取天气数据，帮助分析环境诱因。")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -509,13 +509,13 @@ struct CloudSyncSettingsView: View {
         List {
             // 同步状态卡片
             Section {
-                HStack(spacing: AppSpacing.medium) {
+                HStack(spacing: Spacing.md) {
                     Image(systemName: cloudKitManager.syncStatus.icon)
                         .font(.title2)
                         .foregroundStyle(cloudKitManager.syncStatus.color)
                         .frame(width: 44, height: 44)
                         .background(cloudKitManager.syncStatus.color.opacity(0.15))
-                        .cornerRadius(AppSpacing.cornerRadiusSmall)
+                        .cornerRadius(CornerRadius.sm)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(cloudKitManager.syncStatus.displayText)
@@ -534,7 +534,7 @@ struct CloudSyncSettingsView: View {
                     
                     Spacer()
                 }
-                .padding(.vertical, AppSpacing.small)
+                .padding(.vertical, Spacing.xs)
             }
             
             // 最后同步时间
@@ -554,10 +554,10 @@ struct CloudSyncSettingsView: View {
             // 同步功能说明
             Section {
                 InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text("iCloud同步")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.primary)
                         Text("您的所有数据通过iCloud自动同步到您的所有Apple设备，并保存在您的私有数据库中。")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -573,7 +573,7 @@ struct CloudSyncSettingsView: View {
             }
             
             Section("隐私保护") {
-                VStack(alignment: .leading, spacing: AppSpacing.small) {
+                VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("✓ 数据仅存储在您的iCloud账户")
                         .font(.caption)
                     Text("✓ 开发者无法访问您的数据")
@@ -699,10 +699,10 @@ struct NotificationSettingsView: View {
         List {
             Section {
                 InfoCard {
-                    VStack(alignment: .leading, spacing: AppSpacing.small) {
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
                         Text("提醒功能")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.primary)
                         Text("设置用药提醒和疗效评估提醒，帮助您按时用药并记录疗效。")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -744,10 +744,10 @@ struct AboutView: View {
     var body: some View {
         List {
             Section {
-                VStack(spacing: AppSpacing.medium) {
+                VStack(spacing: Spacing.md) {
                     Image(systemName: "brain.head.profile")
                         .font(.system(size: 80))
-                        .foregroundStyle(AppColors.primary)
+                        .foregroundStyle(Color.primary)
                     
                     Text("偏头痛记录")
                         .font(.title2.bold())
@@ -757,7 +757,7 @@ struct AboutView: View {
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, AppSpacing.large)
+                .padding(.vertical, Spacing.lg)
             }
             
             Section("应用介绍") {

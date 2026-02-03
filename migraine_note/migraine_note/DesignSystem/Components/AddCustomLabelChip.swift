@@ -34,12 +34,12 @@ struct AddCustomLabelChip: View {
             .padding(.vertical, Spacing.xs)
             .frame(minHeight: 32)
             .background(Color.backgroundTertiary)
-            .foregroundStyle(Color.accentPrimary)
+            .foregroundStyle(Color.primary)
             .cornerRadius(CornerRadius.sm)
             .overlay(
                 RoundedRectangle(cornerRadius: CornerRadius.sm)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                    .foregroundStyle(Color.accentPrimary.opacity(0.5))
+                    .foregroundStyle(Color.primary.opacity(0.5))
             )
         }
         .buttonStyle(.plain)
@@ -55,14 +55,14 @@ struct AddCustomLabelChip: View {
                 VStack(spacing: Spacing.xs) {
                     Image(systemName: "tag.fill")
                         .font(.largeTitle)
-                        .foregroundStyle(Color.accentPrimary)
+                        .foregroundStyle(Color.primary)
                     
                     Text("添加自定义\(categoryDisplayName)")
                         .font(.headline)
                     
                     Text("输入标签名称，方便下次快速选择")
                         .font(.subheadline)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .padding(.top, Spacing.lg)
@@ -83,7 +83,7 @@ struct AddCustomLabelChip: View {
                             Text(error)
                                 .font(.caption)
                         }
-                        .foregroundStyle(Color.statusError)
+                        .foregroundStyle(Color.danger)
                     }
                 }
                 .padding(.horizontal)
@@ -196,7 +196,7 @@ struct AddCustomLabelChip: View {
                 if !selectedLabels.isEmpty {
                     Text("已添加: \(selectedLabels.joined(separator: ", "))")
                         .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color.labelSecondary)
                 }
             }
             .background(Color.backgroundPrimary)

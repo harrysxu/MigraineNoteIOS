@@ -20,12 +20,6 @@ struct InfoCard<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.backgroundSecondary)
             .cornerRadius(CornerRadius.md)
-            .shadow(
-                color: Shadow.card,
-                radius: Shadow.cardRadius,
-                x: Shadow.cardOffset.width,
-                y: Shadow.cardOffset.height
-            )
     }
 }
 
@@ -36,7 +30,7 @@ struct InfoCard<Content: View>: View {
                 .font(.headline)
             Text("这是一个信息卡片示例")
                 .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color.labelSecondary)
         }
     }
     .padding()

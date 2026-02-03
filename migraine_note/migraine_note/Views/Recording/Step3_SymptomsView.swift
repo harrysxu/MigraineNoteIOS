@@ -52,7 +52,7 @@ struct Step3_SymptomsView: View {
                         
                         Text("先兆类型")
                             .font(.subheadline)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         
                         FlowLayout(spacing: Spacing.xs) {
                             ForEach(AuraType.allCases, id: \.self) { aura in

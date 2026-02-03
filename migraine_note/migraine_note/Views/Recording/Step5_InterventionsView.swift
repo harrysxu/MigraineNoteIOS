@@ -19,7 +19,7 @@ struct Step5_InterventionsView: View {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     HStack {
                         Image(systemName: "pills.fill")
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                         Text("药物治疗")
                             .font(.headline)
                         Spacer()
@@ -27,14 +27,14 @@ struct Step5_InterventionsView: View {
                             showAddMedicationSheet = true
                         } label: {
                             Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                     }
                     
                     if viewModel.selectedMedications.isEmpty {
                         Text("未记录用药")
                             .font(.subheadline)
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                     } else {
                         ForEach(Array(viewModel.selectedMedications.enumerated()), id: \.offset) { index, medInfo in
                             HStack {
@@ -44,7 +44,7 @@ struct Step5_InterventionsView: View {
                                         .fontWeight(.medium)
                                     Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.unit) - \(medInfo.timeTaken.shortTime())")
                                         .font(.caption)
-                                        .foregroundStyle(Color.textSecondary)
+                                        .foregroundStyle(Color.labelSecondary)
                                 }
                                 Spacer()
                                 Button {
@@ -69,7 +69,7 @@ struct Step5_InterventionsView: View {
                 VStack(alignment: .leading, spacing: Spacing.sm) {
                     HStack {
                         Image(systemName: "figure.mind.and.body")
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                         Text("非药物疗法")
                             .font(.headline)
                     }
@@ -107,7 +107,7 @@ struct Step5_InterventionsView: View {
                         .cornerRadius(CornerRadius.sm)
                         .overlay(
                             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                                .stroke(Color.textTertiary.opacity(0.3), lineWidth: 1)
+                                .stroke(Color.labelTertiary.opacity(0.3), lineWidth: 1)
                         )
                 }
             }
@@ -171,22 +171,22 @@ struct UnifiedMedicationInputSheet: View {
                         } label: {
                             HStack {
                                 Image(systemName: "list.bullet.rectangle")
-                                    .foregroundStyle(Color.accentPrimary)
+                                    .foregroundStyle(Color.primary)
                                 Text("从药箱选择")
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.labelPrimary)
                                 Spacer()
                                 if selectedMedication != nil {
                                     Text(selectedMedication!.name)
                                         .font(.subheadline)
-                                        .foregroundStyle(Color.textSecondary)
+                                        .foregroundStyle(Color.labelSecondary)
                                 } else {
                                     Text("共\(allMedications.count)个药品")
                                         .font(.caption)
-                                        .foregroundStyle(Color.textTertiary)
+                                        .foregroundStyle(Color.labelTertiary)
                                 }
                                 Image(systemName: "chevron.right")
                                     .font(.caption)
-                                    .foregroundStyle(Color.textTertiary)
+                                    .foregroundStyle(Color.labelTertiary)
                             }
                         }
                     }
@@ -207,7 +207,7 @@ struct UnifiedMedicationInputSheet: View {
                                     selectedMedication = nil
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(Color.textTertiary)
+                                        .foregroundStyle(Color.labelTertiary)
                                 }
                             }
                         }
@@ -216,7 +216,7 @@ struct UnifiedMedicationInputSheet: View {
                         if medicationExists && isManualInput {
                             Label("药箱中已有此药品，可点击上方【从药箱选择】", systemImage: "info.circle")
                                 .font(.caption)
-                                .foregroundStyle(Color.accentPrimary)
+                                .foregroundStyle(Color.primary)
                         }
                     }
                 }
@@ -257,7 +257,7 @@ struct UnifiedMedicationInputSheet: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Label("将使用以下默认设置:", systemImage: "info.circle")
                                     .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("• 药物类型: 其他")
@@ -266,7 +266,7 @@ struct UnifiedMedicationInputSheet: View {
                                     Text("• 库存: 6")
                                 }
                                 .font(.caption)
-                                .foregroundStyle(Color.textTertiary)
+                                .foregroundStyle(Color.labelTertiary)
                             }
                             .padding(.top, 4)
                         }
@@ -363,19 +363,19 @@ struct MedicationSelectionList: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(medication.name)
                             .font(.body)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.labelPrimary)
                         
                         HStack {
                             Text(medication.category.rawValue)
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                             
                             if medication.standardDosage > 0 {
                                 Text("•")
-                                    .foregroundStyle(Color.textTertiary)
+                                    .foregroundStyle(Color.labelTertiary)
                                 Text("\(String(format: "%.0f", medication.standardDosage))\(medication.unit)")
                                     .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                         }
                     }

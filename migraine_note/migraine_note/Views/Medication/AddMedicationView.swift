@@ -92,7 +92,7 @@ struct AddMedicationView: View {
                         name = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(AppColors.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                 }
             }
@@ -114,19 +114,19 @@ struct AddMedicationView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(preset.name)
                                 .appFont(.subheadline)
-                                .foregroundStyle(AppColors.textPrimary)
+                                .foregroundStyle(Color.labelPrimary)
                             Text("\(preset.dosage, specifier: "%.1f")\(preset.unit) - \(preset.category.rawValue)")
                                 .appFont(.caption)
-                                .foregroundStyle(AppColors.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                         Spacer()
                         Image(systemName: "arrow.up.left")
                             .font(.caption)
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
-                    .background(AppColors.backgroundTertiary)
+                    .background(Color.backgroundTertiary)
                 }
                 .buttonStyle(.plain)
                 
@@ -144,24 +144,24 @@ struct AddMedicationView: View {
                     HStack {
                         Text("查看全部 \(filteredPresets.count) 个预设...")
                             .appFont(.caption)
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(Color.primary)
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(AppColors.textTertiary)
+                            .foregroundStyle(Color.labelTertiary)
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
-                    .background(AppColors.backgroundTertiary)
+                    .background(Color.backgroundTertiary)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .background(AppColors.backgroundTertiary)
+        .background(Color.backgroundTertiary)
         .cornerRadius(CornerRadius.sm)
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(AppColors.textTertiary.opacity(0.2), lineWidth: 1)
+                .stroke(Color.labelTertiary.opacity(0.2), lineWidth: 1)
         )
     }
     
@@ -216,7 +216,7 @@ struct AddMedicationView: View {
                             Text("当前库存")
                             Spacer()
                             Text("\(inventory)")
-                                .foregroundStyle(AppColors.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                     }
                 }
@@ -252,13 +252,13 @@ struct AddMedicationView: View {
                                     Text("月度限制")
                                     Spacer()
                                     Text("\(monthlyLimit ?? 15) 天")
-                                        .foregroundStyle(AppColors.textSecondary)
+                                        .foregroundStyle(Color.labelSecondary)
                                 }
                             }
                             
                             Text("超过此天数将触发MOH（药物过度使用头痛）风险警告")
                                 .appFont(.caption)
-                                .foregroundStyle(AppColors.textSecondary)
+                                .foregroundStyle(Color.labelSecondary)
                         }
                     } header: {
                         Text("MOH预防")
@@ -285,7 +285,7 @@ struct AddMedicationView: View {
                         }
                     }
                 }
-                .listRowBackground(AppColors.backgroundSecondary)
+                .listRowBackground(Color.backgroundSecondary)
             }
             .navigationTitle("添加药物")
             .navigationBarTitleDisplayMode(.inline)
@@ -393,7 +393,7 @@ struct MedicationPresetsView: View {
                 Section {
                     HStack {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(AppColors.textSecondary)
+                            .foregroundStyle(Color.labelSecondary)
                         TextField("搜索药物名称", text: $searchText)
                             .textInputAutocapitalization(.never)
                         
@@ -402,7 +402,7 @@ struct MedicationPresetsView: View {
                                 searchText = ""
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(AppColors.textTertiary)
+                                    .foregroundStyle(Color.labelTertiary)
                             }
                         }
                     }
@@ -422,15 +422,15 @@ struct MedicationPresetsView: View {
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(preset.name)
                                                 .appFont(.body)
-                                                .foregroundStyle(AppColors.textPrimary)
+                                                .foregroundStyle(Color.labelPrimary)
                                             Text("\(preset.dosage, specifier: "%.1f") \(preset.unit)")
                                                 .appFont(.caption)
-                                                .foregroundStyle(AppColors.textSecondary)
+                                                .foregroundStyle(Color.labelSecondary)
                                         }
                                         Spacer()
                                         Image(systemName: "chevron.right")
                                             .font(.caption)
-                                            .foregroundStyle(AppColors.textTertiary)
+                                            .foregroundStyle(Color.labelTertiary)
                                     }
                                 }
                             }
@@ -446,10 +446,10 @@ struct MedicationPresetsView: View {
                             VStack(spacing: 12) {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 40))
-                                    .foregroundStyle(AppColors.textSecondary.opacity(0.5))
+                                    .foregroundStyle(Color.labelSecondary.opacity(0.5))
                                 Text("未找到匹配的药物")
                                     .appFont(.body)
-                                    .foregroundStyle(AppColors.textSecondary)
+                                    .foregroundStyle(Color.labelSecondary)
                             }
                             .padding(.vertical, 40)
                             Spacer()
