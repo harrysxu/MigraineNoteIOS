@@ -16,6 +16,7 @@ struct CircularSlider: View {
     @Binding var isDragging: Bool
     
     @State private var angle: Double = 0
+    @State private var lastValue: Int = 0
     
     let diameter: CGFloat = 280
     let lineWidth: CGFloat = 40
@@ -39,7 +40,7 @@ struct CircularSlider: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
             
-            // 进度圆环（带渐变）
+            // 进度圆环（带渐变和发光效果）
             Circle()
                 .trim(from: 0, to: progress)
                 .stroke(
@@ -47,17 +48,29 @@ struct CircularSlider: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
+                .shadow(color: painColor.opacity(0.5), radius: 12, x: 0, y: 0)
+                .shadow(color: painColor.opacity(0.3), radius: 24, x: 0, y: 0)
                 .animation(EmotionalAnimation.fluid, value: value)
             
-            // 拖动手柄
+            // 拖动手柄（带渐变和发光）
             Circle()
-                .fill(.white)
-                .frame(width: 24, height: 24)
+                .fill(
+                    LinearGradient(
+                        colors: [.white, Color.white.opacity(0.9)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 28, height: 28)
+                .overlay(
+                    Circle()
+                        .fill(painColor.opacity(0.3))
+                        .frame(width: 16, height: 16)
+                )
+                .shadow(color: painColor.opacity(0.4), radius: 8, x: 0, y: 0)
                 .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                 .position(handlePosition)
                 .gesture(dragGesture)
-                .scaleEffect(isDragging ? 1.3 : 1.0)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isDragging)
             
             // 中心内容
             VStack(spacing: 12) {
@@ -83,6 +96,7 @@ struct CircularSlider: View {
         .frame(width: diameter, height: diameter)
         .onAppear {
             angle = angleForValue(value)
+            lastValue = value
         }
     }
     
@@ -161,11 +175,14 @@ struct CircularSlider: View {
         DragGesture(minimumDistance: 0)
             .onChanged { gesture in
                 isDragging = true
+                let oldValue = value
                 updateValue(for: gesture.location)
                 
-                // 触觉反馈
-                let impact = UIImpactFeedbackGenerator(style: .light)
-                impact.impactOccurred()
+                // 只在值改变时触发触觉反馈
+                if value != oldValue {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                }
             }
             .onEnded { _ in
                 isDragging = false

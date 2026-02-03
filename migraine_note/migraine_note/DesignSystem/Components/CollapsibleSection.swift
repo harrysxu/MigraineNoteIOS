@@ -35,7 +35,7 @@ struct CollapsibleSection<Content: View>: View {
             VStack(alignment: .leading, spacing: 0) {
                 // 标题栏（可点击）
                 Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    withAnimation(AppAnimation.gentleSpring) {
                         isExpanded.toggle()
                     }
                     // 触觉反馈
@@ -45,7 +45,14 @@ struct CollapsibleSection<Content: View>: View {
                     HStack(spacing: 12) {
                         Image(systemName: icon)
                             .font(.title3)
-                            .foregroundStyle(Color.accentPrimary)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [Color.accentPrimary, Color.accentPrimary.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .symbolRenderingMode(.hierarchical)
                             .frame(width: 32)
                         
                         Text(title)
@@ -58,21 +65,24 @@ struct CollapsibleSection<Content: View>: View {
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(Color.textTertiary)
                             .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .animation(AppAnimation.standard, value: isExpanded)
                     }
                     .padding(.vertical, 12)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ModernPressStyle(scale: 0.99, hapticFeedback: false))
                 
                 // 内容区域（可展开/收起）
                 if isExpanded {
                     Divider()
                         .padding(.vertical, 8)
+                        .transition(.opacity)
                     
                     content()
-                        .transition(.asymmetric(
-                            insertion: .scale(scale: 0.95).combined(with: .opacity),
-                            removal: .scale(scale: 0.95).combined(with: .opacity)
-                        ))
+                        .transition(
+                            .move(edge: .top)
+                            .combined(with: .opacity)
+                            .combined(with: .scale(scale: 0.98))
+                        )
                 }
             }
         }
@@ -103,7 +113,7 @@ struct CollapsibleSectionSimple<Content: View>: View {
         VStack(alignment: .leading, spacing: 12) {
             // 标题栏（可点击）
             Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(AppAnimation.gentleSpring) {
                     isExpanded.toggle()
                 }
                 let impact = UIImpactFeedbackGenerator(style: .light)
@@ -120,17 +130,19 @@ struct CollapsibleSectionSimple<Content: View>: View {
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.textTertiary)
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(AppAnimation.standard, value: isExpanded)
                 }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ModernPressStyle(scale: 0.99, hapticFeedback: false))
             
             // 内容区域
             if isExpanded {
                 content()
-                    .transition(.asymmetric(
-                        insertion: .scale(scale: 0.95).combined(with: .opacity),
-                        removal: .scale(scale: 0.95).combined(with: .opacity)
-                    ))
+                    .transition(
+                        .move(edge: .top)
+                        .combined(with: .opacity)
+                        .combined(with: .scale(scale: 0.98))
+                    )
             }
         }
     }

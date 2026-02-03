@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct migraine_noteApp: App {
+    @State private var themeManager = ThemeManager()
+    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             AttackRecord.self,
@@ -52,6 +54,8 @@ struct migraine_noteApp: App {
         WindowGroup {
             MainTabView()
                 .environment(\.locale, Locale(identifier: "zh_CN"))
+                .environment(themeManager)  // 将主题管理器注入环境
+                .applyAppTheme(themeManager.currentTheme)  // 应用主题设置
                 .onAppear {
                     // 初始化默认标签
                     LabelManager.shared.initializeDefaultLabelsIfNeeded(context: sharedModelContainer.mainContext)

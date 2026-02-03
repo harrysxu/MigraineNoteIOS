@@ -289,11 +289,12 @@ struct MedicationPickerSheet: View {
                 // 确认按钮
                 PrimaryButton(
                     title: "添加用药记录",
+                    action: {
+                        onSelect(medication, dosage, timeTaken)
+                        dismiss()
+                    },
                     isEnabled: dosage > 0
-                ) {
-                    onSelect(medication, dosage, timeTaken)
-                    dismiss()
-                }
+                )
                 .padding(.top, 8)
             }
             .padding(20)

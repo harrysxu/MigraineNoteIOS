@@ -44,6 +44,7 @@ extension Spacing {
     /// 圆角半径别名
     static let cornerRadiusSmall: CGFloat = CornerRadius.sm
     static let cornerRadiusMedium: CGFloat = CornerRadius.md
+    static let cornerRadiusDefault: CGFloat = CornerRadius.md
     static let cornerRadiusLarge: CGFloat = CornerRadius.lg
     
     /// 阴影半径别名

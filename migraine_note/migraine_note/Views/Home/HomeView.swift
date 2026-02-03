@@ -787,25 +787,25 @@ struct MonthlyOverviewCard: View {
                         )
                         
                         CompactStatCard(
-                            value: "\(monthlyAttackCount)",
-                            label: "发作次数",
-                            icon: "chart.bar.fill",
-                            color: .accentPrimary
-                        )
-                    }
-                    
-                    HStack(spacing: 12) {
-                        CompactStatCard(
                             value: String(format: "%.1f", averageIntensity),
                             label: "平均强度",
                             icon: "waveform.path.ecg",
                             color: Color.painIntensityColor(for: Int(averageIntensity))
                         )
+                    }
+                    
+                    HStack(spacing: 12) {
+                        CompactStatCard(
+                            value: "\(getTotalMedicationCount())",
+                            label: "用药次数",
+                            icon: "pills.fill",
+                            color: getTotalMedicationCount() >= 10 ? .statusWarning : .accentPrimary
+                        )
                         
                         CompactStatCard(
                             value: "\(getMedicationDays())",
                             label: "用药天数",
-                            icon: "pills.fill",
+                            icon: "calendar.badge.clock",
                             color: getMedicationDays() >= 10 ? .statusWarning : .accentPrimary
                         )
                     }
@@ -848,6 +848,28 @@ struct MonthlyOverviewCard: View {
                 .map { calendar.startOfDay(for: $0.startTime) }
         )
         return medicationDays.count
+    }
+    
+    private func getTotalMedicationCount() -> Int {
+        monthlyAttacks.reduce(0) { total, attack in
+            total + attack.medications.count
+        }
+    }
+    
+    private func getUniqueFreePainDays() -> Int {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        let daysInMonth = calendar.range(of: .day, in: .month, for: now)!.count
+        
+        // 获取所有发作的天数
+        let attackDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
+        
+        // 计算本月已过的天数
+        let currentDay = calendar.component(.day, from: now)
+        
+        // 无发作天数 = 已过天数 - 发作天数
+        return currentDay - attackDays.count
     }
 }
 
@@ -972,7 +994,7 @@ struct CompactAttackRow: View {
                         HStack(spacing: 4) {
                             Image(systemName: "pills")
                                 .font(.caption2)
-                            Text("\(attack.medications.count)种药物")
+                            Text("\(attack.medications.count)次用药")
                         }
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
@@ -1659,10 +1681,11 @@ struct SimplifiedRecordingViewWrapper: View {
             
             PrimaryButton(
                 title: "完成记录",
+                action: {
+                    saveAndDismiss()
+                },
                 isEnabled: true  // 总是可以保存
-            ) {
-                saveAndDismiss()
-            }
+            )
             .padding(16)
         }
         .background(Color.backgroundSecondary)

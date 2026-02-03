@@ -602,10 +602,11 @@ struct SimplifiedRecordingView: View {
             
             PrimaryButton(
                 title: isEditMode ? "保存" : "完成记录",
+                action: {
+                    saveAndDismiss()
+                },
                 isEnabled: true  // 总是可以保存
-            ) {
-                saveAndDismiss()
-            }
+            )
             .padding(16)
         }
         .background(Color.backgroundSecondary)

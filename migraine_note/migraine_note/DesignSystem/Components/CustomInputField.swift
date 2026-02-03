@@ -12,57 +12,144 @@ import SwiftUI
 struct CustomInputField: View {
     let placeholder: String
     let onAdd: (String) -> Void
+    var errorMessage: String? = nil
     
     @State private var text: String = ""
     @FocusState private var isFocused: Bool
+    @State private var showError: Bool = false
+    @State private var shakeOffset: CGFloat = 0
     
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "plus.circle.fill")
-                .foregroundStyle(Color.accentPrimary)
-                .font(.title3)
-            
-            TextField(placeholder, text: $text)
-                .textFieldStyle(.plain)
-                .font(.body)
-                .foregroundStyle(Color.textPrimary)
-                .focused($isFocused)
-                .submitLabel(.done)
-                .onSubmit {
-                    addCustomItem()
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.accentPrimary, Color.accentPrimary.opacity(0.7)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .font(.title3)
+                    .symbolEffect(.bounce, value: isFocused)
+                
+                TextField(placeholder, text: $text)
+                    .textFieldStyle(.plain)
+                    .font(.body)
+                    .foregroundStyle(Color.textPrimary)
+                    .focused($isFocused)
+                    .submitLabel(.done)
+                    .onSubmit {
+                        addCustomItem()
+                    }
+                
+                // 清除按钮
+                if !text.isEmpty {
+                    Button {
+                        withAnimation(AppAnimation.fast) {
+                            text = ""
+                        }
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(Color.textTertiary)
+                            .font(.body)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale.combined(with: .opacity))
+                    .rotationEffect(.degrees(text.isEmpty ? 90 : 0))
                 }
-            
-            if !text.isEmpty {
-                Button {
-                    addCustomItem()
-                } label: {
-                    Image(systemName: "arrow.right.circle.fill")
-                        .foregroundStyle(Color.accentPrimary)
-                        .font(.title3)
+                
+                // 提交按钮
+                if !text.isEmpty {
+                    Button {
+                        addCustomItem()
+                    } label: {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .foregroundStyle(Color.accentPrimary)
+                            .font(.title3)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.scale.combined(with: .opacity))
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(Color.backgroundTertiary)
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(
+                        isFocused ?
+                        LinearGradient(
+                            colors: [
+                                Color.accentPrimary,
+                                Color.accentPrimary.opacity(0.5)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ) :
+                        LinearGradient(
+                            colors: [Color.divider, Color.divider],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: isFocused ? 2 : 1
+                    )
+            )
+            .shadow(
+                color: isFocused ? Color.accentPrimary.opacity(0.3) : Color.clear,
+                radius: isFocused ? 12 : 0,
+                x: 0,
+                y: 0
+            )
+            .offset(x: shakeOffset)
+            .animation(AppAnimation.standard, value: isFocused)
+            
+            // 错误提示
+            if showError, let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(Color.statusError)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .padding(12)
-        .background(Color.backgroundTertiary)
-        .cornerRadius(12)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(isFocused ? Color.accentPrimary : Color.divider, lineWidth: 1)
-        )
     }
     
     private func addCustomItem() {
         let trimmedText = text.trimmingCharacters(in: .whitespaces)
-        guard !trimmedText.isEmpty else { return }
+        guard !trimmedText.isEmpty else {
+            // 空输入时震动提示
+            showError = true
+            triggerShakeAnimation()
+            let notification = UINotificationFeedbackGenerator()
+            notification.notificationOccurred(.error)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    showError = false
+                }
+            }
+            return
+        }
         
         onAdd(trimmedText)
         text = ""
         isFocused = false
         
-        // 触觉反馈
-        let impact = UIImpactFeedbackGenerator(style: .light)
-        impact.impactOccurred()
+        // 成功触觉反馈
+        let notification = UINotificationFeedbackGenerator()
+        notification.notificationOccurred(.success)
+    }
+    
+    private func triggerShakeAnimation() {
+        let shakeDistance: CGFloat = 10
+        withAnimation(Animation.spring(duration: 0.05, bounce: 0.5).repeatCount(3, autoreverses: true)) {
+            shakeOffset = shakeDistance
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            shakeOffset = 0
+        }
     }
 }
 

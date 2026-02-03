@@ -48,13 +48,21 @@ struct RecordingContainerView: View {
                 }
                 
                 if viewModel.currentStep == .interventions {
-                    PrimaryButton(title: isEditMode ? "保存" : "完成", isEnabled: viewModel.canSave) {
-                        saveAndDismiss()
-                    }
+                    PrimaryButton(
+                        title: isEditMode ? "保存" : "完成",
+                        action: {
+                            saveAndDismiss()
+                        },
+                        isEnabled: viewModel.canSave
+                    )
                 } else {
-                    PrimaryButton(title: "下一步", isEnabled: viewModel.canGoNext) {
-                        viewModel.nextStep()
-                    }
+                    PrimaryButton(
+                        title: "下一步",
+                        action: {
+                            viewModel.nextStep()
+                        },
+                        isEnabled: viewModel.canGoNext
+                    )
                 }
             }
             .padding()

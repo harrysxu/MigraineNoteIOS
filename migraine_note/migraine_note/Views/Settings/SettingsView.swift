@@ -5,50 +5,31 @@ import HealthKit
 /// 设置页面
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var profiles: [UserProfile]
+    @Environment(ThemeManager.self) private var themeManager
     
-    @State private var showProfileEditor = false
     @State private var showHealthKitSettings = false
     @State private var showAbout = false
     @State private var healthKitManager: HealthKitManager?
     @State private var weatherManager: WeatherManager?
     
-    private var userProfile: UserProfile? {
-        profiles.first
-    }
-    
     var body: some View {
         NavigationStack {
             List {
-                // 个人信息
+                // 外观设置
                 Section {
-                    Button {
-                        showProfileEditor = true
+                    NavigationLink {
+                        ThemeSettingsView()
                     } label: {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                                .font(.title2)
-                                .foregroundStyle(AppColors.primary)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(userProfile?.name ?? "未设置姓名")
-                                    .font(.headline)
-                                    .foregroundColor(AppColors.textPrimary)
-                                
-                                Text("点击编辑个人信息")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        SettingRow(
+                            icon: themeManager.currentTheme.icon,
+                            iconColor: .primary,
+                            title: "主题设置",
+                            subtitle: themeManager.currentTheme.rawValue
+                        )
                     }
+                    .buttonStyle(.plain)
                 } header: {
-                    Text("个人信息")
+                    Text("外观")
                 }
                 
                 // 数据与隐私
@@ -63,6 +44,7 @@ struct SettingsView: View {
                             subtitle: "集成健康记录"
                         )
                     }
+                    .buttonStyle(.plain)
                     
                     NavigationLink {
                         LocationSettingsView()
@@ -74,6 +56,7 @@ struct SettingsView: View {
                             subtitle: "追踪天气诱因"
                         )
                     }
+                    .buttonStyle(.plain)
                     
                     NavigationLink {
                         CloudSyncSettingsView()
@@ -85,6 +68,7 @@ struct SettingsView: View {
                             subtitle: "多设备协同"
                         )
                     }
+                    .buttonStyle(.plain)
                 } header: {
                     Text("数据与隐私")
                 } footer: {
@@ -103,6 +87,7 @@ struct SettingsView: View {
                             subtitle: "自定义症状、诱因、药物标签"
                         )
                     }
+                    .buttonStyle(.plain)
                     
                     NavigationLink {
                         FeatureSettingsView()
@@ -114,6 +99,7 @@ struct SettingsView: View {
                             subtitle: "定制专属体验"
                         )
                     }
+                    .buttonStyle(.plain)
                     
                     NavigationLink {
                         NotificationSettingsView()
@@ -125,6 +111,7 @@ struct SettingsView: View {
                             subtitle: "按时用药评估"
                         )
                     }
+                    .buttonStyle(.plain)
                 } header: {
                     Text("功能设置")
                 }
@@ -141,14 +128,12 @@ struct SettingsView: View {
                             subtitle: "版本与帮助"
                         )
                     }
+                    .buttonStyle(.plain)
                 } header: {
                     Text("关于")
                 }
             }
             .navigationTitle("设置")
-            .sheet(isPresented: $showProfileEditor) {
-                ProfileEditorView(profile: userProfile)
-            }
         }
     }
 }
@@ -189,110 +174,6 @@ struct SettingRow: View {
             
             Spacer()
         }
-    }
-}
-
-// MARK: - 个人信息编辑器
-
-struct ProfileEditorView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    
-    let profile: UserProfile?
-    
-    @State private var name: String = ""
-    @State private var age: Int = 30
-    @State private var gender: Gender? = nil
-    @State private var migraineOnsetAge: Int?
-    @State private var hasMigraineOnsetAge = false
-    @State private var familyHistory = false
-    
-    init(profile: UserProfile?) {
-        self.profile = profile
-        _name = State(initialValue: profile?.name ?? "")
-        _age = State(initialValue: profile?.age ?? 30)
-        _gender = State(initialValue: profile?.gender)
-        _familyHistory = State(initialValue: profile?.familyHistory ?? false)
-        if let onsetAge = profile?.migraineOnsetAge {
-            _migraineOnsetAge = State(initialValue: onsetAge)
-            _hasMigraineOnsetAge = State(initialValue: true)
-        }
-    }
-    
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("基本信息") {
-                    TextField("姓名", text: $name)
-                    
-                    Picker("性别", selection: $gender) {
-                        Text("未指定").tag(nil as Gender?)
-                        Text("女性").tag(Gender.female as Gender?)
-                        Text("男性").tag(Gender.male as Gender?)
-                        Text("其他").tag(Gender.other as Gender?)
-                    }
-                    
-                    Picker("年龄", selection: $age) {
-                        ForEach(10...100, id: \.self) { age in
-                            Text("\(age)岁").tag(age)
-                        }
-                    }
-                }
-                
-                Section("病史信息") {
-                    Toggle("家族病史", isOn: $familyHistory)
-                    
-                    Toggle("记录发病年龄", isOn: $hasMigraineOnsetAge)
-                    
-                    if hasMigraineOnsetAge {
-                        Picker("发病年龄", selection: Binding(
-                            get: { migraineOnsetAge ?? age },
-                            set: { migraineOnsetAge = $0 }
-                        )) {
-                            ForEach(1...age, id: \.self) { onsetAge in
-                                Text("\(onsetAge)岁").tag(onsetAge)
-                            }
-                        }
-                    }
-                }
-            }
-            .navigationTitle("编辑个人信息")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
-                        dismiss()
-                    }
-                }
-                
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        saveProfile()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func saveProfile() {
-        if let existingProfile = profile {
-            existingProfile.name = name
-            existingProfile.age = age
-            existingProfile.gender = gender
-            existingProfile.familyHistory = familyHistory
-            existingProfile.migraineOnsetAge = hasMigraineOnsetAge ? migraineOnsetAge : nil
-        } else {
-            let newProfile = UserProfile()
-            newProfile.name = name
-            newProfile.age = age
-            newProfile.gender = gender
-            newProfile.familyHistory = familyHistory
-            newProfile.migraineOnsetAge = hasMigraineOnsetAge ? migraineOnsetAge : nil
-            modelContext.insert(newProfile)
-        }
-        
-        try? modelContext.save()
-        dismiss()
     }
 }
 
@@ -745,9 +626,17 @@ struct AboutView: View {
         List {
             Section {
                 VStack(spacing: AppSpacing.medium) {
-                    Image(systemName: "brain.head.profile")
-                        .font(.system(size: 80))
-                        .foregroundStyle(AppColors.primary)
+                    // 使用应用图标
+                    Image("AppLogo")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 100, height: 100)
+                        .clipShape(RoundedRectangle(cornerRadius: 22.37, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 22.37, style: .continuous)
+                                .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
                     
                     Text("偏头痛记录")
                         .font(.title2.bold())
@@ -828,10 +717,4 @@ struct AboutView: View {
 
 #Preview("设置主页") {
     SettingsView()
-        .modelContainer(for: [UserProfile.self], inMemory: true)
-}
-
-#Preview("个人信息编辑") {
-    ProfileEditorView(profile: nil)
-        .modelContainer(for: [UserProfile.self], inMemory: true)
 }

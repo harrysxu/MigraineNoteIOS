@@ -35,21 +35,45 @@ struct HeadMapView: View {
         HStack(spacing: Spacing.xs) {
             ForEach(HeadView.allCases, id: \.self) { view in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    withAnimation(AppAnimation.standard) {
                         selectedView = view
                     }
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
                 } label: {
                     Text(view.rawValue)
                         .font(.subheadline)
                         .fontWeight(selectedView == view ? .semibold : .regular)
-                        .foregroundStyle(selectedView == view ? Color.textPrimary : Color.textSecondary)
+                        .foregroundStyle(selectedView == view ? .white : Color.textSecondary)
                         .padding(.horizontal, Spacing.sm)
                         .padding(.vertical, Spacing.xs)
                         .background(
-                            selectedView == view ? Color.accentPrimary.opacity(0.15) : Color.clear
+                            Capsule()
+                                .fill(
+                                    selectedView == view ?
+                                    LinearGradient(
+                                        colors: [Color.accentPrimary, Color.accentPrimary.opacity(0.85)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    ) :
+                                    LinearGradient(
+                                        colors: [Color.clear, Color.clear],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
                         )
-                        .cornerRadius(8)
+                        .overlay(
+                            Capsule()
+                                .stroke(
+                                    selectedView == view ?
+                                    Color.white.opacity(0.2) :
+                                    Color.clear,
+                                    lineWidth: 1
+                                )
+                        )
                 }
+                .buttonStyle(ModernPressStyle(scale: 0.96))
             }
         }
         .padding(.vertical, Spacing.xs)
@@ -113,19 +137,39 @@ struct HeadMapView: View {
     
     private func locationChip(for location: PainLocation) -> some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(AppAnimation.buttonPress) {
                 _ = selectedLocations.remove(location)
             }
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
         } label: {
-            Text(location.displayName)
-                .font(.caption)
-                .padding(.horizontal, Spacing.xs)
-                .padding(.vertical, 4)
-                .background(Color.accentPrimary)
-                .foregroundStyle(.white)
-                .cornerRadius(CornerRadius.sm)
+            HStack(spacing: 4) {
+                Text(location.displayName)
+                    .font(.caption.weight(.medium))
+                
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption2)
+            }
+            .padding(.horizontal, Spacing.xs)
+            .padding(.vertical, 4)
+            .background(
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.statusError, Color.statusError.opacity(0.85)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+            )
+            .foregroundStyle(.white)
+            .overlay(
+                Capsule()
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            )
+            .shadow(color: Color.statusError.opacity(0.3), radius: 4, x: 0, y: 2)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ModernPressStyle(scale: 0.95))
     }
 }
 
@@ -233,19 +277,74 @@ struct FrontHeadView: View {
         let isSelected = selectedLocations.contains(location)
         
         return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withAnimation(AppAnimation.buttonPress) {
                 if isSelected {
                     selectedLocations.remove(location)
                 } else {
                     selectedLocations.insert(location)
                 }
             }
+            // 触觉反馈
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
         } label: {
             ZStack {
-                // 区域背景
+                // 区域背景（渐变 + 发光效果）
                 Circle()
-                    .fill(isSelected ? Color.statusError.opacity(0.3) : Color.accentPrimary.opacity(0.1))
+                    .fill(
+                        isSelected ?
+                        LinearGradient(
+                            colors: [
+                                Color.statusError.opacity(0.5),
+                                Color.statusError.opacity(0.3)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ) :
+                        LinearGradient(
+                            colors: [
+                                Color.accentPrimary.opacity(0.15),
+                                Color.accentPrimary.opacity(0.08)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: width, height: height)
+                    .shadow(
+                        color: isSelected ? Color.statusError.opacity(0.4) : Color.clear,
+                        radius: isSelected ? 12 : 0,
+                        x: 0,
+                        y: 0
+                    )
+                    .shadow(
+                        color: isSelected ? Color.statusError.opacity(0.2) : Color.clear,
+                        radius: isSelected ? 24 : 0,
+                        x: 0,
+                        y: 0
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(
+                                isSelected ?
+                                LinearGradient(
+                                    colors: [
+                                        Color.statusError.opacity(0.6),
+                                        Color.statusError.opacity(0.3)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ) :
+                                LinearGradient(
+                                    colors: [Color.clear, Color.clear],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 2
+                            )
+                    )
+                    .scaleEffect(isSelected ? 1.0 : 0.95)
+                    .animation(AppAnimation.spring, value: isSelected)
                 
                 // 区域标签
                 Text(location.shortName)

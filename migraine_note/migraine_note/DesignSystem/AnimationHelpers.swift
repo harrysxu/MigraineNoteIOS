@@ -10,23 +10,26 @@ import SwiftUI
 // MARK: - 动画预设
 
 struct AppAnimation {
-    /// 快速动画 (0.2s)
-    static let fast = Animation.easeInOut(duration: 0.2)
+    /// 快速动画 (0.2s) - 使用现代弹性
+    static let fast = Animation.spring(duration: 0.25, bounce: 0.15)
     
-    /// 标准动画 (0.3s)
-    static let standard = Animation.easeInOut(duration: 0.3)
+    /// 标准动画 (0.3s) - 微妙弹性
+    static let standard = Animation.spring(duration: 0.3, bounce: 0.12)
     
-    /// 慢速动画 (0.5s)
-    static let slow = Animation.easeInOut(duration: 0.5)
+    /// 慢速动画 (0.5s) - 柔和弹性
+    static let slow = Animation.spring(duration: 0.4, bounce: 0.08)
     
-    /// 弹簧动画
-    static let spring = Animation.spring(response: 0.3, dampingFraction: 0.7)
+    /// 弹簧动画 - 现代 iOS 风格
+    static let spring = Animation.spring(duration: 0.3, bounce: 0.12)
     
-    /// 柔和弹簧
-    static let gentleSpring = Animation.spring(response: 0.4, dampingFraction: 0.8)
+    /// 柔和弹簧 - 避免眩晕感
+    static let gentleSpring = Animation.spring(duration: 0.4, bounce: 0.08)
     
-    /// 按钮点击反馈
-    static let buttonPress = Animation.easeInOut(duration: 0.1)
+    /// 按钮点击反馈 - 微妙弹性
+    static let buttonPress = Animation.spring(duration: 0.25, bounce: 0.15)
+    
+    /// 平滑过渡 - 无弹性
+    static let smooth = Animation.spring(duration: 0.35, bounce: 0)
 }
 
 // MARK: - 情感化动画库
@@ -34,31 +37,23 @@ struct AppAnimation {
 /// 情感化动画 - 动画应该"呼吸"而非"跳动"
 enum EmotionalAnimation {
     /// 舒缓呼吸（用于待机状态、主按钮）
-    static let breathe = Animation.easeInOut(duration: 2.0)
+    static let breathe = Animation.spring(duration: 2.0, bounce: 0)
         .repeatForever(autoreverses: true)
     
     /// 温柔确认（用于成功操作）
-    static let gentleConfirm = Animation.spring(
-        response: 0.5,
-        dampingFraction: 0.7,
-        blendDuration: 0
-    )
+    static let gentleConfirm = Animation.spring(duration: 0.4, bounce: 0.1)
     
     /// 轻柔出现（用于页面过渡）
-    static let softAppear = Animation.easeOut(duration: 0.4)
+    static let softAppear = Animation.spring(duration: 0.4, bounce: 0.05)
     
     /// 缓慢消失（用于提示）
-    static let fadeAway = Animation.easeIn(duration: 0.6)
+    static let fadeAway = Animation.spring(duration: 0.5, bounce: 0)
     
     /// 数据滚动（用于数字变化）
-    static let dataRoll = Animation.easeOut(duration: 1.0)
+    static let dataRoll = Animation.spring(duration: 0.8, bounce: 0)
     
     /// 流体动画（用于进度条）
-    static let fluid = Animation.spring(
-        response: 1.0,
-        dampingFraction: 0.8,
-        blendDuration: 0
-    )
+    static let fluid = Animation.spring(duration: 0.8, bounce: 0.05)
 }
 
 // MARK: - 过渡效果
@@ -83,14 +78,15 @@ struct AppTransition {
 // MARK: - 视图修饰器
 
 extension View {
-    /// 按钮按压动画
+    /// 按钮按压动画 - 微妙缩放 + 亮度调整
     func buttonPressAnimation(isPressed: Bool) -> some View {
         self
-            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .scaleEffect(isPressed ? 0.97 : 1.0)
+            .brightness(isPressed ? -0.05 : 0)
             .animation(AppAnimation.buttonPress, value: isPressed)
     }
     
-    /// 卡片点击反馈
+    /// 卡片点击反馈 - 微妙缩放 + 亮度调整
     func cardTapAnimation(isPressed: Bool) -> some View {
         self
             .scaleEffect(isPressed ? 0.98 : 1.0)
@@ -171,8 +167,6 @@ struct PressableModifier: ViewModifier {
     
     func body(content: Content) -> some View {
         content
-            .scaleEffect(isPressed ? 0.95 : 1.0)
-            .animation(AppAnimation.buttonPress, value: isPressed)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .updating($isPressed) { _, state, _ in
@@ -224,24 +218,43 @@ extension View {
     }
 }
 
-// MARK: - 温柔按钮样式
+// MARK: - 现代按钮样式
 
-/// 温柔按压样式 - 微妙的缩放和透明度变化
-struct GentlePressStyle: ButtonStyle {
+/// 现代按压样式 - 微妙缩放 + 亮度 + 触觉反馈
+struct ModernPressStyle: ButtonStyle {
+    var scale: CGFloat = 0.985  // 从 0.97 调整到 0.985，减小缩放幅度避免眩晕感
+    var hapticFeedback: Bool = true
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.easeInOut(duration: 0.15), value: configuration.isPressed)
+            .contentShape(Rectangle())
+            .scaleEffect(configuration.isPressed ? scale : 1.0)
+            .brightness(configuration.isPressed ? -0.05 : 0)
+            .animation(AppAnimation.buttonPress, value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed && hapticFeedback {
+                    let impact = UIImpactFeedbackGenerator(style: .light)
+                    impact.impactOccurred()
+                }
+            }
     }
 }
 
-/// 缩放按钮样式 - 用于大型主按钮
+/// 温柔按压样式 - 仅透明度变化
+struct GentlePressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .contentShape(Rectangle())
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
+            .animation(AppAnimation.fast, value: configuration.isPressed)
+    }
+}
+
+/// 无效果按钮样式 - 完全禁用按钮的交互视觉效果
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+            .contentShape(Rectangle())
     }
 }
 
@@ -283,6 +296,57 @@ extension View {
     /// 骨架屏加载效果
     func shimmer() -> some View {
         self.modifier(ShimmerModifier())
+    }
+}
+
+// MARK: - Liquid Glass 效果
+
+/// Liquid Glass 修饰器 - iOS 26 风格的玻璃材质效果
+struct LiquidGlassModifier: ViewModifier {
+    var cornerRadius: CGFloat = 16
+    var opacity: CGFloat = 0.6
+    var strokeOpacity: CGFloat = 0.3
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.backgroundSecondary.opacity(opacity))
+                    .background(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(strokeOpacity),
+                                Color.white.opacity(strokeOpacity * 0.3),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+            .cornerRadius(cornerRadius)
+    }
+}
+
+extension View {
+    /// 应用 Liquid Glass 效果
+    func liquidGlass(
+        cornerRadius: CGFloat = 16,
+        opacity: CGFloat = 0.6,
+        strokeOpacity: CGFloat = 0.3
+    ) -> some View {
+        self.modifier(
+            LiquidGlassModifier(
+                cornerRadius: cornerRadius,
+                opacity: opacity,
+                strokeOpacity: strokeOpacity
+            )
+        )
     }
 }
 

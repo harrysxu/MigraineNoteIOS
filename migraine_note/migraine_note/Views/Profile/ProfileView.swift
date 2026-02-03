@@ -9,27 +9,19 @@ import SwiftUI
 import SwiftData
 import HealthKit
 
-/// 我的页面 - 整合个人信息、药箱管理和设置功能
+/// 我的页面 - 整合药箱管理和设置功能
 struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query private var profiles: [UserProfile]
+    @Environment(ThemeManager.self) private var themeManager
     @Query private var medications: [Medication]
     @Query private var medicationLogs: [MedicationLog]
     
-    @State private var showProfileEditor = false
     @State private var cloudKitManager = CloudKitManager()
-    
-    private var userProfile: UserProfile? {
-        profiles.first
-    }
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
-                    // 个人信息卡片
-                    personalInfoCard
-                    
                     // 药箱快速入口
                     medicationSummaryCard
                     
@@ -42,68 +34,10 @@ struct ProfileView: View {
             .background(Color.backgroundPrimary.ignoresSafeArea())
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showProfileEditor) {
-                ProfileEditorView(profile: userProfile)
-            }
         }
         .onAppear {
             cloudKitManager.checkICloudStatus()
         }
-    }
-    
-    // MARK: - 个人信息卡片
-    
-    private var personalInfoCard: some View {
-        Button {
-            showProfileEditor = true
-        } label: {
-            EmotionalCard(style: .elevated) {
-                HStack(spacing: Spacing.md) {
-                    // 头像
-                    Circle()
-                        .fill(Color.primaryGradient)
-                        .frame(width: 64, height: 64)
-                        .overlay {
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 32))
-                                .foregroundStyle(.white)
-                        }
-                    
-                    // 信息
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(userProfile?.name ?? "未设置姓名")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(Color.textPrimary)
-                        
-                        HStack(spacing: 4) {
-                            if let age = userProfile?.age {
-                                Text("\(age)岁")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
-                            }
-                            
-                            if let gender = userProfile?.gender {
-                                Text("· \(gender.rawValue)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
-                            }
-                        }
-                        
-                        Text("点击编辑个人信息")
-                            .font(.caption)
-                            .foregroundStyle(Color.accentPrimary)
-                    }
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(Color.textTertiary)
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     // MARK: - 药箱摘要卡片
@@ -226,6 +160,42 @@ struct ProfileView: View {
     
     private var settingsSections: some View {
         VStack(alignment: .leading, spacing: Spacing.md) {
+            // 外观设置
+            EmotionalCard(style: .default) {
+                NavigationLink {
+                    ThemeSettingsView()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: themeManager.currentTheme.icon)
+                            .font(.title3)
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .background(Color.accentPrimary)
+                            .clipShape(Circle())
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("主题设置")
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(Color.textPrimary)
+                            
+                            Text(themeManager.currentTheme.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(Color.textTertiary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            
             // 数据与隐私
             EmotionalCard(style: .default) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -245,6 +215,7 @@ struct ProfileView: View {
                         )
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
                     
                     Divider()
                         .padding(.leading, 44)
@@ -259,6 +230,7 @@ struct ProfileView: View {
                         )
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
                     
                     Divider()
                         .padding(.leading, 44)
@@ -273,6 +245,22 @@ struct ProfileView: View {
                         )
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
+                    
+                    Divider()
+                        .padding(.leading, 44)
+                    
+                    NavigationLink {
+                        DataExportView()
+                    } label: {
+                        SettingRow(
+                            icon: "square.and.arrow.up.fill",
+                            iconColor: .green,
+                            title: "数据导出"
+                        )
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -297,6 +285,7 @@ struct ProfileView: View {
                         )
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
                     
                     Divider()
                         .padding(.leading, 44)
@@ -311,6 +300,7 @@ struct ProfileView: View {
                         )
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
                     
                     Divider()
                         .padding(.leading, 44)
@@ -325,6 +315,7 @@ struct ProfileView: View {
                         )
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -342,6 +333,7 @@ struct ProfileView: View {
                     )
                     .padding(.vertical, 12)
                 }
+                .buttonStyle(.plain)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -395,6 +387,7 @@ struct ProfileView: View {
                         }
                         .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -476,18 +469,11 @@ struct ProfileView: View {
     @Previewable @State var container: ModelContainer = {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(
-            for: UserProfile.self, Medication.self, MedicationLog.self,
+            for: Medication.self, MedicationLog.self,
             configurations: config
         )
         
         let context = container.mainContext
-        
-        // 创建测试用户
-        let profile = UserProfile()
-        profile.name = "张三"
-        profile.age = 32
-        profile.gender = .female
-        context.insert(profile)
         
         // 创建测试药物
         for i in 1...3 {

@@ -17,8 +17,14 @@ struct AnalyticsView: View {
     @State private var selectedView: DataViewType = .analytics
     @State private var analyticsEngine: AnalyticsEngine
     @State private var mohDetector: MOHDetector
-    @State private var showExportSheet = false
     @State private var calendarViewModel: CalendarViewModel?
+    @State private var showCustomDatePicker = false
+    @State private var customStartDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var customEndDate = Date()
+    @State private var showCSVShareSheet = false
+    @State private var csvFileURL: URL?
+    @State private var showExportErrorAlert = false
+    @State private var exportErrorMessage = ""
     
     init(modelContext: ModelContext) {
         _analyticsEngine = State(initialValue: AnalyticsEngine(modelContext: modelContext))
@@ -28,6 +34,11 @@ struct AnalyticsView: View {
     enum DataViewType: String, CaseIterable {
         case analytics = "图表"
         case calendar = "日历"
+    }
+    
+    // 计算属性：获取当前选择的日期范围
+    private var currentDateRange: (Date, Date) {
+        selectedTimeRange.dateRange(customStart: customStartDate, customEnd: customEndDate)
     }
     
     var body: some View {
@@ -60,8 +71,8 @@ struct AnalyticsView: View {
                     }
                 }
             }
-            .navigationTitle("数据")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     if selectedView == .analytics {
@@ -90,19 +101,34 @@ struct AnalyticsView: View {
                         }
                     }
                 }
-                
-                ToolbarItem(placement: .topBarLeading) {
-                    if selectedView == .analytics {
-                        Button {
-                            showExportSheet = true
-                        } label: {
-                            Label("导出PDF", systemImage: "square.and.arrow.up")
-                        }
+            }
+            .sheet(isPresented: $showCustomDatePicker) {
+                CustomDateRangePickerView(
+                    startDate: $customStartDate,
+                    endDate: $customEndDate,
+                    onConfirm: {
+                        selectedTimeRange = .custom
+                        showCustomDatePicker = false
                     }
+                )
+            }
+            .sheet(isPresented: $showCSVShareSheet) {
+                if let csvFileURL = csvFileURL {
+                    ShareSheet(activityItems: [csvFileURL])
                 }
             }
-            .sheet(isPresented: $showExportSheet) {
-                ExportReportView()
+            .alert("导出失败", isPresented: $showExportErrorAlert) {
+                Button("确定", role: .cancel) { }
+            } message: {
+                Text(exportErrorMessage)
+            }
+            .onChange(of: selectedTimeRange) { oldValue, newValue in
+                if newValue == .custom {
+                    showCustomDatePicker = true
+                } else {
+                    // 当切换到非自定义选项时，关闭日期选择器
+                    showCustomDatePicker = false
+                }
             }
         }
         .onAppear {
@@ -169,6 +195,10 @@ struct AnalyticsView: View {
                             .padding(.horizontal)
                     }
                     
+                    // 疼痛强度图例
+                    PainIntensityLegend()
+                        .padding(.horizontal)
+                    
                     // 日历网格
                     CalendarGridSection(viewModel: viewModel)
                         .padding(.horizontal)
@@ -209,6 +239,7 @@ struct AnalyticsView: View {
             }
             .padding(Spacing.md)
         }
+        .id("\(selectedTimeRange.rawValue)_\(customStartDate)_\(customEndDate)")
     }
     
     // MARK: - 整体情况概览
@@ -269,7 +300,7 @@ struct AnalyticsView: View {
                     }
                     
                     // 第三行（单列）
-                    let durationStats = analyticsEngine.analyzeDurationStatistics(in: selectedTimeRange.dateRange)
+                    let durationStats = analyticsEngine.analyzeDurationStatistics(in: currentDateRange)
                     HStack(spacing: 12) {
                         CompactAnalyticStatCard(
                             value: String(format: "%.1fh", durationStats.averageDurationHours),
@@ -287,7 +318,7 @@ struct AnalyticsView: View {
     // MARK: - MOH Risk Section
     
     private var mohRiskSection: some View {
-        let medicationStats = analyticsEngine.analyzeMedicationUsage(in: selectedTimeRange.dateRange)
+        let medicationStats = analyticsEngine.analyzeMedicationUsage(in: currentDateRange)
         let currentMonthStats = getCurrentMonthMedicationDays()
         
         return EmotionalCard(style: currentMonthStats >= 10 ? .warning : .default) {
@@ -475,14 +506,14 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let triggerData = analyticsEngine.analyzeTriggerFrequency(in: selectedTimeRange.dateRange)
+                let triggerData = analyticsEngine.analyzeTriggerFrequency(in: currentDateRange)
                 
                 if triggerData.isEmpty {
                     Text("暂无诱因数据")
                         .font(.body)
                         .foregroundStyle(Color.textSecondary)
                 } else {
-                    VStack(spacing: Spacing.sm) {
+                    VStack(spacing: 8) {
                         ForEach(Array(triggerData.prefix(5).enumerated()), id: \.element.triggerName) { index, item in
                             TriggerFrequencyRow(
                                 rank: index + 1,
@@ -510,7 +541,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let circadianData = analyticsEngine.analyzeCircadianPattern(in: selectedTimeRange.dateRange)
+                let circadianData = analyticsEngine.analyzeCircadianPattern(in: currentDateRange)
                 
                 if circadianData.isEmpty {
                     Text("数据不足")
@@ -519,32 +550,62 @@ struct AnalyticsView: View {
                 } else {
                     Chart {
                         ForEach(circadianData) { item in
+                            AreaMark(
+                                x: .value("小时", item.hour),
+                                yStart: .value("起点", 0),
+                                yEnd: .value("次数", item.count)
+                            )
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [
+                                        Color.accentPrimary.opacity(0.5),
+                                        Color.accentPrimary.opacity(0.1)
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .interpolationMethod(.catmullRom)
+                            
+                            LineMark(
+                                x: .value("小时", item.hour),
+                                y: .value("次数", item.count)
+                            )
+                            .foregroundStyle(Color.accentPrimary)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5))
+                            .interpolationMethod(.catmullRom)
+                            
                             PointMark(
                                 x: .value("小时", item.hour),
                                 y: .value("次数", item.count)
                             )
-                            .foregroundStyle(Color.accentPrimary.opacity(0.8))
-                            .symbolSize(100)
-                            .symbol {
-                                Circle()
-                                    .fill(Color.accentPrimary)
-                                    .shadow(color: Color.accentPrimary.opacity(0.5), radius: 4)
-                            }
+                            .foregroundStyle(Color.accentPrimary)
+                            .symbolSize(60)
                         }
                     }
-                    .frame(height: 150)
+                    .frame(height: 180)
+                    .chartXScale(domain: 0...24)
                     .chartXAxis {
                         AxisMarks(values: [0, 6, 12, 18, 24]) { value in
                             AxisValueLabel {
                                 if let hour = value.as(Int.self) {
                                     Text("\(hour)时")
                                         .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
                                 }
                             }
                         }
                     }
                     .chartYAxis {
-                        AxisMarks(position: .leading)
+                        AxisMarks(position: .leading) { value in
+                            AxisValueLabel {
+                                if let count = value.as(Int.self) {
+                                    Text("\(count)")
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.textSecondary)
+                                }
+                            }
+                        }
                     }
                     
                     // 高发时段提示
@@ -575,9 +636,9 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: selectedTimeRange.dateRange)
-                let locationFreq = analyticsEngine.analyzePainLocationFrequency(in: selectedTimeRange.dateRange)
-                let qualityFreq = analyticsEngine.analyzePainQualityFrequency(in: selectedTimeRange.dateRange)
+                let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: currentDateRange)
+                let locationFreq = analyticsEngine.analyzePainLocationFrequency(in: currentDateRange)
+                let qualityFreq = analyticsEngine.analyzePainQualityFrequency(in: currentDateRange)
                 
                 // 疼痛强度分布
                 VStack(alignment: .leading, spacing: 12) {
@@ -620,17 +681,19 @@ struct AnalyticsView: View {
                         .padding(.vertical, 4)
                     
                     // 疼痛部位频次 Top 5
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("疼痛部位频次 (Top 5)")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
-                        ForEach(Array(locationFreq.prefix(5))) { location in
-                            FrequencyRow(
-                                name: location.locationName,
-                                count: location.count,
-                                percentage: location.percentage
-                            )
+                        VStack(spacing: 8) {
+                            ForEach(Array(locationFreq.prefix(5))) { location in
+                                FrequencyRow(
+                                    name: location.locationName,
+                                    count: location.count,
+                                    percentage: location.percentage
+                                )
+                            }
                         }
                     }
                 }
@@ -640,17 +703,19 @@ struct AnalyticsView: View {
                         .padding(.vertical, 4)
                     
                     // 疼痛性质频次
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("疼痛性质频次")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
-                        ForEach(qualityFreq) { quality in
-                            FrequencyRow(
-                                name: quality.qualityName,
-                                count: quality.count,
-                                percentage: quality.percentage
-                            )
+                        VStack(spacing: 8) {
+                            ForEach(qualityFreq) { quality in
+                                FrequencyRow(
+                                    name: quality.qualityName,
+                                    count: quality.count,
+                                    percentage: quality.percentage
+                                )
+                            }
                         }
                     }
                 }
@@ -671,22 +736,24 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let symptomFreq = analyticsEngine.analyzeSymptomFrequency(in: selectedTimeRange.dateRange)
-                let auraStats = analyticsEngine.analyzeAuraStatistics(in: selectedTimeRange.dateRange)
+                let symptomFreq = analyticsEngine.analyzeSymptomFrequency(in: currentDateRange)
+                let auraStats = analyticsEngine.analyzeAuraStatistics(in: currentDateRange)
                 
                 // 伴随症状频次
                 if !symptomFreq.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("伴随症状频次")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
-                        ForEach(Array(symptomFreq.prefix(6))) { symptom in
-                            FrequencyRow(
-                                name: symptom.symptomName,
-                                count: symptom.count,
-                                percentage: symptom.percentage
-                            )
+                        VStack(spacing: 8) {
+                            ForEach(Array(symptomFreq.prefix(6))) { symptom in
+                                FrequencyRow(
+                                    name: symptom.symptomName,
+                                    count: symptom.count,
+                                    percentage: symptom.percentage
+                                )
+                            }
                         }
                     }
                 } else {
@@ -722,12 +789,14 @@ struct AnalyticsView: View {
                         }
                         
                         if !auraStats.auraTypeFrequency.isEmpty {
-                            ForEach(auraStats.auraTypeFrequency) { auraType in
-                                FrequencyRow(
-                                    name: "  • \(auraType.typeName)",
-                                    count: auraType.count,
-                                    percentage: auraType.percentage
-                                )
+                            VStack(spacing: 8) {
+                                ForEach(auraStats.auraTypeFrequency) { auraType in
+                                    FrequencyRow(
+                                        name: "  • \(auraType.typeName)",
+                                        count: auraType.count,
+                                        percentage: auraType.percentage
+                                    )
+                                }
                             }
                         }
                     }
@@ -749,7 +818,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let medicationStats = analyticsEngine.analyzeMedicationUsage(in: selectedTimeRange.dateRange)
+                let medicationStats = analyticsEngine.analyzeMedicationUsage(in: currentDateRange)
                 
                 if medicationStats.totalMedicationUses > 0 {
                     // 用药概况
@@ -780,17 +849,19 @@ struct AnalyticsView: View {
                         Divider()
                             .padding(.vertical, 4)
                         
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Text("药物分类统计")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                             
-                            ForEach(medicationStats.categoryBreakdown) { category in
-                                FrequencyRow(
-                                    name: category.categoryName,
-                                    count: category.count,
-                                    percentage: category.percentage
-                                )
+                            VStack(spacing: 8) {
+                                ForEach(medicationStats.categoryBreakdown) { category in
+                                    FrequencyRow(
+                                        name: category.categoryName,
+                                        count: category.count,
+                                        percentage: category.percentage
+                                    )
+                                }
                             }
                         }
                     }
@@ -800,17 +871,19 @@ struct AnalyticsView: View {
                         Divider()
                             .padding(.vertical, 4)
                         
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: 12) {
                             Text("最常用药物 (Top 5)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                             
-                            ForEach(Array(medicationStats.topMedications.prefix(5))) { medication in
-                                FrequencyRow(
-                                    name: medication.medicationName,
-                                    count: medication.count,
-                                    percentage: medication.percentage
-                                )
+                            VStack(spacing: 8) {
+                                ForEach(Array(medicationStats.topMedications.prefix(5))) { medication in
+                                    FrequencyRow(
+                                        name: medication.medicationName,
+                                        count: medication.count,
+                                        percentage: medication.percentage
+                                    )
+                                }
                             }
                         }
                     }
@@ -827,12 +900,29 @@ struct AnalyticsView: View {
     
     private func getMonthlyTrendData() -> [MonthlyTrendData] {
         let calendar = Calendar.current
-        let now = Date()
+        let (start, end) = currentDateRange
         var data: [MonthlyTrendData] = []
         
-        // 获取最近6个月的数据
-        for monthOffset in (0..<6).reversed() {
-            guard let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: now) else { continue }
+        // 根据时间范围确定要显示的月份数
+        let monthsToShow: Int
+        switch selectedTimeRange {
+        case .oneMonth:
+            monthsToShow = 3  // 1个月范围也显示3个月趋势
+        case .threeMonths:
+            monthsToShow = 3
+        case .sixMonths:
+            monthsToShow = 6
+        case .oneYear:
+            monthsToShow = 12
+        case .custom:
+            // 计算自定义范围的月份数
+            let components = calendar.dateComponents([.month], from: start, to: end)
+            monthsToShow = max(min(components.month ?? 3, 12), 3)  // 最少3个月，最多12个月
+        }
+        
+        // 获取指定月份数的数据
+        for monthOffset in (0..<monthsToShow).reversed() {
+            guard let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: end) else { continue }
             
             let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: monthDate))!
             let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart)!
@@ -860,19 +950,19 @@ struct AnalyticsView: View {
     // MARK: - 数据获取辅助方法
     
     private func getTotalAttacksCount() -> Int {
-        let (start, end) = selectedTimeRange.dateRange
+        let (start, end) = currentDateRange
         return attacks.filter { $0.startTime >= start && $0.startTime <= end }.count
     }
     
     private func getAttackDaysCount() -> Int {
         let calendar = Calendar.current
-        let (start, end) = selectedTimeRange.dateRange
+        let (start, end) = currentDateRange
         let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
         return Set(attacksInRange.map { calendar.startOfDay(for: $0.startTime) }).count
     }
     
     private func getAveragePainIntensity() -> Double {
-        let (start, end) = selectedTimeRange.dateRange
+        let (start, end) = currentDateRange
         let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
         guard !attacksInRange.isEmpty else { return 0 }
         let total = attacksInRange.reduce(0) { $0 + $1.painIntensity }
@@ -880,7 +970,7 @@ struct AnalyticsView: View {
     }
     
     private func getMedicationCount() -> Int {
-        let (start, end) = selectedTimeRange.dateRange
+        let (start, end) = currentDateRange
         let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
         return attacksInRange.reduce(0) { $0 + $1.medications.count }
     }
@@ -953,18 +1043,12 @@ struct IntensityBar: View {
     let color: Color
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-                
-                Spacer()
-                
-                Text("\(count)次")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
-            }
+        HStack(spacing: 12) {
+            // 标签
+            Text(label)
+                .font(.body)
+                .foregroundStyle(Color.textPrimary)
+                .frame(width: 90, alignment: .leading)
             
             // 进度条
             GeometryReader { geometry in
@@ -975,18 +1059,31 @@ struct IntensityBar: View {
                     
                     RoundedRectangle(cornerRadius: 4)
                         .fill(color)
-                        .frame(width: geometry.size.width * (percentage / 100), height: 8)
+                        .frame(
+                            width: max(geometry.size.width * (percentage / 100), 2),
+                            height: 8
+                        )
                 }
             }
             .frame(height: 8)
             
-            Text(String(format: "%.0f%%", percentage))
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(color)
+            // 次数和百分比
+            HStack(spacing: 6) {
+                Text("\(count)次")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(minWidth: 40, alignment: .trailing)
+                
+                Text("(\(String(format: "%.0f%%", percentage)))")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(minWidth: 50, alignment: .leading)
+            }
         }
-        .padding(12)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
         .background(Color.backgroundPrimary)
-        .cornerRadius(12)
+        .cornerRadius(10)
         .frame(maxWidth: .infinity)
     }
 }
@@ -998,21 +1095,49 @@ struct FrequencyRow: View {
     let percentage: Double
     
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
+            // 名称
             Text(name)
                 .font(.body)
                 .foregroundStyle(Color.textPrimary)
+                .lineLimit(1)
             
-            Spacer()
+            Spacer(minLength: 12)
             
-            Text("\(count)次")
-                .font(.body.weight(.semibold))
-                .foregroundStyle(Color.textPrimary)
+            // 进度条
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.backgroundTertiary)
+                        .frame(height: 6)
+                    
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.accentPrimary.opacity(0.7))
+                        .frame(
+                            width: max(geometry.size.width * (percentage / 100), 2),
+                            height: 6
+                        )
+                }
+            }
+            .frame(width: 60, height: 6)
             
-            Text("(\(String(format: "%.1f%%", percentage)))")
-                .font(.caption)
-                .foregroundStyle(Color.textSecondary)
+            // 次数和百分比
+            HStack(spacing: 6) {
+                Text("\(count)次")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(minWidth: 40, alignment: .trailing)
+                
+                Text("(\(String(format: "%.1f%%", percentage)))")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(minWidth: 50, alignment: .leading)
+            }
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.backgroundPrimary)
+        .cornerRadius(10)
     }
 }
 
@@ -1023,12 +1148,13 @@ enum TimeRange: String, CaseIterable, Identifiable {
     case threeMonths = "3个月"
     case sixMonths = "6个月"
     case oneYear = "1年"
+    case custom = "自定义"
     
     var id: String { rawValue }
     
     var displayName: String { rawValue }
     
-    var dateRange: (Date, Date) {
+    func dateRange(customStart: Date? = nil, customEnd: Date? = nil) -> (Date, Date) {
         let calendar = Calendar.current
         let now = Date()
         
@@ -1044,6 +1170,13 @@ enum TimeRange: String, CaseIterable, Identifiable {
             return (start, now)
         case .oneYear:
             let start = calendar.date(byAdding: .year, value: -1, to: now)!
+            return (start, now)
+        case .custom:
+            if let customStart = customStart, let customEnd = customEnd {
+                return (customStart, customEnd)
+            }
+            // 默认返回最近1个月
+            let start = calendar.date(byAdding: .month, value: -1, to: now)!
             return (start, now)
         }
     }
@@ -1065,12 +1198,12 @@ struct TriggerFrequencyRow: View {
     let percentage: Double
     
     var body: some View {
-        HStack(spacing: Spacing.sm) {
+        HStack(spacing: 12) {
             // 排名
             Text("\(rank)")
                 .font(.body.weight(.bold))
                 .foregroundStyle(rankColor)
-                .frame(width: 24, height: 24)
+                .frame(width: 28, height: 28)
                 .background(rankColor.opacity(0.15))
                 .clipShape(Circle())
             
@@ -1078,21 +1211,44 @@ struct TriggerFrequencyRow: View {
             Text(triggerName)
                 .font(.body)
                 .foregroundStyle(Color.textPrimary)
+                .lineLimit(1)
             
-            Spacer()
+            Spacer(minLength: 12)
+            
+            // 进度条
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.backgroundTertiary)
+                        .frame(height: 6)
+                    
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(rankColor.opacity(0.6))
+                        .frame(
+                            width: max(geometry.size.width * (percentage / 100), 2),
+                            height: 6
+                        )
+                }
+            }
+            .frame(width: 60, height: 6)
             
             // 次数和百分比
-            VStack(alignment: .trailing, spacing: 2) {
+            HStack(spacing: 6) {
                 Text("\(count)次")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
+                    .frame(minWidth: 40, alignment: .trailing)
                 
-                Text(String(format: "%.1f%%", percentage))
+                Text("(\(String(format: "%.1f%%", percentage)))")
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
+                    .frame(minWidth: 50, alignment: .leading)
             }
         }
-        .padding(.vertical, Spacing.xs)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(Color.backgroundPrimary)
+        .cornerRadius(10)
     }
     
     private var rankColor: Color {
@@ -1104,7 +1260,7 @@ struct TriggerFrequencyRow: View {
         case 3:
             return Color.statusInfo
         default:
-            return Color.textSecondary
+            return Color.accentPrimary
         }
     }
 }
@@ -1217,11 +1373,11 @@ struct CalendarDayCell: View {
             if let intensity = viewModel.getMaxPainIntensity(for: date) {
                 Circle()
                     .fill(Color.painIntensityColor(for: intensity))
-                    .frame(width: 6, height: 6)
+                    .frame(width: 8, height: 8)
             } else {
                 Circle()
                     .fill(Color.clear)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 8, height: 8)
             }
         }
         .frame(maxWidth: .infinity)
@@ -1258,6 +1414,116 @@ struct CalendarDayCell: View {
         } else {
             return Color.surface.opacity(0.5)
         }
+    }
+}
+
+// MARK: - Custom Date Range Picker View
+
+struct CustomDateRangePickerView: View {
+    @Binding var startDate: Date
+    @Binding var endDate: Date
+    let onConfirm: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("选择日期范围") {
+                    DatePicker("开始日期", 
+                               selection: $startDate, 
+                               displayedComponents: .date)
+                    DatePicker("结束日期", 
+                               selection: $endDate, 
+                               in: startDate...,
+                               displayedComponents: .date)
+                }
+                
+                Section {
+                    Text("从 \(startDate.formatted(date: .long, time: .omitted)) 到 \(endDate.formatted(date: .long, time: .omitted))")
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+            }
+            .navigationTitle("自定义日期范围")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("确认") {
+                        onConfirm()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Pain Intensity Legend
+
+struct PainIntensityLegend: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("疼痛强度图例")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.textSecondary)
+            
+            HStack(spacing: 16) {
+                // 轻度疼痛 (1-3)
+                LegendItem(
+                    intensity: 2,
+                    label: "轻度",
+                    range: "1-3"
+                )
+                
+                // 中度疼痛 (4-6)
+                LegendItem(
+                    intensity: 5,
+                    label: "中度",
+                    range: "4-6"
+                )
+                
+                // 重度疼痛 (7-10)
+                LegendItem(
+                    intensity: 8,
+                    label: "重度",
+                    range: "7-10"
+                )
+            }
+        }
+        .padding(Spacing.md)
+        .background(Color.surface)
+        .cornerRadius(CornerRadius.md)
+    }
+}
+
+struct LegendItem: View {
+    let intensity: Int
+    let label: String
+    let range: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(Color.painIntensityColor(for: intensity))
+                .frame(width: 10, height: 10)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(Color.textPrimary)
+                
+                Text(range)
+                    .font(.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -55,10 +55,25 @@ struct HorizontalPainSlider: View {
                 // 滑块轨道和手柄
                 GeometryReader { geometry in
                     ZStack(alignment: .leading) {
-                        // 背景轨道（渐变）
-                        RoundedRectangle(cornerRadius: 8)
+                        // 背景轨道（Liquid Glass 渐变）
+                        Capsule()
                             .fill(trackGradient)
                             .frame(height: 16)
+                            .overlay(
+                                Capsule()
+                                    .stroke(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.white.opacity(0.3),
+                                                Color.clear
+                                            ],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        ),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .shadow(color: painColor.opacity(0.3), radius: 8, x: 0, y: 0)
                         
                         // 刻度标记
                         HStack(spacing: 0) {
@@ -71,23 +86,36 @@ struct HorizontalPainSlider: View {
                         }
                         .frame(height: 16)
                         
-                        // 拖动手柄
+                        // 拖动手柄（带渐变和发光）
                         Circle()
-                            .fill(.white)
-                            .frame(width: 24, height: 24)
+                            .fill(
+                                LinearGradient(
+                                    colors: [.white, Color.white.opacity(0.9)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 28, height: 28)
+                            .overlay(
+                                Circle()
+                                    .fill(painColor.opacity(0.3))
+                                    .frame(width: 16, height: 16)
+                            )
+                            .shadow(color: painColor.opacity(0.4), radius: 8, x: 0, y: 0)
                             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                            .scaleEffect(isDragging ? 1.3 : 1.0)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isDragging)
                             .offset(x: handleOffset(for: geometry.size.width))
                             .gesture(
                                 DragGesture(minimumDistance: 0)
                                     .onChanged { gesture in
                                         isDragging = true
+                                        let oldValue = value
                                         updateValue(for: gesture.location.x, width: geometry.size.width)
                                         
-                                        // 触觉反馈
-                                        let impact = UIImpactFeedbackGenerator(style: .light)
-                                        impact.impactOccurred()
+                                        // 只在值改变时触发触觉反馈
+                                        if value != oldValue {
+                                            let impact = UIImpactFeedbackGenerator(style: .light)
+                                            impact.impactOccurred()
+                                        }
                                     }
                                     .onEnded { _ in
                                         isDragging = false
@@ -187,7 +215,7 @@ struct HorizontalPainSlider: View {
     
     private func handleOffset(for width: CGFloat) -> CGFloat {
         let progress = Double(value - range.lowerBound) / Double(range.upperBound - range.lowerBound)
-        return CGFloat(progress) * width - 12 // 12 是手柄半径
+        return CGFloat(progress) * width - 14 // 14 是新手柄半径
     }
     
     private func updateValue(for xPosition: CGFloat, width: CGFloat) {

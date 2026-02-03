@@ -29,8 +29,8 @@ struct AttackListView: View {
                     attackListContent
                 }
             }
-            .navigationTitle("记录列表")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -183,7 +183,7 @@ struct AttackRowView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "pills")
                                 .font(.caption2)
-                            Text("\(attack.medicationLogs.count)种药物")
+                            Text("\(attack.medicationLogs.count)次用药")
                         }
                         .font(.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -227,6 +227,9 @@ struct FilterSheetView: View {
     @Bindable var viewModel: AttackListViewModel
     @Environment(\.dismiss) private var dismiss
     
+    @State private var customStartDate = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+    @State private var customEndDate = Date()
+    
     var body: some View {
         NavigationStack {
             Form {
@@ -239,6 +242,19 @@ struct FilterSheetView: View {
                         }
                     }
                     .pickerStyle(.inline)
+                    
+                    // 自定义日期范围选择器
+                    if viewModel.filterOption == .custom {
+                        VStack(spacing: AppSpacing.small) {
+                            DatePicker("开始日期", 
+                                       selection: $customStartDate, 
+                                       displayedComponents: .date)
+                            DatePicker("结束日期", 
+                                       selection: $customEndDate, 
+                                       displayedComponents: .date)
+                        }
+                        .padding(.vertical, AppSpacing.small)
+                    }
                 }
                 
                 // 排序方式
@@ -293,6 +309,34 @@ struct FilterSheetView: View {
                     }
                 }
             }
+            .onAppear {
+                // 初始化自定义日期范围
+                if let dateRange = viewModel.selectedDateRange {
+                    customStartDate = dateRange.start
+                    customEndDate = dateRange.end
+                }
+            }
+            .onChange(of: customStartDate) { _, newValue in
+                updateCustomDateRange()
+            }
+            .onChange(of: customEndDate) { _, newValue in
+                updateCustomDateRange()
+            }
+            .onChange(of: viewModel.filterOption) { oldValue, newValue in
+                // 当切换到自定义选项时，应用当前的自定义日期范围
+                if newValue == .custom {
+                    updateCustomDateRange()
+                }
+            }
+        }
+    }
+    
+    private func updateCustomDateRange() {
+        if viewModel.filterOption == .custom {
+            viewModel.selectedDateRange = AttackListViewModel.DateRange(
+                start: customStartDate,
+                end: customEndDate
+            )
         }
     }
     

@@ -11,65 +11,57 @@ import SwiftUI
 typealias AppColors = Color
 
 extension Color {
-    // MARK: - 主色调（温暖治愈系）
+    // MARK: - 主色调
     
-    /// 治愈蓝绿 - 主品牌色（更温暖、平静）
-    static let accentPrimary = Color(red: 0.369, green: 0.769, blue: 0.714) // #5EC4B6
+    /// iOS系统蓝 - 主品牌色（自动适配暗模式）
+    static let primary = Color(uiColor: .systemBlue)  // #007AFF
     
-    /// 柔和蓝 - 辅助色（信任感）
-    static let accentSecondary = Color(red: 0.290, green: 0.565, blue: 0.886) // #4A90E2
+    /// 主色调淡色版（用于背景）
+    static let primaryLight = Color(uiColor: .systemBlue).opacity(0.1)
     
-    // MARK: - 温暖辅助色（情感化设计）
+    // MARK: - 背景色（自动适配暗模式和亮模式）
     
-    /// 温暖橙 - 用于正向反馈和鼓励
-    static let warmAccent = Color(red: 0.957, green: 0.635, blue: 0.380) // #F4A261
+    /// 主要背景色 - 白色(浅色)/黑色(深色)
+    static let backgroundPrimary = Color(uiColor: .systemBackground)
     
-    /// 柔和粉 - 用于提醒和友好信息
-    static let gentlePink = Color(red: 0.910, green: 0.627, blue: 0.749) // #E8A0BF
+    /// 次要背景色 - #F2F2F7(浅色) / #1C1C1E(深色)
+    static let backgroundSecondary = Color(uiColor: .secondarySystemBackground)
     
-    // MARK: - 背景色
+    /// 第三级背景色 - #FFFFFF(浅色) / #2C2C2E(深色)
+    static let backgroundTertiary = Color(uiColor: .tertiarySystemBackground)
     
-    /// 纯黑背景（暗黑模式默认）
-    static let backgroundPrimary = Color.black
+    // MARK: - 文字色（自动适配暗模式和亮模式）
     
-    /// 深灰背景（卡片）
-    static let backgroundSecondary = Color(white: 0.11) // #1C1C1E
+    /// 主要文字 - 黑色(浅色)/白色(深色)
+    static let textPrimary = Color(uiColor: .label)
     
-    /// 第三级背景
-    static let backgroundTertiary = Color(white: 0.17) // #2C2C2E
+    /// 次要文字 - #3C3C43 99%(浅色) / #EBEBF5 60%(深色)
+    static let textSecondary = Color(uiColor: .secondaryLabel)
     
-    // MARK: - 文字色
+    /// 第三级文字 - #3C3C43 48%(浅色) / #EBEBF5 30%(深色)
+    static let textTertiary = Color(uiColor: .tertiaryLabel)
     
-    /// 主要文字
-    static let textPrimary = Color(white: 0.92)
+    // MARK: - 语义色（iOS系统色,自动适配）
     
-    /// 次要文字
-    static let textSecondary = Color(white: 0.64)
+    /// 成功色 - 绿色
+    static let statusSuccess = Color(uiColor: .systemGreen)    // #34C759
     
-    /// 说明性文字
-    static let textTertiary = Color(white: 0.48)
+    /// 警告色 - 橙色
+    static let statusWarning = Color(uiColor: .systemOrange)   // #FF9500
     
-    // MARK: - 语义色
+    /// 危险色 - 红色（MOH警告）
+    static let statusDanger = Color(uiColor: .systemRed)       // #FF3B30
     
-    /// 成功 - 低饱和度绿色
-    static let statusSuccess = Color(red: 0.20, green: 0.78, blue: 0.35) // #34C759
+    /// 错误色 - 红色
+    static let statusError = Color(uiColor: .systemRed)        // #FF3B30
     
-    /// 警告 - 低饱和度橙色
-    static let statusWarning = Color(red: 1.0, green: 0.62, blue: 0.04) // #FF9F0A
+    /// 信息色 - 蓝色
+    static let statusInfo = Color(uiColor: .systemBlue)        // #007AFF
     
-    /// 危险 - 低饱和度红色（MOH警告）
-    static let statusDanger = Color(red: 1.0, green: 0.27, blue: 0.23) // #FF453A
+    // MARK: - 分割线（自动适配）
     
-    /// 错误 - 红色（与危险色相同）
-    static let statusError = Color(red: 1.0, green: 0.27, blue: 0.23) // #FF453A
-    
-    /// 信息 - 柔和蓝色
-    static let statusInfo = Color(red: 0.04, green: 0.52, blue: 1.0) // #0A84FF
-    
-    // MARK: - 分割线
-    
-    /// 分割线颜色
-    static let divider = Color(white: 0.28) // #474747
+    /// 分割线颜色 - #3C3C43 36%(浅色) / #545458 65%(深色)
+    static let divider = Color(uiColor: .separator)
     
     // MARK: - 便捷别名
     
@@ -81,9 +73,6 @@ extension Color {
     
     /// 次级表面背景色
     static let surfaceElevated = backgroundTertiary
-    
-    /// 主品牌色
-    static let primary = accentPrimary
     
     /// 成功色
     static let success = statusSuccess
@@ -97,39 +86,46 @@ extension Color {
     /// 信息色
     static let info = statusInfo
     
-    /// 阴影颜色
-    static let shadowColor = Color.black.opacity(0.3)
+    /// 阴影颜色（自动适配）
+    static let shadowColor = Color.black.opacity(0.15)
     
-    // MARK: - 疼痛强度色阶（温暖柔和版）
+    // MARK: - 温暖辅助色（情感化设计,保留用于特殊场景）
     
-    /// 获取疼痛强度对应的颜色 (0-10) - 降低饱和度，增加温度感
+    /// 温暖橙 - 用于正向反馈和鼓励
+    static let warmAccent = Color(red: 0.957, green: 0.635, blue: 0.380) // #F4A261
+    
+    /// 柔和粉 - 用于提醒和友好信息
+    static let gentlePink = Color(red: 0.910, green: 0.627, blue: 0.749) // #E8A0BF
+    
+    /// 治愈蓝绿 - 特殊品牌色
+    static let accentPrimary = Color(red: 0.369, green: 0.769, blue: 0.714) // #5EC4B6
+    
+    /// 柔和蓝 - 辅助色
+    static let accentSecondary = Color(red: 0.290, green: 0.565, blue: 0.886) // #4A90E2
+    
+    // MARK: - 疼痛强度色阶（使用单色渐变,避免色盲问题,自动适配暗模式）
+    
+    /// 获取疼痛强度对应的颜色 (0-10) - 使用主色调的透明度渐变
     static func painIntensityColor(for intensity: Int) -> Color {
-        let colors: [Color] = [
-            Color(red: 0.659, green: 0.835, blue: 0.729), // 0-2 - 薄荷绿 #A8D5BA
-            Color(red: 0.957, green: 0.886, blue: 0.522), // 3-4 - 柔黄 #F4E285
-            Color(red: 0.957, green: 0.722, blue: 0.376), // 5-6 - 温橙 #F4B860
-            Color(red: 0.910, green: 0.604, blue: 0.506), // 7-8 - 珊瑚 #E89A81
-            Color(red: 0.820, green: 0.478, blue: 0.478)  // 9-10 - 柔红 #D17A7A
-        ]
-        
-        let index = min(max(0, intensity), 10)
-        switch index {
-        case 0...2:
-            return colors[0] // 薄荷绿
-        case 3...4:
-            return colors[1] // 柔黄
-        case 5...6:
-            return colors[2] // 温橙
-        case 7...8:
-            return colors[3] // 珊瑚
-        case 9...10:
-            return colors[4] // 柔红
+        let opacity = 0.1 + (Double(intensity) / 10.0 * 0.9)
+        return Color.primary.opacity(opacity)
+    }
+    
+    /// 疼痛强度分类颜色（语义化）
+    static func painCategoryColor(for intensity: Int) -> Color {
+        switch intensity {
+        case 0...3:
+            return .statusSuccess // 轻度 - 绿色
+        case 4...6:
+            return .statusWarning // 中度 - 橙色
+        case 7...10:
+            return .statusDanger // 重度 - 红色
         default:
-            return colors[0]
+            return .textSecondary
         }
     }
     
-    // MARK: - 渐变色
+    // MARK: - 渐变色（保留用于特殊场景）
     
     /// 主色调渐变（用于按钮、重要元素）
     static let primaryGradient = LinearGradient(
@@ -150,20 +146,6 @@ extension Color {
         startPoint: .leading,
         endPoint: .trailing
     )
-    
-    /// 疼痛强度分类颜色
-    static func painCategoryColor(for intensity: Int) -> Color {
-        switch intensity {
-        case 0...3:
-            return .statusSuccess // 轻度
-        case 4...6:
-            return .statusWarning // 中度
-        case 7...10:
-            return .statusDanger // 重度
-        default:
-            return .textSecondary
-        }
-    }
 }
 
 // MARK: - PainIntensity 辅助结构
