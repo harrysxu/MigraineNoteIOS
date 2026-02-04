@@ -63,22 +63,33 @@ class WeatherManager: NSObject {
         }
         
         print("🌤️ 从 WeatherKit 获取新的天气数据")
-        let weather = try await weatherService.weather(for: location)
+        print("📍 当前位置: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         
-        let snapshot = WeatherSnapshot(timestamp: Date())
-        snapshot.pressure = weather.currentWeather.pressure.value
-        snapshot.pressureTrend = await determinePressureTrend(at: location)
-        snapshot.temperature = weather.currentWeather.temperature.value
-        snapshot.humidity = weather.currentWeather.humidity * 100 // 转换为百分比
-        snapshot.windSpeed = weather.currentWeather.wind.speed.value
-        snapshot.condition = weather.currentWeather.condition.description
-        snapshot.location = await reverseGeocode(location)
-        
-        // 更新缓存
-        cachedWeather = snapshot
-        cacheTimestamp = Date()
-        
-        return snapshot
+        do {
+            let weather = try await weatherService.weather(for: location)
+            
+            let snapshot = WeatherSnapshot(timestamp: Date())
+            snapshot.pressure = weather.currentWeather.pressure.value
+            snapshot.pressureTrend = await determinePressureTrend(at: location)
+            snapshot.temperature = weather.currentWeather.temperature.value
+            snapshot.humidity = weather.currentWeather.humidity * 100 // 转换为百分比
+            snapshot.windSpeed = weather.currentWeather.wind.speed.value
+            snapshot.condition = weather.currentWeather.condition.description
+            snapshot.location = await reverseGeocode(location)
+            
+            // 更新缓存
+            cachedWeather = snapshot
+            cacheTimestamp = Date()
+            
+            print("✅ WeatherKit 数据获取成功: \(snapshot.temperature)°C, \(snapshot.condition)")
+            return snapshot
+        } catch {
+            print("❌ WeatherKit 错误详情:")
+            print("   错误类型: \(type(of: error))")
+            print("   错误描述: \(error.localizedDescription)")
+            print("   完整错误: \(error)")
+            throw error
+        }
     }
     
     /// 清除缓存
@@ -105,11 +116,17 @@ class WeatherManager: NSObject {
     
     // MARK: - 获取历史天气
     
-    /// 获取历史天气数据（仅支持最近10天）
+    /// 获取历史天气数据（支持 2021年8月1日 至今）
+    /// - Parameters:
+    ///   - date: 要查询的日期
+    ///   - location: 查询位置
+    /// - Returns: 历史天气快照
+    /// - Note: WeatherKit 历史数据最早可追溯到 2021年8月1日
     func fetchHistoricalWeather(for date: Date, at location: CLLocation) async throws -> WeatherSnapshot {
-        let daysAgo = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        // WeatherKit 历史数据起始日期检查
+        let historicalStartDate = DateComponents(calendar: Calendar.current, year: 2021, month: 8, day: 1).date!
         
-        guard daysAgo <= 10 else {
+        guard date >= historicalStartDate else {
             throw WeatherError.historicalDataNotAvailable
         }
         
@@ -225,7 +242,7 @@ enum WeatherError: Error, LocalizedError {
         case .dataNotAvailable:
             return "请检查网络连接"
         case .historicalDataNotAvailable:
-            return "历史天气数据仅支持最近10天"
+            return "历史天气数据仅支持 2021年8月1日 至今"
         case .locationPermissionDenied:
             return "请在设置中开启定位权限"
         case .networkError:

@@ -19,6 +19,7 @@ final class WeatherSnapshot {
     var windSpeed: Double = 0
     var condition: String = ""
     var location: String = ""
+    var isManuallyEdited: Bool = false  // 标记是否手动编辑过
     
     @Relationship(inverse: \AttackRecord.weatherSnapshot) var attackRecord: AttackRecord?
     

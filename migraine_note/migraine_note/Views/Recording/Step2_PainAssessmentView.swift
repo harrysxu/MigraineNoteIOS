@@ -10,8 +10,15 @@ import SwiftData
 
 struct Step2_PainAssessmentView: View {
     @Bindable var viewModel: RecordingViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var isDragging = false
     @State private var showEncouragement = false
+    
+    // 查询疼痛性质标签
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "painQuality" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var painQualityLabels: [CustomLabelConfig]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -70,22 +77,30 @@ struct Step2_PainAssessmentView: View {
                 .padding(.horizontal, 4)
                 
                 FlowLayout(spacing: 8) {
-                    ForEach(PainQuality.allCases, id: \.self) { quality in
+                    ForEach(painQualityLabels, id: \.id) { label in
                         SelectableChip(
-                            label: quality.rawValue,
+                            label: label.displayName,
                             isSelected: Binding(
-                                get: { viewModel.selectedPainQualities.contains(quality) },
+                                get: { viewModel.selectedPainQualityNames.contains(label.displayName) },
                                 set: { isSelected in
                                     if isSelected {
-                                        viewModel.selectedPainQualities.insert(quality)
+                                        viewModel.selectedPainQualityNames.insert(label.displayName)
                                         let impact = UIImpactFeedbackGenerator(style: .light)
                                         impact.impactOccurred()
                                     } else {
-                                        viewModel.selectedPainQualities.remove(quality)
+                                        viewModel.selectedPainQualityNames.remove(label.displayName)
                                     }
                                 }
                             )
                         )
+                    }
+                    
+                    // 添加自定义疼痛性质
+                    AddCustomLabelChip(
+                        category: .painQuality,
+                        subcategory: nil
+                    ) { newLabel in
+                        viewModel.selectedPainQualityNames.insert(newLabel)
                     }
                 }
             }

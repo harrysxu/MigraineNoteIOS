@@ -210,12 +210,31 @@ class HomeViewModel {
     
     // MARK: - 快速记录管理
     
-    /// 快速开始记录
-    func quickStartRecording() -> AttackRecord {
+    /// 快速开始记录（异步版本，支持天气获取）
+    func quickStartRecording() async -> AttackRecord {
         let attack = AttackRecord(startTime: Date())
         modelContext.insert(attack)
+        
+        // 立即获取天气
+        if let location = weatherManager.currentLocation {
+            do {
+                print("🌤️ 快速记录：获取当前天气")
+                let weather = try await weatherManager.fetchCurrentWeather()
+                modelContext.insert(weather)
+                attack.weatherSnapshot = weather
+            } catch {
+                print("❌ 快速记录获取天气失败: \(error.localizedDescription)")
+                // 天气获取失败不影响快速记录
+            }
+        }
+        
         try? modelContext.save()
-        loadData() // 刷新数据以显示进行中状态
+        
+        // 在主线程更新UI
+        await MainActor.run {
+            loadData() // 刷新数据以显示进行中状态
+        }
+        
         return attack
     }
     

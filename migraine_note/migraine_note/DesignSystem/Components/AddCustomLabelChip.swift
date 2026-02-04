@@ -140,6 +140,12 @@ struct AddCustomLabelChip: View {
             return "症状"
         case .trigger:
             return "诱因"
+        case .painQuality:
+            return "疼痛性质"
+        case .intervention:
+            return "非药物干预"
+        case .aura:
+            return "先兆类型"
         }
     }
     

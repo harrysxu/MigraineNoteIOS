@@ -107,15 +107,15 @@ struct CircularSlider: View {
     }
     
     private var painColor: Color {
-        Color.painIntensityColor(for: value)
+        Color.painCategoryColor(for: value)
     }
     
     private var painGradient: AngularGradient {
         AngularGradient(
             colors: [
-                Color.painIntensityColor(for: range.lowerBound),
-                Color.painIntensityColor(for: (range.lowerBound + range.upperBound) / 2),
-                Color.painIntensityColor(for: range.upperBound)
+                Color.painCategoryColor(for: range.lowerBound),
+                Color.painCategoryColor(for: (range.lowerBound + range.upperBound) / 2),
+                Color.painCategoryColor(for: range.upperBound)
             ],
             center: .center,
             startAngle: .degrees(-90),

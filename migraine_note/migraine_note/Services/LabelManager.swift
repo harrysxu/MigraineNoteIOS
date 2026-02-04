@@ -42,6 +42,15 @@ class LabelManager {
         // 初始化药物预设标签
         initializeMedicationLabels(context: context)
         
+        // 初始化疼痛性质标签
+        initializePainQualityLabels(context: context)
+        
+        // 初始化非药物干预标签
+        initializeInterventionLabels(context: context)
+        
+        // 初始化先兆类型标签
+        initializeAuraLabels(context: context)
+        
         // 保存到数据库
         try? context.save()
         
@@ -206,6 +215,80 @@ class LabelManager {
                 label.metadata = metadata.flatMap { String(data: $0, encoding: .utf8) }
                 context.insert(label)
             }
+        }
+    }
+    
+    // MARK: - 初始化疼痛性质标签
+    
+    private func initializePainQualityLabels(context: ModelContext) {
+        let painQualities: [(key: String, name: String)] = [
+            ("pulsating", "搏动性"),
+            ("pressing", "压迫感"),
+            ("stabbing", "刺痛"),
+            ("dull", "钝痛"),
+            ("distending", "胀痛")
+        ]
+        
+        for (index, quality) in painQualities.enumerated() {
+            let label = CustomLabelConfig(
+                category: LabelCategory.painQuality.rawValue,
+                labelKey: quality.key,
+                displayName: quality.name,
+                isDefault: true,
+                subcategory: nil,
+                sortOrder: index
+            )
+            context.insert(label)
+        }
+    }
+    
+    // MARK: - 初始化非药物干预标签
+    
+    private func initializeInterventionLabels(context: ModelContext) {
+        let interventions: [(key: String, name: String)] = [
+            ("sleep", "睡眠"),
+            ("coldCompress", "冷敷"),
+            ("hotCompress", "热敷"),
+            ("massage", "按摩"),
+            ("acupuncture", "针灸"),
+            ("darkRoom", "暗室休息"),
+            ("deepBreathing", "深呼吸"),
+            ("meditation", "冥想")
+        ]
+        
+        for (index, intervention) in interventions.enumerated() {
+            let label = CustomLabelConfig(
+                category: LabelCategory.intervention.rawValue,
+                labelKey: intervention.key,
+                displayName: intervention.name,
+                isDefault: true,
+                subcategory: nil,
+                sortOrder: index
+            )
+            context.insert(label)
+        }
+    }
+    
+    // MARK: - 初始化先兆类型标签
+    
+    private func initializeAuraLabels(context: ModelContext) {
+        let auras: [(key: String, name: String)] = [
+            ("visual", "视觉闪光"),
+            ("scotoma", "视野暗点"),
+            ("numbness", "肢体麻木"),
+            ("speechDifficulty", "言语障碍")
+        ]
+        
+        for (index, aura) in auras.enumerated() {
+            let label = CustomLabelConfig(
+                category: LabelCategory.aura.rawValue,
+                labelKey: aura.key,
+                displayName: aura.name,
+                isDefault: true,
+                subcategory: nil,
+                sortOrder: index
+            )
+            context.insert(label)
         }
     }
     

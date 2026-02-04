@@ -22,7 +22,7 @@ struct SettingsView: View {
                     } label: {
                         SettingRow(
                             icon: themeManager.currentTheme.icon,
-                            iconColor: .primary,
+                            iconColor: Color.accentPrimary,
                             title: "主题设置",
                             subtitle: themeManager.currentTheme.rawValue
                         )
@@ -82,7 +82,7 @@ struct SettingsView: View {
                     } label: {
                         SettingRow(
                             icon: "tag.fill",
-                            iconColor: .blue,
+                            iconColor: Color.accentPrimary,
                             title: "标签管理",
                             subtitle: "自定义症状、诱因、药物标签"
                         )
@@ -181,7 +181,7 @@ struct HealthKitSettingsView: View {
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             Text("HealthKit不可用")
                                 .font(.headline)
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(Color.accentPrimary)
                             Text("当前设备不支持HealthKit功能。")
                                 .font(.body)
                                 .foregroundColor(.secondary)
@@ -203,7 +203,7 @@ struct HealthKitSettingsView: View {
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             Text("健康数据集成")
                                 .font(.headline)
-                                .foregroundColor(AppColors.primary)
+                                .foregroundColor(Color.accentPrimary)
                             Text("允许读取睡眠、月经周期、心率等健康数据，并将偏头痛发作记录同步到健康App。")
                                 .font(.body)
                                 .foregroundColor(.secondary)
@@ -343,7 +343,7 @@ struct LocationSettingsView: View {
                     VStack(alignment: .leading, spacing: AppSpacing.small) {
                         Text("位置服务")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.accentPrimary)
                         Text("允许访问位置信息以获取天气数据，帮助分析环境诱因。")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -426,7 +426,7 @@ struct CloudSyncSettingsView: View {
                     VStack(alignment: .leading, spacing: AppSpacing.small) {
                         Text("iCloud同步")
                             .font(.headline)
-                            .foregroundColor(AppColors.primary)
+                            .foregroundColor(Color.accentPrimary)
                         Text("您的所有数据通过iCloud自动同步到您的所有Apple设备，并保存在您的私有数据库中。")
                             .font(.body)
                             .foregroundColor(.secondary)
@@ -572,12 +572,7 @@ struct AboutView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 100, height: 100)
-                        .clipShape(RoundedRectangle(cornerRadius: 22.37, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 22.37, style: .continuous)
-                                .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
-                        )
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 4)
+                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                     
                     Text("偏头痛记录")
                         .font(.title2.bold())

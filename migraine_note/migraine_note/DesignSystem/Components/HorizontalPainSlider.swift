@@ -158,15 +158,15 @@ struct HorizontalPainSlider: View {
     }
     
     private var painColor: Color {
-        Color.painIntensityColor(for: value)
+        Color.painCategoryColor(for: value)
     }
     
     private var trackGradient: LinearGradient {
         LinearGradient(
             colors: [
-                Color.painIntensityColor(for: range.lowerBound),
-                Color.painIntensityColor(for: (range.lowerBound + range.upperBound) / 2),
-                Color.painIntensityColor(for: range.upperBound)
+                Color.painCategoryColor(for: range.lowerBound),
+                Color.painCategoryColor(for: (range.lowerBound + range.upperBound) / 2),
+                Color.painCategoryColor(for: range.upperBound)
             ],
             startPoint: .leading,
             endPoint: .trailing

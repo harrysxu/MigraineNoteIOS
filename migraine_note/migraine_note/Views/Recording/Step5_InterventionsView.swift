@@ -10,7 +10,14 @@ import SwiftData
 
 struct Step5_InterventionsView: View {
     @Bindable var viewModel: RecordingViewModel
+    @Environment(\.modelContext) private var modelContext
     @State private var showAddMedicationSheet: Bool = false
+    
+    // 查询非药物干预标签
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "intervention" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var interventionLabels: [CustomLabelConfig]
     
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg) {
@@ -75,20 +82,28 @@ struct Step5_InterventionsView: View {
                     }
                     
                     FlowLayout(spacing: Spacing.xs) {
-                        ForEach(nonPharmacologicalOptions, id: \.self) { option in
+                        ForEach(interventionLabels, id: \.id) { label in
                             SelectableChip(
-                                label: option,
+                                label: label.displayName,
                                 isSelected: Binding(
-                                    get: { viewModel.selectedNonPharmacological.contains(option) },
+                                    get: { viewModel.selectedNonPharmacological.contains(label.displayName) },
                                     set: { isSelected in
                                         if isSelected {
-                                            viewModel.selectedNonPharmacological.insert(option)
+                                            viewModel.selectedNonPharmacological.insert(label.displayName)
                                         } else {
-                                            viewModel.selectedNonPharmacological.remove(option)
+                                            viewModel.selectedNonPharmacological.remove(label.displayName)
                                         }
                                     }
                                 )
                             )
+                        }
+                        
+                        // 添加自定义非药物干预
+                        AddCustomLabelChip(
+                            category: .intervention,
+                            subcategory: nil
+                        ) { newLabel in
+                            viewModel.selectedNonPharmacological.insert(newLabel)
                         }
                     }
                 }
@@ -116,11 +131,6 @@ struct Step5_InterventionsView: View {
             UnifiedMedicationInputSheet(viewModel: viewModel, isPresented: $showAddMedicationSheet)
         }
     }
-    
-    private let nonPharmacologicalOptions = [
-        "睡眠", "冷敷", "热敷", "按摩", "针灸", "暗室休息", "深呼吸", "冥想"
-    ]
-    
 }
 
 // MARK: - 统一药物输入对话框

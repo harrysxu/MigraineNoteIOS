@@ -155,7 +155,7 @@ struct PainIntensity {
     let value: Int
     
     var color: Color {
-        Color.painIntensityColor(for: value)
+        Color.painCategoryColor(for: value)
     }
     
     var description: String {

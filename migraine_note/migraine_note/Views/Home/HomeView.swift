@@ -176,7 +176,9 @@ struct HomeView: View {
                         FloatingQuickActionButton(
                             ongoingAttack: vm.ongoingAttack,
                             onQuickStart: {
-                                _ = vm.quickStartRecording()
+                                Task {
+                                    _ = await vm.quickStartRecording()
+                                }
                             },
                             onQuickEnd: { attack in
                                 vm.quickEndRecording(attack)
@@ -493,7 +495,7 @@ struct WeatherInsightCard: View {
     var onRefresh: (() -> Void)?
     
     var body: some View {
-        EmotionalCard(style: .gentle) {
+        EmotionalCard(style: .default) {
             if let weather = weather {
                 VStack(alignment: .leading, spacing: 16) {
                     // 标题行
@@ -734,7 +736,7 @@ struct MonthlyOverviewCard: View {
     @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
     
     var body: some View {
-        EmotionalCard(style: .gentle) {
+        EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 16) {
                 // 标题行
                 HStack {
@@ -790,7 +792,7 @@ struct MonthlyOverviewCard: View {
                             value: String(format: "%.1f", averageIntensity),
                             label: "平均强度",
                             icon: "waveform.path.ecg",
-                            color: Color.painIntensityColor(for: Int(averageIntensity))
+                            color: Color.painCategoryColor(for: Int(averageIntensity))
                         )
                     }
                     
@@ -948,7 +950,7 @@ struct MiniCalendarHeatmap: View {
         }
         
         let maxIntensity = attacks.map(\.painIntensity).max() ?? 0
-        return Color.painIntensityColor(for: maxIntensity).opacity(0.8)
+        return Color.painCategoryColor(for: maxIntensity).opacity(0.8)
     }
 }
 
@@ -963,14 +965,14 @@ struct CompactAttackRow: View {
             VStack(spacing: 4) {
                 Text("\(attack.painIntensity)")
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.painIntensityColor(for: attack.painIntensity))
+                    .foregroundStyle(Color.painCategoryColor(for: attack.painIntensity))
                 
                 Text("强度")
                     .font(.caption2)
                     .foregroundStyle(Color.textTertiary)
             }
             .frame(width: 56, height: 56)
-            .background(Color.painIntensityColor(for: attack.painIntensity).opacity(0.15))
+            .background(Color.painCategoryColor(for: attack.painIntensity).opacity(0.15))
             .cornerRadius(12)
             
             // 中间内容
@@ -1112,6 +1114,21 @@ struct SimplifiedRecordingViewWrapper: View {
         $0.category == "trigger" && $0.isHidden == false 
     }, sort: \CustomLabelConfig.sortOrder)
     private var triggerLabels: [CustomLabelConfig]
+    
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "intervention" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var interventionLabels: [CustomLabelConfig]
+    
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "aura" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var auraLabels: [CustomLabelConfig]
+    
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "painQuality" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var painQualityLabels: [CustomLabelConfig]
     
     private var westernSymptoms: [CustomLabelConfig] {
         symptomLabels.filter { $0.subcategory == SymptomSubcategory.western.rawValue }
@@ -1360,20 +1377,28 @@ struct SimplifiedRecordingViewWrapper: View {
                     .foregroundStyle(Color.textSecondary)
                 
                 FlowLayout(spacing: 8) {
-                    ForEach(PainQuality.allCases, id: \.self) { quality in
+                    ForEach(painQualityLabels, id: \.id) { label in
                         SelectableChip(
-                            label: quality.rawValue,
+                            label: label.displayName,
                             isSelected: Binding(
-                                get: { viewModel.selectedPainQualities.contains(quality) },
+                                get: { viewModel.selectedPainQualityNames.contains(label.displayName) },
                                 set: { isSelected in
                                     if isSelected {
-                                        viewModel.selectedPainQualities.insert(quality)
+                                        viewModel.selectedPainQualityNames.insert(label.displayName)
                                     } else {
-                                        viewModel.selectedPainQualities.remove(quality)
+                                        viewModel.selectedPainQualityNames.remove(label.displayName)
                                     }
                                 }
                             )
                         )
+                    }
+                    
+                    // 添加自定义疼痛性质
+                    AddCustomLabelChip(
+                        category: .painQuality,
+                        subcategory: nil
+                    ) { newLabel in
+                        viewModel.selectedPainQualityNames.insert(newLabel)
                     }
                 }
             }
@@ -1398,20 +1423,28 @@ struct SimplifiedRecordingViewWrapper: View {
                 
                 if viewModel.hasAura {
                     FlowLayout(spacing: 8) {
-                        ForEach(AuraType.allCases, id: \.self) { aura in
+                        ForEach(auraLabels, id: \.id) { label in
                             SelectableChip(
-                                label: aura.rawValue,
+                                label: label.displayName,
                                 isSelected: Binding(
-                                    get: { viewModel.selectedAuraTypes.contains(aura) },
+                                    get: { viewModel.selectedAuraTypeNames.contains(label.displayName) },
                                     set: { isSelected in
                                         if isSelected {
-                                            viewModel.selectedAuraTypes.insert(aura)
+                                            viewModel.selectedAuraTypeNames.insert(label.displayName)
                                         } else {
-                                            viewModel.selectedAuraTypes.remove(aura)
+                                            viewModel.selectedAuraTypeNames.remove(label.displayName)
                                         }
                                     }
                                 )
                             )
+                        }
+                        
+                        // 添加自定义先兆类型
+                        AddCustomLabelChip(
+                            category: .aura,
+                            subcategory: nil
+                        ) { newLabel in
+                            viewModel.selectedAuraTypeNames.insert(newLabel)
                         }
                     }
                 }
@@ -1599,45 +1632,28 @@ struct SimplifiedRecordingViewWrapper: View {
     private var nonPharmContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             FlowLayout(spacing: 8) {
-                ForEach(nonPharmacologicalOptions, id: \.self) { option in
+                ForEach(interventionLabels, id: \.id) { label in
                     SelectableChip(
-                        label: option,
+                        label: label.displayName,
                         isSelected: Binding(
-                            get: { viewModel.selectedNonPharmacological.contains(option) },
+                            get: { viewModel.selectedNonPharmacological.contains(label.displayName) },
                             set: { isSelected in
                                 if isSelected {
-                                    viewModel.selectedNonPharmacological.insert(option)
+                                    viewModel.selectedNonPharmacological.insert(label.displayName)
                                 } else {
-                                    viewModel.selectedNonPharmacological.remove(option)
+                                    viewModel.selectedNonPharmacological.remove(label.displayName)
                                 }
                             }
                         )
                     )
                 }
                 
-                // 自定义非药物干预
-                ForEach(viewModel.customNonPharmacological, id: \.self) { custom in
-                    SelectableChip(
-                        label: custom,
-                        isSelected: .constant(true)
-                    )
-                    .overlay(
-                        Button {
-                            viewModel.customNonPharmacological.removeAll { $0 == custom }
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
-                        }
-                        .offset(x: 8, y: -8),
-                        alignment: .topTrailing
-                    )
-                }
-                
-                CompactCustomInputField(placeholder: "其他方法...") { text in
-                    if !viewModel.customNonPharmacological.contains(text) {
-                        viewModel.customNonPharmacological.append(text)
-                    }
+                // 添加自定义非药物干预
+                AddCustomLabelChip(
+                    category: .intervention,
+                    subcategory: nil
+                ) { newLabel in
+                    viewModel.selectedNonPharmacological.insert(newLabel)
                 }
             }
         }
@@ -1747,9 +1763,6 @@ struct SimplifiedRecordingViewWrapper: View {
         }
     }
     
-    private let nonPharmacologicalOptions = [
-        "睡眠", "冷敷", "热敷", "按摩", "针灸", "暗室休息", "深呼吸", "冥想"
-    ]
 }
 
 #Preview {

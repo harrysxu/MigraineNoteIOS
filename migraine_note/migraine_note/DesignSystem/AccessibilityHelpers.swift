@@ -312,7 +312,7 @@ struct AccessibilityPreferences {
         ForEach([2, 5, 8], id: \.self) { intensity in
             HStack {
                 Circle()
-                    .fill(AppColors.painIntensityColor(for: intensity))
+                    .fill(AppColors.painCategoryColor(for: intensity))
                     .frame(width: 20, height: 20)
                     .colorBlindFriendlyPainIndicator(intensity: intensity)
                 

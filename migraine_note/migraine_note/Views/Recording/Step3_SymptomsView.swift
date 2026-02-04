@@ -18,6 +18,11 @@ struct Step3_SymptomsView: View {
     }, sort: \CustomLabelConfig.sortOrder)
     private var symptomLabels: [CustomLabelConfig]
     
+    @Query(filter: #Predicate<CustomLabelConfig> { 
+        $0.category == "aura" && $0.isHidden == false 
+    }, sort: \CustomLabelConfig.sortOrder)
+    private var auraLabels: [CustomLabelConfig]
+    
     // 计算西医症状和中医症状
     private var westernSymptoms: [CustomLabelConfig] {
         symptomLabels.filter { $0.subcategory == SymptomSubcategory.western.rawValue }
@@ -38,7 +43,7 @@ struct Step3_SymptomsView: View {
                     HStack(spacing: Spacing.md) {
                         StatusToggle(title: "否", icon: "xmark.circle", isSelected: !viewModel.hasAura) {
                             viewModel.hasAura = false
-                            viewModel.selectedAuraTypes = []
+                            viewModel.selectedAuraTypeNames = []
                         }
                         
                         StatusToggle(title: "是", icon: "checkmark.circle", isSelected: viewModel.hasAura) {
@@ -55,20 +60,28 @@ struct Step3_SymptomsView: View {
                             .foregroundStyle(Color.textSecondary)
                         
                         FlowLayout(spacing: Spacing.xs) {
-                            ForEach(AuraType.allCases, id: \.self) { aura in
+                            ForEach(auraLabels, id: \.id) { label in
                                 SelectableChip(
-                                    label: aura.rawValue,
+                                    label: label.displayName,
                                     isSelected: Binding(
-                                        get: { viewModel.selectedAuraTypes.contains(aura) },
+                                        get: { viewModel.selectedAuraTypeNames.contains(label.displayName) },
                                         set: { isSelected in
                                             if isSelected {
-                                                viewModel.selectedAuraTypes.insert(aura)
+                                                viewModel.selectedAuraTypeNames.insert(label.displayName)
                                             } else {
-                                                viewModel.selectedAuraTypes.remove(aura)
+                                                viewModel.selectedAuraTypeNames.remove(label.displayName)
                                             }
                                         }
                                     )
                                 )
+                            }
+                            
+                            // 添加自定义先兆类型
+                            AddCustomLabelChip(
+                                category: .aura,
+                                subcategory: nil
+                            ) { newLabel in
+                                viewModel.selectedAuraTypeNames.insert(newLabel)
                             }
                         }
                         

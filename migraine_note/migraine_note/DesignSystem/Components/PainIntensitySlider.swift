@@ -53,7 +53,7 @@ struct PainIntensitySlider: View {
     }
     
     var painColor: Color {
-        Color.painIntensityColor(for: value)
+        Color.painCategoryColor(for: value)
     }
     
     var painFaceIcon: String {

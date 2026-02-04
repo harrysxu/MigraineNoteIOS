@@ -37,7 +37,7 @@ struct AttackListView: View {
                         showingFilterSheet = true
                     } label: {
                         Image(systemName: "line.3.horizontal.decrease.circle")
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.accentPrimary)
                     }
                 }
             }
@@ -84,7 +84,7 @@ struct AttackListView: View {
                     let groupedAttacks = Dictionary(grouping: filteredAttacks) { attack in
                         attack.startTime.year
                     }
-                    .sorted { $0.key > $1.key } // 按年份降序排列
+                    .sorted { sortYears($0.key, $1.key) }
                     
                     ForEach(groupedAttacks, id: \.key) { year, yearAttacks in
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
@@ -96,8 +96,9 @@ struct AttackListView: View {
                                 .padding(.horizontal, AppSpacing.medium)
                                 .padding(.top, AppSpacing.small)
                             
-                            // 该年份的记录
-                            ForEach(yearAttacks) { attack in
+                            // 该年份的记录（需要重新排序，因为 Dictionary grouping 会打乱顺序）
+                            let sortedYearAttacks = sortYearAttacks(yearAttacks)
+                            ForEach(sortedYearAttacks) { attack in
                                 AttackRowView(attack: attack)
                                     .onTapGesture {
                                         selectedAttack = attack
@@ -134,6 +135,35 @@ struct AttackListView: View {
                 .foregroundStyle(AppColors.textSecondary)
         }
         .padding(.top, AppSpacing.extraLarge * 2)
+    }
+    
+    // MARK: - Helper Methods
+    
+    /// 根据排序选项对年份进行排序
+    private func sortYears(_ year1: Int, _ year2: Int) -> Bool {
+        switch viewModel.sortOption {
+        case .dateDescending:
+            return year1 > year2  // 最新优先：2026, 2025, 2024...
+        case .dateAscending:
+            return year1 < year2  // 最早优先：2024, 2025, 2026...
+        case .intensityDescending, .durationDescending:
+            // 按疼痛强度或持续时间排序时，年份仍按降序（最新年份在前）
+            return year1 > year2
+        }
+    }
+    
+    /// 根据排序选项对年份内的记录进行排序
+    private func sortYearAttacks(_ attacks: [AttackRecord]) -> [AttackRecord] {
+        switch viewModel.sortOption {
+        case .dateDescending:
+            return attacks.sorted { $0.startTime > $1.startTime }
+        case .dateAscending:
+            return attacks.sorted { $0.startTime < $1.startTime }
+        case .intensityDescending:
+            return attacks.sorted { $0.painIntensity > $1.painIntensity }
+        case .durationDescending:
+            return attacks.sorted { $0.durationOrElapsed > $1.durationOrElapsed }
+        }
     }
 }
 
@@ -285,7 +315,7 @@ struct FilterSheetView: View {
                                     .font(.caption)
                                     .foregroundStyle(isIntensitySelected(intensity) ? .white : AppColors.textPrimary)
                                     .frame(width: 30, height: 30)
-                                    .background(isIntensitySelected(intensity) ? AppColors.primary : AppColors.surfaceElevated)
+                                    .background(isIntensitySelected(intensity) ? Color.accentPrimary : AppColors.surfaceElevated)
                                     .clipShape(Circle())
                             }
                         }

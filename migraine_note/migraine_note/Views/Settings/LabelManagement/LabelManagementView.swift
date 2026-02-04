@@ -32,6 +32,12 @@ struct LabelManagementView: View {
                 
                 TriggerLabelEditor()
                     .tag(LabelCategory.trigger)
+                
+                PainQualityLabelEditor()
+                    .tag(LabelCategory.painQuality)
+                
+                InterventionLabelEditor()
+                    .tag(LabelCategory.intervention)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }

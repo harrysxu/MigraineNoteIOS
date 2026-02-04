@@ -190,8 +190,8 @@ class HealthKitManager {
                 
                 guard let menstrualSamples = samples as? [HKCategorySample],
                       let firstFlow = menstrualSamples.first(where: { 
-                          $0.value != HKCategoryValueVaginalBleeding.none.rawValue &&
-                          $0.value != HKCategoryValueVaginalBleeding.unspecified.rawValue
+                          $0.value != HKCategoryValueMenstrualFlow.none.rawValue &&
+                          $0.value != HKCategoryValueMenstrualFlow.unspecified.rawValue
                       }) else {
                     continuation.resume(returning: nil)
                     return

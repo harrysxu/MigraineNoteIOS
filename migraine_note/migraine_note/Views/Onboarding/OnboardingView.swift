@@ -243,7 +243,7 @@ struct ReadyPage: View {
                     .foregroundStyle(Color.textSecondary)
                 
                 // 提示卡片
-                EmotionalCard(style: .gentle) {
+                EmotionalCard(style: .default) {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
                             Image(systemName: "hand.point.right.fill")

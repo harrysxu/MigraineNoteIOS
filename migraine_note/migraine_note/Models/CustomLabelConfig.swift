@@ -72,6 +72,9 @@ final class CustomLabelConfig {
 enum LabelCategory: String, CaseIterable {
     case symptom = "symptom"
     case trigger = "trigger"
+    case painQuality = "painQuality"
+    case intervention = "intervention"
+    case aura = "aura"
     
     var displayName: String {
         switch self {
@@ -79,6 +82,12 @@ enum LabelCategory: String, CaseIterable {
             return "症状"
         case .trigger:
             return "诱因"
+        case .painQuality:
+            return "疼痛性质"
+        case .intervention:
+            return "非药物干预"
+        case .aura:
+            return "先兆类型"
         }
     }
     
@@ -88,6 +97,12 @@ enum LabelCategory: String, CaseIterable {
             return "stethoscope"
         case .trigger:
             return "exclamationmark.triangle"
+        case .painQuality:
+            return "waveform.path.ecg"
+        case .intervention:
+            return "figure.mind.and.body"
+        case .aura:
+            return "eye.trianglebadge.exclamationmark"
         }
     }
 }

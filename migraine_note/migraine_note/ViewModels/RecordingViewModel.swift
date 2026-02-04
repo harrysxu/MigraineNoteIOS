@@ -22,9 +22,12 @@ class RecordingViewModel {
     var selectedPainIntensity: Int = 0
     var selectedPainLocations: Set<PainLocation> = []
     var selectedPainQualities: Set<PainQuality> = []
+    // 改用字符串名称存储疼痛性质，支持自定义标签
+    var selectedPainQualityNames: Set<String> = []
     
     var hasAura: Bool = false
-    var selectedAuraTypes: Set<AuraType> = []
+    // 改用字符串名称存储先兆类型，支持自定义标签
+    var selectedAuraTypeNames: Set<String> = []
     var auraDuration: Double? // 分钟
     
     // 改用字符串名称存储症状，支持自定义标签
@@ -39,6 +42,12 @@ class RecordingViewModel {
     var customPainQualities: [String] = []
     var customSymptoms: [String] = []
     var customNonPharmacological: [String] = []
+    
+    // 天气管理状态
+    var currentWeatherSnapshot: WeatherSnapshot?
+    var isWeatherManuallyEdited: Bool = false
+    var startTimeWhenWeatherFetched: Date?
+    var isLoadingWeather: Bool = false
     
     private let modelContext: ModelContext
     private var weatherManager: WeatherManager?
@@ -63,6 +72,79 @@ class RecordingViewModel {
         resetTemporaryData()
     }
     
+    // MARK: - 天气管理
+    
+    /// 检查开始时间是否改变（用于显示提示）
+    var hasStartTimeChanged: Bool {
+        guard let fetchedTime = startTimeWhenWeatherFetched else { return false }
+        return abs(startTime.timeIntervalSince(fetchedTime)) > 60 // 超过1分钟视为改变
+    }
+    
+    /// 根据当前开始时间获取天气
+    func fetchWeatherForCurrentTime() async {
+        guard let weatherManager = weatherManager,
+              let location = weatherManager.currentLocation else {
+            print("⚠️ 无法获取天气：位置信息不可用")
+            return
+        }
+        
+        isLoadingWeather = true
+        defer { isLoadingWeather = false }
+        
+        // WeatherKit 历史数据的起始日期：2021年8月1日
+        let weatherKitHistoricalStartDate = DateComponents(
+            calendar: Calendar.current,
+            year: 2021,
+            month: 8,
+            day: 1
+        ).date!
+        
+        // 判断开始时间是否在 WeatherKit 历史数据范围内
+        guard startTime >= weatherKitHistoricalStartDate else {
+            print("⚠️ 开始时间早于 WeatherKit 历史数据范围（2021-08-01），不获取天气")
+            currentWeatherSnapshot = nil
+            return
+        }
+        
+        do {
+            let weatherSnapshot: WeatherSnapshot
+            
+            // 判断开始时间是否在过去（超过1小时视为历史记录）
+            let hoursSinceStart = Date().timeIntervalSince(startTime) / 3600
+            
+            if hoursSinceStart > 1 {
+                // 获取历史天气
+                let daysSinceStart = Calendar.current.dateComponents([.day], from: startTime, to: Date()).day ?? 0
+                print("🕐 开始时间为 \(daysSinceStart) 天前，获取历史天气数据")
+                weatherSnapshot = try await weatherManager.fetchHistoricalWeather(for: startTime, at: location)
+            } else {
+                // 1小时内的记录，获取当前天气
+                print("🌤️ 开始时间在1小时内，获取当前天气数据")
+                weatherSnapshot = try await weatherManager.fetchCurrentWeather()
+            }
+            
+            currentWeatherSnapshot = weatherSnapshot
+            startTimeWhenWeatherFetched = startTime
+            isWeatherManuallyEdited = false
+            
+        } catch {
+            print("❌ 获取天气数据失败: \(error.localizedDescription)")
+            currentWeatherSnapshot = nil
+        }
+    }
+    
+    /// 刷新天气
+    func refreshWeather() async {
+        await fetchWeatherForCurrentTime()
+    }
+    
+    /// 更新天气快照（手动编辑后）
+    func updateWeatherSnapshot(_ snapshot: WeatherSnapshot) {
+        snapshot.isManuallyEdited = true
+        currentWeatherSnapshot = snapshot
+        isWeatherManuallyEdited = true
+    }
+    
     // MARK: - 加载现有记录（编辑模式）
     
     func loadExistingAttack(_ attack: AttackRecord) {
@@ -74,14 +156,23 @@ class RecordingViewModel {
         self.endTime = attack.endTime
         self.isOngoing = attack.endTime == nil
         
+        // 加载天气数据
+        if let weather = attack.weatherSnapshot {
+            self.currentWeatherSnapshot = weather
+            self.startTimeWhenWeatherFetched = attack.startTime
+            self.isWeatherManuallyEdited = weather.isManuallyEdited
+        }
+        
         // 加载疼痛评估数据
         self.selectedPainIntensity = attack.painIntensity
         self.selectedPainLocations = Set(attack.painLocations)
         self.selectedPainQualities = Set(attack.painQualities)
+        // 加载疼痛性质名称
+        self.selectedPainQualityNames = Set(attack.painQuality)
         
         // 加载先兆数据
         self.hasAura = attack.hasAura
-        self.selectedAuraTypes = Set(attack.auraTypesList)
+        self.selectedAuraTypeNames = Set(attack.auraTypesList.map { $0.rawValue })
         if let duration = attack.auraDuration, duration > 0 {
             self.auraDuration = duration / 60.0 // 转换为分钟
         }
@@ -145,16 +236,13 @@ class RecordingViewModel {
             }
         }
         
-        // 获取天气数据（仅在新建记录或编辑时刷新）
-        if let weatherManager = weatherManager {
-            do {
-                let weatherSnapshot = try await weatherManager.fetchCurrentWeather()
+        // 关联天气数据（使用已获取或编辑的天气）
+        if let weatherSnapshot = currentWeatherSnapshot {
+            // 如果是新建模式或编辑模式，需要将天气快照插入到上下文中
+            if weatherSnapshot.modelContext == nil {
                 modelContext.insert(weatherSnapshot)
-                attack.weatherSnapshot = weatherSnapshot
-            } catch {
-                print("获取天气数据失败: \(error.localizedDescription)")
-                // 天气数据获取失败不影响保存
             }
+            attack.weatherSnapshot = weatherSnapshot
         }
         
         // 设置时间
@@ -164,17 +252,15 @@ class RecordingViewModel {
         // 设置疼痛评估
         attack.painIntensity = selectedPainIntensity
         attack.painLocation = selectedPainLocations.map { $0.rawValue }
-        // 合并预设的和自定义的疼痛性质
-        let allPainQualities = Array(selectedPainQualities) + customPainQualities.map { quality in
-            // 尝试转换为枚举，如果失败则创建自定义字符串
-            return PainQuality(rawValue: quality) ?? PainQuality.dull // 使用一个默认值，实际保存字符串
-        }
-        attack.painQuality = (Array(selectedPainQualities).map { $0.rawValue } + customPainQualities)
+        // 保存疼痛性质名称（支持自定义）
+        attack.painQuality = Array(selectedPainQualityNames)
         
         // 设置先兆
         attack.hasAura = hasAura
         if hasAura {
-            attack.setAuraTypes(Array(selectedAuraTypes))
+            // 将字符串名称转换回枚举（如果可能），否则保留字符串
+            let auraTypes = selectedAuraTypeNames.compactMap { AuraType(rawValue: $0) }
+            attack.setAuraTypes(auraTypes)
             if let duration = auraDuration {
                 attack.auraDuration = duration * 60 // 转换为秒
             }
@@ -279,9 +365,10 @@ class RecordingViewModel {
         selectedPainIntensity = 0
         selectedPainLocations = []
         selectedPainQualities = []
+        selectedPainQualityNames = []
         
         hasAura = false
-        selectedAuraTypes = []
+        selectedAuraTypeNames = []
         auraDuration = nil
         
         selectedSymptomNames = []

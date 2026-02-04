@@ -27,7 +27,7 @@ struct LoadingView: View {
         VStack(spacing: 16) {
             switch style {
             case .rotating:
-                if #available(iOS 17.0, *) {
+                if #available(iOS 18.0, *) {
                     Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
                         .font(.system(size: 48))
                         .foregroundStyle(

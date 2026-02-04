@@ -238,13 +238,13 @@ extension View {
                     self
                 }
             case .rotate:
-                if #available(iOS 17.0, *) {
+                if #available(iOS 18.0, *) {
                     self.symbolEffect(.rotate)
                 } else {
                     self
                 }
             case .breathe:
-                if #available(iOS 17.0, *) {
+                if #available(iOS 18.0, *) {
                     self.symbolEffect(.breathe)
                 } else {
                     self

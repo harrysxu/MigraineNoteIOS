@@ -145,7 +145,6 @@ class MedicalReportGenerator {
         
         // 字段
         let infoFont = UIFont.systemFont(ofSize: 11)
-        let lineHeight: CGFloat = 20
         
         if let profile = profile {
             currentY = drawInfoRow(context: context, y: currentY, label: "姓名：", value: profile.name?.isEmpty == false ? profile.name! : "未填写", font: infoFont)

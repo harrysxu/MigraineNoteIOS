@@ -40,7 +40,7 @@ struct CalendarView: View {
                     Button(action: viewModel.moveToToday) {
                         Text("今天")
                             .font(.subheadline)
-                            .foregroundStyle(AppColors.primary)
+                            .foregroundStyle(Color.accentPrimary)
                     }
                 }
             }
@@ -154,7 +154,7 @@ struct DayCell: View {
             // 疼痛强度指示器
             if let intensity = viewModel.getMaxPainIntensity(for: date) {
                 Circle()
-                    .fill(AppColors.painIntensityColor(for: intensity))
+                    .fill(AppColors.painCategoryColor(for: intensity))
                     .frame(width: 6, height: 6)
             } else {
                 Circle()
@@ -168,7 +168,7 @@ struct DayCell: View {
         .cornerRadius(AppSpacing.cornerRadiusSmall)
         .overlay(
             RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall)
-                .stroke(isToday ? AppColors.primary : Color.clear, lineWidth: 2)
+                .stroke(isToday ? Color.accentPrimary : Color.clear, lineWidth: 2)
         )
         .onTapGesture {
             if isInCurrentMonth {
@@ -190,7 +190,7 @@ struct DayCell: View {
         if !isInCurrentMonth {
             return AppColors.textTertiary
         } else if isToday {
-            return AppColors.primary
+            return Color.accentPrimary
         } else {
             return AppColors.textPrimary
         }
@@ -215,7 +215,7 @@ struct MonthlyStatsCard: View {
             // 标题
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(AppColors.primary)
+                    .foregroundStyle(Color.accentPrimary)
                 Text("本月统计")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(AppColors.textPrimary)
@@ -231,7 +231,7 @@ struct MonthlyStatsCard: View {
                     title: "发作天数",
                     value: "\(stats.attackDays)",
                     icon: "calendar",
-                    color: stats.isChronic ? AppColors.error : AppColors.primary,
+                    color: stats.isChronic ? AppColors.error : Color.accentPrimary,
                     subtitle: stats.isChronic ? "慢性偏头痛" : nil
                 )
                 
@@ -239,14 +239,14 @@ struct MonthlyStatsCard: View {
                     title: "总发作次数",
                     value: "\(stats.totalAttacks)",
                     icon: "bolt.fill",
-                    color: AppColors.info
+                    color: Color.accentPrimary
                 )
                 
                 StatItem(
                     title: "平均强度",
                     value: stats.averageIntensityFormatted,
                     icon: "chart.line.uptrend.xyaxis",
-                    color: AppColors.painIntensityColor(for: Int(stats.averagePainIntensity))
+                    color: AppColors.painCategoryColor(for: Int(stats.averagePainIntensity))
                 )
                 
                 StatItem(

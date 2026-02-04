@@ -161,7 +161,7 @@ struct MedicationDetailView: View {
                         label: "药物类别",
                         value: medication.category.rawValue,
                         icon: "pills",
-                        color: AppColors.primary
+                        color: Color.accentPrimary
                     )
                     
                     InfoPill(
@@ -217,7 +217,7 @@ struct MedicationDetailView: View {
                         title: "本月使用",
                         value: "\(monthlyUsageDays)",
                         icon: "calendar",
-                        color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? AppColors.error : AppColors.primary,
+                        color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? AppColors.error : Color.accentPrimary,
                         subtitle: "天"
                     )
                     
@@ -225,7 +225,7 @@ struct MedicationDetailView: View {
                         title: "总使用",
                         value: "\(totalUsageCount)",
                         icon: "number",
-                        color: AppColors.info,
+                        color: Color.accentPrimary,
                         subtitle: "次"
                     )
                 }
@@ -422,7 +422,7 @@ struct MedicationDetailView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, AppSpacing.small)
-                    .background(AppColors.primary)
+                    .background(Color.accentPrimary)
                     .clipShape(RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall))
                 }
             }
@@ -629,10 +629,10 @@ struct InventoryAdjustmentSheet: View {
                     Stepper(value: $newInventory, in: 0...999) {
                         HStack {
                             Text("新库存")
-                            Spacer()
-                            Text("\(newInventory)")
-                                .foregroundStyle(AppColors.primary)
-                                .fontWeight(.semibold)
+                        Spacer()
+                        Text("\(newInventory)")
+                            .foregroundStyle(Color.accentPrimary)
+                            .fontWeight(.semibold)
                         }
                     }
                     

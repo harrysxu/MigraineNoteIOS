@@ -1367,7 +1367,7 @@ struct CalendarDayCell: View {
             // 疼痛强度指示器
             if let intensity = viewModel.getMaxPainIntensity(for: date) {
                 Circle()
-                    .fill(Color.painIntensityColor(for: intensity))
+                    .fill(Color.painCategoryColor(for: intensity))
                     .frame(width: 8, height: 8)
             } else {
                 Circle()
@@ -1506,7 +1506,7 @@ struct LegendItem: View {
     var body: some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(Color.painIntensityColor(for: intensity))
+                .fill(Color.painCategoryColor(for: intensity))
                 .frame(width: 10, height: 10)
             
             VStack(alignment: .leading, spacing: 2) {

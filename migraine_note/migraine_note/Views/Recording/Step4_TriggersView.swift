@@ -76,7 +76,7 @@ struct Step4_TriggersView: View {
     // MARK: - 智能推荐卡片
     
     private var smartSuggestionsCard: some View {
-        EmotionalCard(style: .gentle) {
+        EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: Spacing.sm) {
                 HStack {
                     Image(systemName: "sparkles")
@@ -144,47 +144,45 @@ struct Step4_TriggersView: View {
         // 获取该分类下的所有诱因标签
         let categoryTriggers = triggerLabels.filter { $0.subcategory == category.rawValue }
         
-        // 如果该分类下有标签，显示该区块
-        if !categoryTriggers.isEmpty {
-            EmotionalCard(style: .default) {
-                VStack(alignment: .leading, spacing: Spacing.sm) {
-                    HStack {
-                        Text(categoryIcon(for: category))
-                            .font(.title3)
-                        Text(category.rawValue)
-                            .font(.headline)
+        // 始终显示该区块，即使没有标签（用户可以添加自定义标签）
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                HStack {
+                    Text(categoryIcon(for: category))
+                        .font(.title3)
+                    Text(category.rawValue)
+                        .font(.headline)
+                }
+                
+                FlowLayout(spacing: Spacing.xs) {
+                    ForEach(categoryTriggers, id: \.id) { label in
+                        SelectableChip(
+                            label: label.displayName,
+                            isSelected: Binding(
+                                get: { viewModel.selectedTriggers.contains(label.displayName) },
+                                set: { isSelected in
+                                    if isSelected {
+                                        viewModel.selectedTriggers.append(label.displayName)
+                                        // 添加触觉反馈
+                                        let impact = UIImpactFeedbackGenerator(style: .light)
+                                        impact.impactOccurred()
+                                    } else {
+                                        viewModel.selectedTriggers.removeAll { $0 == label.displayName }
+                                    }
+                                }
+                            )
+                        )
                     }
                     
-                    FlowLayout(spacing: Spacing.xs) {
-                        ForEach(categoryTriggers, id: \.id) { label in
-                            SelectableChip(
-                                label: label.displayName,
-                                isSelected: Binding(
-                                    get: { viewModel.selectedTriggers.contains(label.displayName) },
-                                    set: { isSelected in
-                                        if isSelected {
-                                            viewModel.selectedTriggers.append(label.displayName)
-                                            // 添加触觉反馈
-                                            let impact = UIImpactFeedbackGenerator(style: .light)
-                                            impact.impactOccurred()
-                                        } else {
-                                            viewModel.selectedTriggers.removeAll { $0 == label.displayName }
-                                        }
-                                    }
-                                )
-                            )
-                        }
-                        
-                        // 添加自定义诱因
-                        AddCustomLabelChip(
-                            category: .trigger,
-                            subcategory: category.rawValue
-                        ) { newLabel in
-                            viewModel.selectedTriggers.append(newLabel)
-                            // 添加触觉反馈
-                            let impact = UIImpactFeedbackGenerator(style: .light)
-                            impact.impactOccurred()
-                        }
+                    // 添加自定义诱因
+                    AddCustomLabelChip(
+                        category: .trigger,
+                        subcategory: category.rawValue
+                    ) { newLabel in
+                        viewModel.selectedTriggers.append(newLabel)
+                        // 添加触觉反馈
+                        let impact = UIImpactFeedbackGenerator(style: .light)
+                        impact.impactOccurred()
                     }
                 }
             }
