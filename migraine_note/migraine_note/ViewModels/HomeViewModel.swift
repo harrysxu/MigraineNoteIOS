@@ -13,6 +13,8 @@ class HomeViewModel {
     var streakDays: Int = 0
     var ongoingAttack: AttackRecord?
     var recentAttacks: [AttackRecord] = []
+    var recentHealthEvents: [HealthEvent] = []
+    var recentTimelineItems: [TimelineItemType] = []
     var currentWeather: WeatherSnapshot?
     var weatherError: String?
     var isRefreshingWeather: Bool = false
@@ -41,6 +43,8 @@ class HomeViewModel {
     func loadData() {
         loadOngoingAttack()
         loadRecentAttacks()
+        loadRecentHealthEvents()
+        loadRecentTimelineItems()
         calculateStreak()
     }
     
@@ -62,6 +66,32 @@ class HomeViewModel {
         descriptor.fetchLimit = 10
         
         recentAttacks = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    private func loadRecentHealthEvents() {
+        var descriptor = FetchDescriptor<HealthEvent>(
+            sortBy: [SortDescriptor(\.eventDate, order: .reverse)]
+        )
+        descriptor.fetchLimit = 10
+        
+        recentHealthEvents = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    private func loadRecentTimelineItems() {
+        // 合并偏头痛发作和健康事件
+        var items: [TimelineItemType] = []
+        
+        // 添加偏头痛发作
+        items += recentAttacks.map { .attack($0) }
+        
+        // 添加健康事件
+        items += recentHealthEvents.map { .healthEvent($0) }
+        
+        // 按时间倒序排序
+        items.sort { $0.eventDate > $1.eventDate }
+        
+        // 只取前10条
+        recentTimelineItems = Array(items.prefix(10))
     }
     
     private func calculateStreak() {

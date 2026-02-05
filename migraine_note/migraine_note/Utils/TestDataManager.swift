@@ -387,6 +387,15 @@ class TestDataManager {
         return medications
     }
     
+    /// 生成健康事件
+    /// - Parameters:
+    ///   - count: 事件数量（10-100）
+    ///   - dayRange: 时间范围（过去多少天，默认30天）
+    /// - Returns: 生成的事件数量
+    func generateHealthEvents(count: Int, dayRange: Int = 30) async throws -> Int {
+        return HealthEventTestData.generateTestEvents(in: modelContext, count: count, dayRange: dayRange)
+    }
+    
     /// 生成自定义标签
     /// - Parameter count: 标签数量（5-20）
     /// - Returns: 生成的标签数量
@@ -445,6 +454,7 @@ class TestDataManager {
         try clearRecords()
         try clearMedications()
         try clearCustomLabels()
+        try clearHealthEvents()
     }
     
     /// 清空发作记录
@@ -484,6 +494,11 @@ class TestDataManager {
         try modelContext.save()
     }
     
+    /// 清空健康事件
+    func clearHealthEvents() throws {
+        HealthEventTestData.clearTestEvents(in: modelContext)
+    }
+    
     // MARK: - 数据统计
     
     /// 获取当前数据统计
@@ -495,11 +510,13 @@ class TestDataManager {
                 predicate: #Predicate { !$0.isDefault }
             )
         )
+        let healthEventCount = try modelContext.fetchCount(FetchDescriptor<HealthEvent>())
         
         return DataStatistics(
             recordCount: recordCount,
             medicationCount: medicationCount,
-            customLabelCount: customLabelCount
+            customLabelCount: customLabelCount,
+            healthEventCount: healthEventCount
         )
     }
     
@@ -521,6 +538,7 @@ struct DataStatistics {
     let recordCount: Int
     let medicationCount: Int
     let customLabelCount: Int
+    let healthEventCount: Int
 }
 
 #endif

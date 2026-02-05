@@ -7,7 +7,6 @@
 
 import SwiftUI
 import SwiftData
-import HealthKit
 
 /// 我的页面 - 整合药箱管理和设置功能
 struct ProfileView: View {
@@ -204,21 +203,6 @@ struct ProfileView: View {
                         .foregroundStyle(Color.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.bottom, Spacing.sm)
-                    
-                    NavigationLink {
-                        HealthKitSettingsView()
-                    } label: {
-                        SettingRow(
-                            icon: "heart.fill",
-                            iconColor: .red,
-                            title: "健康数据"
-                        )
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Divider()
-                        .padding(.leading, 44)
                     
                     NavigationLink {
                         LocationSettingsView()

@@ -462,6 +462,153 @@ class AnalyticsEngine {
 
 // MARK: - 数据结构
 
+struct FrequencyResult: Identifiable {
+    let id = UUID()
+    let name: String
+    let count: Int
+    let percentage: Double
+}
+        
+        // 查询健康事件中的用药记录
+        let healthEventDescriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= startDate && 
+                event.eventDate <= endDate &&
+                event.eventTypeRawValue == "medication"
+            }
+        )
+        
+        guard let healthEvents = try? modelContext.fetch(healthEventDescriptor) else {
+            return MedicationAdherenceStats(totalDays: 0, medicationDays: 0, missedDays: 0)
+        }
+        
+        // 获取用药的天数
+        let medicationDays = Set(healthEvents.map { calendar.startOfDay(for: $0.eventDate) })
+        
+        // 计算日期范围内的总天数
+        let totalDays = calendar.dateComponents([.day], from: startDate, to: endDate).day ?? 0
+        let missedDays = totalDays - medicationDays.count
+        
+        return MedicationAdherenceStats(
+            totalDays: totalDays,
+            medicationDays: medicationDays.count,
+            missedDays: max(0, missedDays)
+        )
+    }
+    
+    /// 分析中医治疗统计
+    func analyzeTCMTreatment(in dateRange: (Date, Date)) -> TCMTreatmentStats {
+        let startDate = dateRange.0
+        let endDate = dateRange.1
+        
+        let descriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= startDate && 
+                event.eventDate <= endDate &&
+                event.eventTypeRawValue == "tcmTreatment"
+            }
+        )
+        
+        guard let tcmEvents = try? modelContext.fetch(descriptor) else {
+            return TCMTreatmentStats(totalTreatments: 0, treatmentTypes: [])
+        }
+        
+        var typeCounts: [String: Int] = [:]
+        var totalDuration: TimeInterval = 0
+        
+        for event in tcmEvents {
+            if let type = event.tcmTreatmentType {
+                typeCounts[type, default: 0] += 1
+            }
+            if let duration = event.tcmDuration {
+                totalDuration += duration
+            }
+        }
+        
+        let totalCount = tcmEvents.count
+        let treatmentTypes = typeCounts.map { type, count in
+            TreatmentTypeFrequency(
+                typeName: type,
+                count: count,
+                percentage: Double(count) / Double(totalCount) * 100
+            )
+        }.sorted { $0.count > $1.count }
+        
+        return TCMTreatmentStats(
+            totalTreatments: totalCount,
+            treatmentTypes: treatmentTypes,
+            averageDuration: totalCount > 0 ? totalDuration / Double(totalCount) : 0
+        )
+    }
+    
+    /// 分析治疗与发作的关联（治疗开始前后的发作频率对比）
+    func analyzeCorrelationBetweenTreatmentAndAttacks(
+        treatmentType: HealthEventType,
+        beforeDays: Int = 30,
+        afterDays: Int = 30
+    ) -> TreatmentCorrelationResult? {
+        // 查询该类型的所有治疗事件
+        let treatmentDescriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventTypeRawValue == treatmentType.rawValue
+            },
+            sortBy: [SortDescriptor(\.eventDate)]
+        )
+        
+        guard let treatments = try? modelContext.fetch(treatmentDescriptor),
+              let firstTreatment = treatments.first else {
+            return nil
+        }
+        
+        let calendar = Calendar.current
+        let treatmentDate = firstTreatment.eventDate
+        
+        guard let beforeStart = calendar.date(byAdding: .day, value: -beforeDays, to: treatmentDate),
+              let afterEnd = calendar.date(byAdding: .day, value: afterDays, to: treatmentDate) else {
+            return nil
+        }
+        
+        // 查询治疗前的发作记录
+        let beforeDescriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= beforeStart && attack.startTime < treatmentDate
+            }
+        )
+        
+        // 查询治疗后的发作记录
+        let afterDescriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= treatmentDate && attack.startTime <= afterEnd
+            }
+        )
+        
+        guard let beforeAttacks = try? modelContext.fetch(beforeDescriptor),
+              let afterAttacks = try? modelContext.fetch(afterDescriptor) else {
+            return nil
+        }
+        
+        // 计算发作天数（去重）
+        let beforeAttackDays = Set(beforeAttacks.map { calendar.startOfDay(for: $0.startTime) }).count
+        let afterAttackDays = Set(afterAttacks.map { calendar.startOfDay(for: $0.startTime) }).count
+        
+        // 计算平均强度
+        let beforeAvgIntensity = beforeAttacks.isEmpty ? 0 : 
+            Double(beforeAttacks.reduce(0) { $0 + $1.painIntensity }) / Double(beforeAttacks.count)
+        let afterAvgIntensity = afterAttacks.isEmpty ? 0 : 
+            Double(afterAttacks.reduce(0) { $0 + $1.painIntensity }) / Double(afterAttacks.count)
+        
+        return TreatmentCorrelationResult(
+            treatmentStartDate: treatmentDate,
+            beforeAttackDays: beforeAttackDays,
+            afterAttackDays: afterAttackDays,
+            beforeAvgIntensity: beforeAvgIntensity,
+            afterAvgIntensity: afterAvgIntensity
+        )
+    }
+}
+
+// MARK: - 数据结构
+
 struct MonthlyStats {
     let totalAttacks: Int
     let averagePainIntensity: Double
@@ -665,4 +812,56 @@ struct WeekdayDistribution: Identifiable {
     let weekday: Int
     let weekdayName: String
     let count: Int
+}
+
+// MARK: - 健康事件统计数据结构
+
+/// 用药依从性统计
+struct MedicationAdherenceStats {
+    let totalDays: Int          // 统计期间总天数
+    let medicationDays: Int     // 实际用药天数
+    let missedDays: Int         // 遗漏天数
+    
+    var adherenceRate: Double {
+        totalDays > 0 ? Double(medicationDays) / Double(totalDays) * 100 : 0
+    }
+}
+
+/// 中医治疗统计
+struct TCMTreatmentStats {
+    let totalTreatments: Int
+    let treatmentTypes: [TreatmentTypeFrequency]
+    var averageDuration: TimeInterval = 0
+    
+    var averageDurationMinutes: Int {
+        Int(averageDuration / 60)
+    }
+}
+
+struct TreatmentTypeFrequency: Identifiable {
+    let id = UUID()
+    let typeName: String
+    let count: Int
+    let percentage: Double
+}
+
+/// 治疗与发作关联分析结果
+struct TreatmentCorrelationResult {
+    let treatmentStartDate: Date
+    let beforeAttackDays: Int      // 治疗前的发作天数
+    let afterAttackDays: Int       // 治疗后的发作天数
+    let beforeAvgIntensity: Double // 治疗前平均强度
+    let afterAvgIntensity: Double  // 治疗后平均强度
+    
+    var attackDaysReduction: Int {
+        beforeAttackDays - afterAttackDays
+    }
+    
+    var intensityReduction: Double {
+        beforeAvgIntensity - afterAvgIntensity
+    }
+    
+    var hasImprovement: Bool {
+        attackDaysReduction > 0 || intensityReduction > 0
+    }
 }

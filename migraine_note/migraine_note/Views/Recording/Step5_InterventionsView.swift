@@ -135,9 +135,9 @@ struct Step5_InterventionsView: View {
 
 // MARK: - 统一药物输入对话框
 
-struct UnifiedMedicationInputSheet: View {
+struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
     @Environment(\.modelContext) private var modelContext
-    @Bindable var viewModel: RecordingViewModel
+    @Bindable var viewModel: ViewModel
     @Binding var isPresented: Bool
     
     @Query(sort: \Medication.name) private var allMedications: [Medication]

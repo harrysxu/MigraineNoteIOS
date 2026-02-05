@@ -125,6 +125,18 @@ extension Color {
         }
     }
     
+    /// 健康事件类型颜色映射
+    static func healthEventColor(for eventType: HealthEventType) -> Color {
+        switch eventType {
+        case .medication:
+            return Color.accentPrimary // 用药 - 青色（主题色）
+        case .tcmTreatment:
+            return Color.statusSuccess // 中医治疗 - 绿色
+        case .surgery:
+            return Color.statusInfo // 手术 - 蓝色
+        }
+    }
+    
     // MARK: - 渐变色（保留用于特殊场景）
     
     /// 主色调渐变（用于按钮、重要元素）

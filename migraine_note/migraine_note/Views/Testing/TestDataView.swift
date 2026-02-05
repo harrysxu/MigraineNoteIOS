@@ -26,6 +26,10 @@ struct TestDataView: View {
     // 自定义标签参数
     @State private var customLabelCount: Int = 10
     
+    // 健康事件参数
+    @State private var healthEventCount: Int = 30
+    @State private var healthEventDayRange: Int = 30
+    
     // 数据统计
     @State private var statistics: DataStatistics?
     
@@ -63,6 +67,9 @@ struct TestDataView: View {
                 
                 // 自定义标签配置
                 customLabelSection
+                
+                // 健康事件配置
+                healthEventSection
                 
                 // 危险操作区
                 dangerZone
@@ -109,7 +116,7 @@ struct TestDataView: View {
             }
         } message: {
             if let stats = statistics {
-                Text("即将删除：\n• \(stats.recordCount) 条发作记录\n• \(stats.medicationCount) 种药物\n• \(stats.customLabelCount) 个自定义标签\n\n此操作不可恢复！")
+                Text("即将删除：\n• \(stats.recordCount) 条发作记录\n• \(stats.medicationCount) 种药物\n• \(stats.customLabelCount) 个自定义标签\n• \(stats.healthEventCount) 个健康事件\n\n此操作不可恢复！")
             } else {
                 Text("即将删除所有数据，此操作不可恢复！")
             }
@@ -123,6 +130,9 @@ struct TestDataView: View {
             }
             Button("清空自定义标签", role: .destructive) {
                 confirmAndClear(.customLabels)
+            }
+            Button("清空健康事件", role: .destructive) {
+                confirmAndClear(.healthEvents)
             }
             Button("取消", role: .cancel) {}
         }
@@ -163,34 +173,45 @@ struct TestDataView: View {
                     Spacer()
                     
                     if let stats = statistics {
-                        Text("共 \(stats.recordCount + stats.medicationCount + stats.customLabelCount) 项")
+                        Text("共 \(stats.recordCount + stats.medicationCount + stats.customLabelCount + stats.healthEventCount) 项")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
                 }
                 
                 if let stats = statistics {
-                    HStack(spacing: 12) {
-                        statisticItem(
-                            icon: "list.bullet.clipboard",
-                            title: "发作记录",
-                            count: stats.recordCount,
-                            color: .accentPrimary
-                        )
+                    VStack(spacing: 12) {
+                        HStack(spacing: 12) {
+                            statisticItem(
+                                icon: "list.bullet.clipboard",
+                                title: "发作记录",
+                                count: stats.recordCount,
+                                color: .accentPrimary
+                            )
+                            
+                            statisticItem(
+                                icon: "cross.case.fill",
+                                title: "药物",
+                                count: stats.medicationCount,
+                                color: .blue
+                            )
+                        }
                         
-                        statisticItem(
-                            icon: "cross.case.fill",
-                            title: "药物",
-                            count: stats.medicationCount,
-                            color: .blue
-                        )
-                        
-                        statisticItem(
-                            icon: "tag.fill",
-                            title: "标签",
-                            count: stats.customLabelCount,
-                            color: .purple
-                        )
+                        HStack(spacing: 12) {
+                            statisticItem(
+                                icon: "tag.fill",
+                                title: "标签",
+                                count: stats.customLabelCount,
+                                color: .purple
+                            )
+                            
+                            statisticItem(
+                                icon: "heart.text.square.fill",
+                                title: "健康事件",
+                                count: stats.healthEventCount,
+                                color: .green
+                            )
+                        }
                     }
                 } else {
                     ProgressView()
@@ -395,6 +416,67 @@ struct TestDataView: View {
         }
     }
     
+    /// 健康事件配置区
+    private var healthEventSection: some View {
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader(
+                    icon: "heart.text.square.fill",
+                    title: "健康事件生成",
+                    color: .green
+                )
+                
+                VStack(alignment: .leading, spacing: 20) {
+                    // 事件数量
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("事件数量")
+                                .font(.subheadline.weight(.medium))
+                            Spacer()
+                            Text("\(healthEventCount) 个")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.green)
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { Double(healthEventCount) },
+                            set: { healthEventCount = Int($0) }
+                        ), in: 10...100, step: 5)
+                        .tint(Color.green)
+                        
+                        Text("生成 \(healthEventCount) 个健康事件记录")
+                            .font(.caption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                    
+                    // 时间范围
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("时间范围")
+                                .font(.subheadline.weight(.medium))
+                            Spacer()
+                            Text("\(healthEventDayRange) 天")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.green)
+                        }
+                        
+                        Slider(value: Binding(
+                            get: { Double(healthEventDayRange) },
+                            set: { healthEventDayRange = Int($0) }
+                        ), in: 7...180, step: 7)
+                        .tint(Color.green)
+                        
+                        Text("在过去 \(healthEventDayRange) 天内随机分布（用药、中医治疗、手术等）")
+                            .font(.caption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                }
+                
+                PrimaryButton(title: isGenerating ? "生成中..." : "生成健康事件", action: generateHealthEvents, isEnabled: !isGenerating)
+            }
+        }
+    }
+    
     /// 危险操作区
     private var dangerZone: some View {
         EmotionalCard(style: .warning) {
@@ -499,6 +581,11 @@ struct TestDataView: View {
                         
                         HStack {
                             Label("\(stats.customLabelCount) 个标签", systemImage: "tag")
+                            Spacer()
+                        }
+                        
+                        HStack {
+                            Label("\(stats.healthEventCount) 个健康事件", systemImage: "heart.text.square")
                             Spacer()
                         }
                     }
@@ -618,6 +705,30 @@ struct TestDataView: View {
         }
     }
     
+    /// 生成健康事件
+    private func generateHealthEvents() {
+        isGenerating = true
+        
+        Task {
+            do {
+                let count = try await manager.generateHealthEvents(count: healthEventCount, dayRange: healthEventDayRange)
+                
+                await MainActor.run {
+                    isGenerating = false
+                    alertMessage = "成功生成 \(count) 个健康事件（过去\(healthEventDayRange)天）"
+                    showSuccessAlert = true
+                    refreshStatistics()
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    showSuccessAlert = true
+                }
+            }
+        }
+    }
+    
     /// 执行清空所有数据
     private func performClearAll() {
         isGenerating = true
@@ -668,6 +779,11 @@ struct TestDataView: View {
                     await MainActor.run {
                         alertMessage = "已清空所有自定义标签"
                     }
+                case .healthEvents:
+                    try manager.clearHealthEvents()
+                    await MainActor.run {
+                        alertMessage = "已清空所有健康事件"
+                    }
                 }
                 
                 await MainActor.run {
@@ -689,6 +805,7 @@ struct TestDataView: View {
         case records
         case medications
         case customLabels
+        case healthEvents
     }
 }
 
@@ -697,7 +814,7 @@ struct TestDataView: View {
 #Preview {
     NavigationStack {
         TestDataView()
-            .modelContainer(for: [AttackRecord.self, Medication.self, CustomLabelConfig.self], inMemory: true)
+            .modelContainer(for: [AttackRecord.self, Medication.self, CustomLabelConfig.self, HealthEvent.self], inMemory: true)
     }
 }
 

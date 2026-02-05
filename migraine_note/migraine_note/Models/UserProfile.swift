@@ -21,7 +21,6 @@ final class UserProfile {
     
     // 偏好设置
     var enableTCMFeatures: Bool = true
-    var enableHealthKitSync: Bool = true
     var enableWeatherTracking: Bool = true
     var preferredPainScaleRawValue: String = PainScale.numeric.rawValue
     

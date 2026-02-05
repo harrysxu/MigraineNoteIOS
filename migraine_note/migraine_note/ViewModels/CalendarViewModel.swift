@@ -13,6 +13,7 @@ class CalendarViewModel {
     var currentMonth: Date = Date()
     var selectedDate: Date?
     var attacksByDate: [Date: [AttackRecord]] = [:]
+    var healthEventsByDate: [Date: [HealthEvent]] = [:]
     var monthlyStats: MonthlyStatistics?
     
     private let modelContext: ModelContext
@@ -48,6 +49,7 @@ class CalendarViewModel {
     
     func loadData() {
         loadAttacks()
+        loadHealthEvents()
         calculateMonthlyStats()
     }
     
@@ -79,6 +81,36 @@ class CalendarViewModel {
         }
         
         attacksByDate = grouped
+    }
+    
+    private func loadHealthEvents() {
+        // 获取当前月份的开始和结束日期
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth)),
+              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+            return
+        }
+        
+        // 查询该月份的所有健康事件
+        let descriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= monthStart && event.eventDate <= monthEnd
+            },
+            sortBy: [SortDescriptor(\.eventDate, order: .forward)]
+        )
+        
+        guard let healthEvents = try? modelContext.fetch(descriptor) else {
+            healthEventsByDate = [:]
+            return
+        }
+        
+        // 按日期分组
+        var grouped: [Date: [HealthEvent]] = [:]
+        for event in healthEvents {
+            let day = calendar.startOfDay(for: event.eventDate)
+            grouped[day, default: []].append(event)
+        }
+        
+        healthEventsByDate = grouped
     }
     
     private func calculateMonthlyStats() {
@@ -193,6 +225,18 @@ class CalendarViewModel {
     func getMaxPainIntensity(for date: Date) -> Int? {
         let attacks = getAttacks(for: date)
         return attacks.map(\.painIntensity).max()
+    }
+    
+    /// 获取指定日期的健康事件
+    func getHealthEvents(for date: Date) -> [HealthEvent] {
+        let day = calendar.startOfDay(for: date)
+        return healthEventsByDate[day] ?? []
+    }
+    
+    /// 获取指定日期的健康事件类型集合（去重）
+    func getHealthEventTypes(for date: Date) -> Set<HealthEventType> {
+        let events = getHealthEvents(for: date)
+        return Set(events.map { $0.eventType })
     }
     
     /// 获取月份标题（如"2026年2月"）

@@ -29,6 +29,9 @@ class AttackListViewModel {
     /// 选中的日期范围
     var selectedDateRange: DateRange? = nil
     
+    /// 记录类型筛选
+    var recordTypeFilter: RecordTypeFilter = .all
+    
     // MARK: - Enums
     
     enum FilterOption: String, CaseIterable {
@@ -68,6 +71,26 @@ class AttackListViewModel {
     struct DateRange {
         let start: Date
         let end: Date
+    }
+    
+    enum RecordTypeFilter: String, CaseIterable {
+        case all = "全部记录"
+        case attacksOnly = "偏头痛发作"
+        case healthEventsOnly = "健康事件"
+        case medicationOnly = "仅用药记录"
+        case tcmOnly = "仅中医治疗"
+        case surgeryOnly = "仅手术记录"
+        
+        var systemImage: String {
+            switch self {
+            case .all: return "list.bullet"
+            case .attacksOnly: return "exclamationmark.triangle.fill"
+            case .healthEventsOnly: return "heart.text.square.fill"
+            case .medicationOnly: return "pills.circle.fill"
+            case .tcmOnly: return "leaf.circle.fill"
+            case .surgeryOnly: return "cross.case.circle.fill"
+            }
+        }
     }
     
     // MARK: - Methods
@@ -163,6 +186,70 @@ class AttackListViewModel {
         }
     }
     
+    /// 筛选健康事件
+    func filteredHealthEvents(_ events: [HealthEvent]) -> [HealthEvent] {
+        var filtered = events
+        
+        // 应用日期筛选
+        filtered = applyDateFilterToHealthEvents(to: filtered)
+        
+        // 应用搜索
+        if !searchText.isEmpty {
+            filtered = filtered.filter { event in
+                event.displayTitle.localizedCaseInsensitiveContains(searchText) ||
+                (event.notes?.localizedCaseInsensitiveContains(searchText) ?? false)
+            }
+        }
+        
+        // 应用记录类型筛选
+        switch recordTypeFilter {
+        case .all, .healthEventsOnly:
+            break // 显示所有健康事件
+        case .medicationOnly:
+            filtered = filtered.filter { $0.eventType == .medication }
+        case .tcmOnly:
+            filtered = filtered.filter { $0.eventType == .tcmTreatment }
+        case .surgeryOnly:
+            filtered = filtered.filter { $0.eventType == .surgery }
+        case .attacksOnly:
+            filtered = [] // 不显示健康事件
+        }
+        
+        return filtered
+    }
+    
+    /// 应用日期筛选到健康事件
+    private func applyDateFilterToHealthEvents(to events: [HealthEvent]) -> [HealthEvent] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch filterOption {
+        case .thisMonth:
+            let monthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
+            return events.filter { $0.eventDate >= monthAgo }
+            
+        case .last3Months:
+            let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!
+            return events.filter { $0.eventDate >= threeMonthsAgo }
+            
+        case .last6Months:
+            let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now)!
+            return events.filter { $0.eventDate >= sixMonthsAgo }
+            
+        case .lastYear:
+            let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now)!
+            return events.filter { $0.eventDate >= oneYearAgo }
+            
+        case .custom:
+            if let dateRange = selectedDateRange {
+                return events.filter { event in
+                    event.eventDate >= dateRange.start && event.eventDate <= dateRange.end
+                }
+            }
+            return events
+        }
+    }
+    
     /// 重置所有筛选
     func resetFilters() {
         searchText = ""
@@ -170,6 +257,7 @@ class AttackListViewModel {
         sortOption = .dateDescending
         selectedIntensityRange = nil
         selectedDateRange = nil
+        recordTypeFilter = .all
     }
     
     /// 删除记录

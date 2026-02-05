@@ -33,11 +33,6 @@ final class AttackRecord {
     @Relationship(deleteRule: .cascade) var medicationsData: [MedicationLog]?
     @Relationship(deleteRule: .cascade) var weatherSnapshot: WeatherSnapshot?
     
-    // 生理数据（来自HealthKit）
-    var menstrualDay: Int? // 月经周期第几天
-    var sleepHours: Double? // 前一晚睡眠时长
-    var averageHeartRate: Double? // 发作时平均心率
-    
     // 元数据
     var notes: String?
     var createdAt: Date = Date()

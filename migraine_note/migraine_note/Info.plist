@@ -6,10 +6,6 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
-	<key>NSHealthShareUsageDescription</key>
-	<string>我们需要读取您的睡眠、月经周期和心率数据，以分析偏头痛诱因</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>我们将头痛记录同步到健康App，便于统一管理您的健康数据</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>我们需要您的位置信息来记录当地天气状况，帮助分析环境诱因</string>
 </dict>

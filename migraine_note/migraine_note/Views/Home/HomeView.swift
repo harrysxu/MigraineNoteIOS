@@ -16,6 +16,8 @@ struct HomeView: View {
     @State private var selectedTab: Int?
     @State private var selectedAttackForDetail: AttackRecord?
     @State private var selectedAttackForEdit: AttackRecord?
+    @State private var selectedHealthEventForDetail: HealthEvent?
+    @State private var showAddHealthEventSheet = false
     
     var body: some View {
         ZStack {
@@ -51,6 +53,17 @@ struct HomeView: View {
                             .fadeIn(delay: 0.3)
                             .padding(.horizontal, 20)
                             
+                            // 健康事件记录按钮
+                            SecondaryActionButton(
+                                title: "记录健康事件",
+                                icon: "calendar.badge.plus",
+                                onTap: {
+                                    showAddHealthEventSheet = true
+                                }
+                            )
+                            .fadeIn(delay: 0.35)
+                            .padding(.horizontal, 20)
+                            
                             // 天气卡片 + 月度概况 - 网格布局
                             VStack(spacing: 16) {
                                 WeatherInsightCard(
@@ -68,8 +81,8 @@ struct HomeView: View {
                             }
                             .padding(.horizontal, 20)
                             
-                            // 最近记录 - 列表布局
-                            if !vm.recentAttacks.isEmpty {
+                            // 最近记录 - 列表布局（包括偏头痛发作和健康事件）
+                            if !vm.recentTimelineItems.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack {
                                         Text("最近记录")
@@ -91,14 +104,19 @@ struct HomeView: View {
                                     }
                                     
                                     VStack(spacing: 12) {
-                                        ForEach(vm.recentAttacks.prefix(3)) { attack in
-                                            CompactAttackRow(attack: attack)
+                                        ForEach(vm.recentTimelineItems.prefix(5), id: \.id) { item in
+                                            CompactTimelineRow(item: item)
                                                 .onTapGesture {
-                                                    selectedAttackForDetail = attack
+                                                    switch item {
+                                                    case .attack(let attack):
+                                                        selectedAttackForDetail = attack
+                                                    case .healthEvent(let event):
+                                                        selectedHealthEventForDetail = event
+                                                    }
                                                 }
                                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                                     Button(role: .destructive) {
-                                                        deleteAttack(attack)
+                                                        deleteTimelineItem(item)
                                                     } label: {
                                                         Label("删除", systemImage: "trash")
                                                     }
@@ -160,6 +178,18 @@ struct HomeView: View {
                         viewModel?.refreshData()
                     }
                 }
+                .sheet(isPresented: $showAddHealthEventSheet) {
+                    AddHealthEventView()
+                        .onDisappear {
+                            viewModel?.refreshData()
+                        }
+                }
+                .sheet(item: $selectedHealthEventForDetail) { event in
+                    HealthEventDetailView(event: event)
+                        .onDisappear {
+                            viewModel?.refreshData()
+                        }
+                }
             }
             .onAppear {
                 if viewModel == nil {
@@ -196,6 +226,22 @@ struct HomeView: View {
     
     private func deleteAttack(_ attack: AttackRecord) {
         modelContext.delete(attack)
+        do {
+            try modelContext.save()
+            viewModel?.refreshData()
+        } catch {
+            print("删除失败: \(error)")
+        }
+    }
+    
+    private func deleteTimelineItem(_ item: TimelineItemType) {
+        switch item {
+        case .attack(let attack):
+            modelContext.delete(attack)
+        case .healthEvent(let event):
+            modelContext.delete(event)
+        }
+        
         do {
             try modelContext.save()
             viewModel?.refreshData()
@@ -423,6 +469,40 @@ struct MainActionButton: View {
             .background(Color.primaryGradient)
             .cornerRadius(16)
             .shadow(color: Color.accentPrimary.opacity(0.3), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - 次要操作按钮
+
+struct SecondaryActionButton: View {
+    let title: String
+    let icon: String
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: {
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            onTap()
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+            }
+            .foregroundStyle(Color.accentPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(Color.accentPrimary.opacity(0.1))
+            .cornerRadius(14)
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.accentPrimary.opacity(0.3), lineWidth: 1)
+            )
         }
         .buttonStyle(.plain)
     }
@@ -734,6 +814,7 @@ struct MonthlyOverviewCard: View {
     @Binding var selectedTab: Int?
     
     @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
+    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
     
     var body: some View {
         EmotionalCard(style: .default) {
@@ -844,18 +925,44 @@ struct MonthlyOverviewCard: View {
     
     private func getMedicationDays() -> Int {
         let calendar = Calendar.current
-        let medicationDays = Set(
-            monthlyAttacks
-                .filter { !$0.medications.isEmpty }
-                .map { calendar.startOfDay(for: $0.startTime) }
-        )
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        var medicationDays = Set<Date>()
+        
+        // 偏头痛发作期间的用药天数
+        let attackMedDays = monthlyAttacks
+            .filter { !$0.medications.isEmpty }
+            .map { calendar.startOfDay(for: $0.startTime) }
+        medicationDays.formUnion(attackMedDays)
+        
+        // 健康事件中的用药天数
+        let healthEventMedDays = healthEvents
+            .filter { $0.eventDate >= startOfMonth && $0.eventType == .medication && !$0.medicationLogs.isEmpty }
+            .map { calendar.startOfDay(for: $0.eventDate) }
+        medicationDays.formUnion(healthEventMedDays)
+        
         return medicationDays.count
     }
     
     private func getTotalMedicationCount() -> Int {
-        monthlyAttacks.reduce(0) { total, attack in
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        
+        // 偏头痛发作期间的用药次数
+        let attackMedCount = monthlyAttacks.reduce(0) { total, attack in
             total + attack.medications.count
         }
+        
+        // 健康事件中的用药次数
+        let healthEventMedCount = healthEvents
+            .filter { $0.eventDate >= startOfMonth && $0.eventType == .medication }
+            .reduce(0) { total, event in
+                total + event.medicationLogs.count
+            }
+        
+        return attackMedCount + healthEventMedCount
     }
     
     private func getUniqueFreePainDays() -> Int {
@@ -954,53 +1061,24 @@ struct MiniCalendarHeatmap: View {
     }
 }
 
-// MARK: - 紧凑记录行
+// MARK: - 通用时间轴行组件
 
-struct CompactAttackRow: View {
-    let attack: AttackRecord
+struct CompactTimelineRow: View {
+    let item: TimelineItemType
     
     var body: some View {
         HStack(spacing: 16) {
-            // 左侧疼痛强度指示器
-            VStack(spacing: 4) {
-                Text("\(attack.painIntensity)")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(Color.painCategoryColor(for: attack.painIntensity))
-                
-                Text("强度")
-                    .font(.caption2)
-                    .foregroundStyle(Color.textTertiary)
-            }
-            .frame(width: 56, height: 56)
-            .background(Color.painCategoryColor(for: attack.painIntensity).opacity(0.15))
-            .cornerRadius(12)
+            // 左侧图标指示器
+            leftIndicator
             
             // 中间内容
             VStack(alignment: .leading, spacing: 4) {
-                Text(attack.startTime.smartFormatted())
+                Text(titleText)
                     .font(.body.weight(.medium))
                     .foregroundStyle(Color.textPrimary)
                 
                 HStack(spacing: 8) {
-                    if let duration = calculateDuration() {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock")
-                                .font(.caption2)
-                            Text(duration)
-                        }
-                        .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
-                    }
-                    
-                    if !attack.medications.isEmpty {
-                        HStack(spacing: 4) {
-                            Image(systemName: "pills")
-                                .font(.caption2)
-                            Text("\(attack.medications.count)次用药")
-                        }
-                        .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
-                    }
+                    detailsView
                 }
             }
             
@@ -1016,8 +1094,88 @@ struct CompactAttackRow: View {
         .cornerRadius(12)
     }
     
+    @ViewBuilder
+    private var leftIndicator: some View {
+        switch item {
+        case .attack(let attack):
+            VStack(spacing: 4) {
+                Text("\(attack.painIntensity)")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(Color.painCategoryColor(for: attack.painIntensity))
+                
+                Text("强度")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .frame(width: 56, height: 56)
+            .background(Color.painCategoryColor(for: attack.painIntensity).opacity(0.15))
+            .cornerRadius(12)
+            
+        case .healthEvent(let event):
+            Image(systemName: event.eventType.icon)
+                .font(.system(size: 24))
+                .foregroundStyle(iconColor(for: event.eventType))
+                .frame(width: 56, height: 56)
+                .background(iconColor(for: event.eventType).opacity(0.15))
+                .cornerRadius(12)
+        }
+    }
     
-    private func calculateDuration() -> String? {
+    private var titleText: String {
+        switch item {
+        case .attack(let attack):
+            return attack.startTime.smartFormatted()
+        case .healthEvent(let event):
+            return event.displayTitle
+        }
+    }
+    
+    @ViewBuilder
+    private var detailsView: some View {
+        switch item {
+        case .attack(let attack):
+            if let duration = calculateDuration(attack) {
+                HStack(spacing: 4) {
+                    Image(systemName: "clock")
+                        .font(.caption2)
+                    Text(duration)
+                }
+                .font(.caption)
+                .foregroundStyle(Color.textSecondary)
+            }
+            
+            if !attack.medications.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "pills")
+                        .font(.caption2)
+                    Text("\(attack.medications.count)次用药")
+                }
+                .font(.caption)
+                .foregroundStyle(Color.textSecondary)
+            }
+            
+        case .healthEvent(let event):
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.caption2)
+                Text(event.eventDate.smartFormatted())
+            }
+            .font(.caption)
+            .foregroundStyle(Color.textSecondary)
+            
+            if let detail = event.displayDetail {
+                HStack(spacing: 4) {
+                    Image(systemName: "info.circle")
+                        .font(.caption2)
+                    Text(detail)
+                }
+                .font(.caption)
+                .foregroundStyle(Color.textSecondary)
+            }
+        }
+    }
+    
+    private func calculateDuration(_ attack: AttackRecord) -> String? {
         guard let endTime = attack.endTime else { return nil }
         let duration = endTime.timeIntervalSince(attack.startTime)
         
@@ -1031,6 +1189,27 @@ struct CompactAttackRow: View {
         } else {
             return nil
         }
+    }
+    
+    private func iconColor(for eventType: HealthEventType) -> Color {
+        switch eventType {
+        case .medication:
+            return .accentPrimary
+        case .tcmTreatment:
+            return .statusSuccess
+        case .surgery:
+            return .statusInfo
+        }
+    }
+}
+
+// MARK: - 紧凑记录行（保留用于兼容）
+
+struct CompactAttackRow: View {
+    let attack: AttackRecord
+    
+    var body: some View {
+        CompactTimelineRow(item: .attack(attack))
     }
 }
 
@@ -1104,6 +1283,9 @@ struct SimplifiedRecordingViewWrapper: View {
     @State private var showPainQualityManager = false
     @State private var showSymptomManager = false
     
+    // 天气管理状态
+    @State private var showWeatherEditor = false
+    
     // 查询症状标签和诱因标签
     @Query(filter: #Predicate<CustomLabelConfig> { 
         $0.category == "symptom" && $0.isHidden == false 
@@ -1145,6 +1327,26 @@ struct SimplifiedRecordingViewWrapper: View {
                 VStack(spacing: 16) {
                     // 时间信息（始终显示）
                     timeSection
+                    
+                    // 天气信息卡片
+                    WeatherCard(
+                        weather: viewModel.currentWeatherSnapshot,
+                        isLoading: viewModel.isLoadingWeather,
+                        showTimeChangedWarning: viewModel.hasStartTimeChanged && !viewModel.isWeatherManuallyEdited,
+                        onRefresh: {
+                            Task {
+                                await viewModel.refreshWeather()
+                            }
+                        },
+                        onEdit: {
+                            showWeatherEditor = true
+                        },
+                        onFetch: {
+                            Task {
+                                await viewModel.fetchWeatherForCurrentTime()
+                            }
+                        }
+                    )
                     
                     // 疼痛评估（默认展开）
                     CollapsibleSection(
@@ -1218,6 +1420,17 @@ struct SimplifiedRecordingViewWrapper: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             viewModel.startRecording()
+            
+            // 自动获取天气（如果还没有天气数据）
+            if viewModel.currentWeatherSnapshot == nil {
+                Task {
+                    await viewModel.fetchWeatherForCurrentTime()
+                }
+            }
+        }
+        .onChange(of: viewModel.startTime) { oldValue, newValue in
+            // 时间改变时，天气卡片会自动显示提示
+            // hasStartTimeChanged 会自动更新
         }
         .sheet(isPresented: $showPainQualityManager) {
             NavigationStack {
@@ -1230,6 +1443,15 @@ struct SimplifiedRecordingViewWrapper: View {
                 LabelManagementView()
                     .navigationBarTitleDisplayMode(.inline)
             }
+        }
+        .sheet(isPresented: $showWeatherEditor) {
+            WeatherEditSheet(
+                isPresented: $showWeatherEditor,
+                originalWeather: viewModel.currentWeatherSnapshot,
+                onSave: { weather in
+                    viewModel.updateWeatherSnapshot(weather)
+                }
+            )
         }
     }
     
@@ -1515,6 +1737,14 @@ struct SimplifiedRecordingViewWrapper: View {
                             )
                         )
                     }
+                    
+                    // 添加自定义中医症状
+                    AddCustomLabelChip(
+                        category: .symptom,
+                        subcategory: SymptomSubcategory.tcm.rawValue
+                    ) { newLabel in
+                        viewModel.selectedSymptomNames.insert(newLabel)
+                    }
                 }
             }
         }
@@ -1527,38 +1757,45 @@ struct SimplifiedRecordingViewWrapper: View {
             ForEach(TriggerCategory.allCases, id: \.self) { category in
                 let categoryTriggers = triggerLabels.filter { $0.subcategory == category.rawValue }
                 
-                if !categoryTriggers.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 8) {
-                            Text(categoryEmoji(for: category))
-                                .font(.title3)
-                            Text(category.rawValue)
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Color.textSecondary)
-                        }
-                        
-                        FlowLayout(spacing: 8) {
-                            ForEach(categoryTriggers, id: \.id) { label in
-                                SelectableChip(
-                                    label: label.displayName,
-                                    isSelected: Binding(
-                                        get: { viewModel.selectedTriggers.contains(label.displayName) },
-                                        set: { isSelected in
-                                            if isSelected {
-                                                viewModel.selectedTriggers.append(label.displayName)
-                                            } else {
-                                                viewModel.selectedTriggers.removeAll { $0 == label.displayName }
-                                            }
-                                        }
-                                    )
-                                )
-                            }
-                        }
+                // 始终显示该区块，即使没有标签（用户可以添加自定义标签）
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Text(categoryEmoji(for: category))
+                            .font(.title3)
+                        Text(category.rawValue)
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color.textSecondary)
                     }
                     
-                    if category != TriggerCategory.allCases.last {
-                        Divider()
+                    FlowLayout(spacing: 8) {
+                        ForEach(categoryTriggers, id: \.id) { label in
+                            SelectableChip(
+                                label: label.displayName,
+                                isSelected: Binding(
+                                    get: { viewModel.selectedTriggers.contains(label.displayName) },
+                                    set: { isSelected in
+                                        if isSelected {
+                                            viewModel.selectedTriggers.append(label.displayName)
+                                        } else {
+                                            viewModel.selectedTriggers.removeAll { $0 == label.displayName }
+                                        }
+                                    }
+                                )
+                            )
+                        }
+                        
+                        // 添加自定义诱因
+                        AddCustomLabelChip(
+                            category: .trigger,
+                            subcategory: category.rawValue
+                        ) { newLabel in
+                            viewModel.selectedTriggers.append(newLabel)
+                        }
                     }
+                }
+                
+                if category != TriggerCategory.allCases.last {
+                    Divider()
                 }
             }
         }

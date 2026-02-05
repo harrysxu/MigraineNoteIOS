@@ -181,12 +181,10 @@ struct SimplifiedRecordingView: View {
         .onAppear {
             if let attack = existingAttack {
                 viewModel.loadExistingAttack(attack)
-            } else if !isEditMode {
+                // 编辑模式：使用记录中的天气，不自动获取
+            } else {
                 viewModel.startRecording()
-            }
-            
-            // 自动获取天气（如果还没有天气数据）
-            if viewModel.currentWeatherSnapshot == nil {
+                // 添加模式：自动获取天气
                 Task {
                     await viewModel.fetchWeatherForCurrentTime()
                 }
@@ -373,41 +371,33 @@ struct SimplifiedRecordingView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 先兆
             VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("是否有先兆？")
-                        .font(.subheadline.weight(.medium))
-                    
-                    Spacer()
-                    
-                    Toggle("", isOn: $viewModel.hasAura)
-                        .labelsHidden()
-                }
+                Text("先兆类型")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 
-                if viewModel.hasAura {
-                    FlowLayout(spacing: 8) {
-                        ForEach(auraLabels, id: \.id) { label in
-                            SelectableChip(
-                                label: label.displayName,
-                                isSelected: Binding(
-                                    get: { viewModel.selectedAuraTypeNames.contains(label.displayName) },
-                                    set: { isSelected in
-                                        if isSelected {
-                                            viewModel.selectedAuraTypeNames.insert(label.displayName)
-                                        } else {
-                                            viewModel.selectedAuraTypeNames.remove(label.displayName)
-                                        }
+                FlowLayout(spacing: 8) {
+                    ForEach(auraLabels, id: \.id) { label in
+                        SelectableChip(
+                            label: label.displayName,
+                            isSelected: Binding(
+                                get: { viewModel.selectedAuraTypeNames.contains(label.displayName) },
+                                set: { isSelected in
+                                    if isSelected {
+                                        viewModel.selectedAuraTypeNames.insert(label.displayName)
+                                    } else {
+                                        viewModel.selectedAuraTypeNames.remove(label.displayName)
                                     }
-                                )
+                                }
                             )
-                        }
-                        
-                        // 添加自定义先兆类型
-                        AddCustomLabelChip(
-                            category: .aura,
-                            subcategory: nil
-                        ) { newLabel in
-                            viewModel.selectedAuraTypeNames.insert(newLabel)
-                        }
+                        )
+                    }
+                    
+                    // 添加自定义先兆类型
+                    AddCustomLabelChip(
+                        category: .aura,
+                        subcategory: nil
+                    ) { newLabel in
+                        viewModel.selectedAuraTypeNames.insert(newLabel)
                     }
                 }
             }

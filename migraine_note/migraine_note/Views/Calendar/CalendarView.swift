@@ -151,16 +151,23 @@ struct DayCell: View {
                 .font(.system(size: 14, weight: isToday ? .bold : .regular))
                 .foregroundStyle(textColor)
             
-            // 疼痛强度指示器
-            if let intensity = viewModel.getMaxPainIntensity(for: date) {
-                Circle()
-                    .fill(AppColors.painCategoryColor(for: intensity))
-                    .frame(width: 6, height: 6)
-            } else {
-                Circle()
-                    .fill(Color.clear)
-                    .frame(width: 6, height: 6)
+            // 指示器（头痛记录 + 健康事件）
+            HStack(spacing: 3) {
+                // 头痛记录指示器
+                if let intensity = viewModel.getMaxPainIntensity(for: date) {
+                    Circle()
+                        .fill(AppColors.painCategoryColor(for: intensity))
+                        .frame(width: 6, height: 6)
+                }
+                
+                // 健康事件指示器（按类型显示）
+                ForEach(Array(viewModel.getHealthEventTypes(for: date)), id: \.self) { eventType in
+                    Circle()
+                        .fill(AppColors.healthEventColor(for: eventType))
+                        .frame(width: 6, height: 6)
+                }
             }
+            .frame(height: 6) // 固定高度，避免布局跳动
         }
         .frame(maxWidth: .infinity)
         .frame(height: 50)

@@ -1,16 +1,10 @@
 import SwiftUI
 import SwiftData
-import HealthKit
 
 /// 设置页面
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ThemeManager.self) private var themeManager
-    
-    @State private var showHealthKitSettings = false
-    @State private var showAbout = false
-    @State private var healthKitManager: HealthKitManager?
-    @State private var weatherManager: WeatherManager?
     
     var body: some View {
         NavigationStack {
@@ -34,18 +28,6 @@ struct SettingsView: View {
                 
                 // 数据与隐私
                 Section {
-                    NavigationLink {
-                        HealthKitSettingsView()
-                    } label: {
-                        SettingRow(
-                            icon: "heart.fill",
-                            iconColor: .red,
-                            title: "健康数据",
-                            subtitle: "集成健康记录"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    
                     NavigationLink {
                         LocationSettingsView()
                     } label: {
@@ -165,172 +147,6 @@ struct SettingRow: View {
     }
 }
 
-// MARK: - HealthKit设置
-
-struct HealthKitSettingsView: View {
-    @State private var healthKitManager = HealthKitManager()
-    @State private var isHealthKitAvailable = false
-    @State private var authorizationStatus: HKAuthorizationStatus = .notDetermined
-    @State private var showRequestSheet = false
-    
-    var body: some View {
-        List {
-            Section {
-                if !isHealthKitAvailable {
-                    InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
-                            Text("HealthKit不可用")
-                                .font(.headline)
-                                .foregroundColor(Color.accentPrimary)
-                            Text("当前设备不支持HealthKit功能。")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } else if authorizationStatus == .sharingDenied {
-                    InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
-                            Text("权限已拒绝")
-                                .font(.headline)
-                                .foregroundColor(.red)
-                            Text("请前往系统设置 > 健康 > 数据访问与设备，允许本应用访问健康数据。")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } else {
-                    InfoCard {
-                        VStack(alignment: .leading, spacing: AppSpacing.small) {
-                            Text("健康数据集成")
-                                .font(.headline)
-                                .foregroundColor(Color.accentPrimary)
-                            Text("允许读取睡眠、月经周期、心率等健康数据，并将偏头痛发作记录同步到健康App。")
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-            
-            Section("权限状态") {
-                HStack {
-                    Text("头痛记录写入")
-                    Spacer()
-                    StatusBadge(status: authorizationStatus)
-                }
-                
-                HStack {
-                    Text("睡眠数据读取")
-                    Spacer()
-                    StatusBadge(status: authorizationStatus)
-                }
-                
-                HStack {
-                    Text("月经周期读取")
-                    Spacer()
-                    StatusBadge(status: authorizationStatus)
-                }
-                
-                HStack {
-                    Text("心率读取")
-                    Spacer()
-                    StatusBadge(status: authorizationStatus)
-                }
-            }
-            
-            Section {
-                if authorizationStatus != .sharingAuthorized {
-                    Button {
-                        requestHealthKitPermission()
-                    } label: {
-                        Label("请求权限", systemImage: "hand.raised.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                
-                Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
-                    Label("打开系统设置", systemImage: "gear")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .navigationTitle("健康数据")
-        .navigationBarTitleDisplayMode(.inline)
-        .onAppear {
-            checkHealthKitStatus()
-        }
-    }
-    
-    private func checkHealthKitStatus() {
-        isHealthKitAvailable = HKHealthStore.isHealthDataAvailable()
-        // 注意：HealthKit权限状态无法精确查询，只能尝试请求
-        authorizationStatus = .notDetermined
-    }
-    
-    private func requestHealthKitPermission() {
-        Task {
-            do {
-                try await healthKitManager.requestAuthorization()
-                authorizationStatus = .sharingAuthorized
-            } catch {
-                print("HealthKit授权失败: \(error)")
-            }
-        }
-    }
-}
-
-struct StatusBadge: View {
-    let status: HKAuthorizationStatus
-    
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: statusIcon)
-                .font(.caption)
-            Text(statusText)
-                .font(.caption)
-        }
-        .foregroundStyle(statusColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(statusColor.opacity(0.2))
-        .cornerRadius(8)
-    }
-    
-    private var statusIcon: String {
-        switch status {
-        case .sharingAuthorized:
-            return "checkmark.circle.fill"
-        case .sharingDenied:
-            return "xmark.circle.fill"
-        default:
-            return "questionmark.circle.fill"
-        }
-    }
-    
-    private var statusText: String {
-        switch status {
-        case .sharingAuthorized:
-            return "已授权"
-        case .sharingDenied:
-            return "已拒绝"
-        default:
-            return "未设置"
-        }
-    }
-    
-    private var statusColor: Color {
-        switch status {
-        case .sharingAuthorized:
-            return .green
-        case .sharingDenied:
-            return .red
-        default:
-            return .orange
-        }
-    }
-}
-
 // MARK: - 位置服务设置
 
 struct LocationSettingsView: View {
@@ -373,9 +189,29 @@ struct LocationSettingsView: View {
 
 struct CloudSyncSettingsView: View {
     @State private var cloudKitManager = CloudKitManager()
+    @State private var syncSettingsManager = SyncSettingsManager.shared
+    @State private var showRestartAlert = false
     
     var body: some View {
         List {
+            // 同步开关
+            Section {
+                Toggle(isOn: $syncSettingsManager.isSyncEnabled) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("启用iCloud同步")
+                            .font(.body)
+                        Text("关闭后数据仅保存在本地设备")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .tint(Color.accentPrimary)
+            } footer: {
+                Text("更改此设置后需要重启应用才能生效")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+            
             // 同步状态卡片
             Section {
                 HStack(spacing: AppSpacing.medium) {
@@ -390,7 +226,11 @@ struct CloudSyncSettingsView: View {
                         Text(cloudKitManager.syncStatus.displayText)
                             .font(.headline)
                         
-                        if cloudKitManager.isICloudAvailable {
+                        if cloudKitManager.syncStatus == .disabled {
+                            Text("数据仅保存在本地设备")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else if cloudKitManager.isICloudAvailable {
                             Text("数据正在自动同步")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -476,6 +316,22 @@ struct CloudSyncSettingsView: View {
         }
         .refreshable {
             cloudKitManager.checkICloudStatus()
+        }
+        .onChange(of: syncSettingsManager.isSyncEnabled) { oldValue, newValue in
+            if oldValue != newValue {
+                showRestartAlert = true
+                // 更新同步状态显示
+                cloudKitManager.checkICloudStatus()
+            }
+        }
+        .alert("需要重启应用", isPresented: $showRestartAlert) {
+            Button("稍后", role: .cancel) { }
+            Button("立即重启") {
+                // 退出应用，用户需要手动重启
+                exit(0)
+            }
+        } message: {
+            Text("更改同步设置后需要重启应用才能生效。您可以稍后手动重启，或现在立即重启。")
         }
     }
     
@@ -593,7 +449,6 @@ struct AboutView: View {
             
             Section("主要特性") {
                 Label("完整的发作记录流程", systemImage: "pencil.and.list.clipboard")
-                Label("HealthKit健康数据集成", systemImage: "heart.fill")
                 Label("WeatherKit天气追踪", systemImage: "cloud.sun.fill")
                 Label("MOH风险智能检测", systemImage: "exclamationmark.triangle.fill")
                 Label("专业的数据分析", systemImage: "chart.bar.fill")

@@ -76,9 +76,6 @@ class CSVExporter {
                 escapeCSV(attack.medications.map { $0.medication?.name ?? "" }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { String(format: "%.1f", $0.dosage) }.joined(separator: "; ")),
                 escapeCSV(attack.nonPharmInterventionList.joined(separator: "; ")),
-                escapeCSV(attack.menstrualDay.map { String($0) } ?? ""),
-                escapeCSV(attack.sleepHours.map { String(format: "%.1f", $0) } ?? ""),
-                escapeCSV(attack.averageHeartRate.map { String(format: "%.0f", $0) } ?? ""),
                 escapeCSV(formatWeather(attack.weatherSnapshot)),
                 escapeCSV(attack.tcmPattern.joined(separator: "; ")),
                 escapeCSV(attack.notes ?? ""),
@@ -270,9 +267,6 @@ class CSVExporter {
                 escapeCSV(attack.medications.map { $0.medication?.name ?? "" }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { String(format: "%.1f", $0.dosage) }.joined(separator: "; ")),
                 escapeCSV(attack.nonPharmInterventionList.joined(separator: "; ")),
-                escapeCSV(attack.menstrualDay.map { String($0) } ?? ""),
-                escapeCSV(attack.sleepHours.map { String(format: "%.1f", $0) } ?? ""),
-                escapeCSV(attack.averageHeartRate.map { String(format: "%.0f", $0) } ?? ""),
                 escapeCSV(formatWeather(attack.weatherSnapshot)),
                 escapeCSV(attack.tcmPattern.joined(separator: "; ")),
                 escapeCSV(attack.notes ?? ""),
@@ -459,5 +453,248 @@ class CSVExporter {
             dateString = formatDate(Date())
         }
         return "\(prefix)_\(dateString).csv"
+    }
+    
+    // MARK: - 导出健康事件
+    
+    /// 导出健康事件为CSV格式
+    /// - Parameters:
+    ///   - healthEvents: 要导出的健康事件
+    ///   - dateRange: 可选的日期范围
+    /// - Returns: CSV数据
+    func exportHealthEvents(_ healthEvents: [HealthEvent], dateRange: (Date, Date)? = nil) -> Data {
+        var csvString = ""
+        
+        // UTF-8 BOM
+        csvString += "\u{FEFF}"
+        
+        // CSV表头
+        let headers = [
+            "事件ID",
+            "事件类型",
+            "日期",
+            "时间",
+            "药物名称",
+            "剂量",
+            "中医治疗类型",
+            "治疗时长(分钟)",
+            "手术名称",
+            "医院",
+            "医生",
+            "备注",
+            "创建时间"
+        ]
+        csvString += headers.joined(separator: ",") + "\n"
+        
+        // 按时间排序
+        let sortedEvents = healthEvents.sorted { $0.eventDate < $1.eventDate }
+        
+        // 遍历每条记录
+        for event in sortedEvents {
+            let row = [
+                escapeCSV(event.id.uuidString),
+                escapeCSV(event.eventType.rawValue),
+                escapeCSV(formatDate(event.eventDate)),
+                escapeCSV(formatTime(event.eventDate)),
+                escapeCSV(event.medicationLog?.displayName ?? ""),
+                escapeCSV(event.medicationLog?.dosageString ?? ""),
+                escapeCSV(event.tcmTreatmentType ?? ""),
+                escapeCSV(event.tcmDuration.map { String(Int($0 / 60)) } ?? ""),
+                escapeCSV(event.surgeryName ?? ""),
+                escapeCSV(event.hospitalName ?? ""),
+                escapeCSV(event.doctorName ?? ""),
+                escapeCSV(event.notes ?? ""),
+                escapeCSV(formatDateTime(event.createdAt))
+            ]
+            csvString += row.joined(separator: ",") + "\n"
+        }
+        
+        return csvString.data(using: .utf8) ?? Data()
+    }
+    
+    /// 导出完整健康数据（包括发作记录和健康事件）
+    /// - Parameters:
+    ///   - attacks: 发作记录
+    ///   - healthEvents: 健康事件
+    ///   - analytics: 分析引擎
+    ///   - dateRange: 日期范围
+    /// - Returns: CSV数据
+    func exportCompleteHealthData(
+        _ attacks: [AttackRecord],
+        healthEvents: [HealthEvent],
+        analytics: AnalyticsEngine,
+        dateRange: (Date, Date)
+    ) -> Data {
+        var csvString = ""
+        
+        // UTF-8 BOM
+        csvString += "\u{FEFF}"
+        
+        // 标题
+        csvString += "完整健康数据报告\n"
+        csvString += "统计时间范围: \(formatDate(dateRange.0)) 至 \(formatDate(dateRange.1))\n"
+        csvString += "生成时间: \(formatDateTime(Date()))\n"
+        csvString += "\n"
+        
+        // ===== 第一部分：统计数据 =====
+        csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        csvString += "【第一部分：偏头痛发作统计】\n"
+        csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        csvString += "\n"
+        
+        // 复用现有的统计导出逻辑
+        if let statsData = String(data: exportAnalytics(attacks, analytics: analytics, dateRange: dateRange), encoding: .utf8) {
+            // 移除BOM和标题（因为已经添加过了）
+            let lines = statsData.components(separatedBy: "\n")
+            if lines.count > 3 {
+                csvString += lines[3...].joined(separator: "\n")
+            }
+        }
+        
+        // ===== 第二部分：健康事件统计 =====
+        if !healthEvents.isEmpty {
+            csvString += "\n"
+            csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            csvString += "【第二部分：健康事件统计】\n"
+            csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            csvString += "\n"
+            
+            // 用药依从性
+            let adherenceStats = analytics.analyzeMedicationAdherence(in: dateRange)
+            csvString += "用药依从性\n"
+            csvString += "指标,数值\n"
+            csvString += "统计天数,\(adherenceStats.totalDays)\n"
+            csvString += "用药天数,\(adherenceStats.medicationDays)\n"
+            csvString += "遗漏天数,\(adherenceStats.missedDays)\n"
+            csvString += "依从率,\(String(format: "%.1f%%", adherenceStats.adherenceRate))\n"
+            csvString += "\n"
+            
+            // 中医治疗统计
+            let tcmStats = analytics.analyzeTCMTreatment(in: dateRange)
+            if tcmStats.totalTreatments > 0 {
+                csvString += "中医治疗统计\n"
+                csvString += "指标,数值\n"
+                csvString += "总治疗次数,\(tcmStats.totalTreatments)\n"
+                csvString += "平均治疗时长(分钟),\(tcmStats.averageDurationMinutes)\n"
+                csvString += "\n"
+                
+                csvString += "治疗类型分布\n"
+                csvString += "类型,次数,占比\n"
+                for type in tcmStats.treatmentTypes {
+                    csvString += "\(escapeCSV(type.typeName)),\(type.count),\(String(format: "%.1f%%", type.percentage))\n"
+                }
+                csvString += "\n"
+            }
+        }
+        
+        // ===== 第三部分：详细记录 =====
+        csvString += "\n"
+        csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        csvString += "【第三部分：偏头痛发作详细记录】\n"
+        csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        csvString += "\n"
+        
+        // 发作记录表头
+        let attackHeaders = [
+            "记录ID",
+            "发作日期",
+            "发作时间",
+            "结束日期",
+            "结束时间",
+            "持续时长(小时)",
+            "疼痛强度(0-10)",
+            "疼痛部位",
+            "疼痛性质",
+            "有先兆",
+            "先兆类型",
+            "伴随症状",
+            "诱因",
+            "用药",
+            "用药剂量",
+            "非药物干预",
+            "天气情况",
+            "中医证候",
+            "备注",
+            "创建时间"
+        ]
+        csvString += attackHeaders.joined(separator: ",") + "\n"
+        
+        // 详细发作记录
+        let sortedAttacks = attacks.sorted { $0.startTime < $1.startTime }
+        for attack in sortedAttacks {
+            let row = [
+                escapeCSV(attack.id.uuidString),
+                escapeCSV(formatDate(attack.startTime)),
+                escapeCSV(formatTime(attack.startTime)),
+                escapeCSV(attack.endTime.map { formatDate($0) } ?? ""),
+                escapeCSV(attack.endTime.map { formatTime($0) } ?? ""),
+                escapeCSV(formatDuration(attack.duration)),
+                escapeCSV(String(attack.painIntensity)),
+                escapeCSV(attack.painLocation.joined(separator: "; ")),
+                escapeCSV(attack.painQuality.joined(separator: "; ")),
+                escapeCSV(attack.hasAura ? "是" : "否"),
+                escapeCSV(attack.auraTypes.joined(separator: "; ")),
+                escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
+                escapeCSV(attack.nonPharmInterventionList.joined(separator: "; ")),
+                escapeCSV(formatWeather(attack.weatherSnapshot)),
+                escapeCSV(attack.tcmPattern.joined(separator: "; ")),
+                escapeCSV(attack.notes ?? ""),
+                escapeCSV(formatDateTime(attack.createdAt))
+            ]
+            csvString += row.joined(separator: ",") + "\n"
+        }
+        
+        // ===== 第四部分：健康事件详细记录 =====
+        if !healthEvents.isEmpty {
+            csvString += "\n"
+            csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            csvString += "【第四部分：健康事件详细记录】\n"
+            csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            csvString += "\n"
+            
+            // 健康事件表头
+            let eventHeaders = [
+                "事件ID",
+                "事件类型",
+                "日期",
+                "时间",
+                "药物名称",
+                "剂量",
+                "中医治疗类型",
+                "治疗时长(分钟)",
+                "手术名称",
+                "医院",
+                "医生",
+                "备注",
+                "创建时间"
+            ]
+            csvString += eventHeaders.joined(separator: ",") + "\n"
+            
+            // 详细健康事件记录
+            let sortedEvents = healthEvents.sorted { $0.eventDate < $1.eventDate }
+            for event in sortedEvents {
+                let row = [
+                    escapeCSV(event.id.uuidString),
+                    escapeCSV(event.eventType.rawValue),
+                    escapeCSV(formatDate(event.eventDate)),
+                    escapeCSV(formatTime(event.eventDate)),
+                    escapeCSV(event.medicationLog?.displayName ?? ""),
+                    escapeCSV(event.medicationLog?.dosageString ?? ""),
+                    escapeCSV(event.tcmTreatmentType ?? ""),
+                    escapeCSV(event.tcmDuration.map { String(Int($0 / 60)) } ?? ""),
+                    escapeCSV(event.surgeryName ?? ""),
+                    escapeCSV(event.hospitalName ?? ""),
+                    escapeCSV(event.doctorName ?? ""),
+                    escapeCSV(event.notes ?? ""),
+                    escapeCSV(formatDateTime(event.createdAt))
+                ]
+                csvString += row.joined(separator: ",") + "\n"
+            }
+        }
+        
+        return csvString.data(using: .utf8) ?? Data()
     }
 }

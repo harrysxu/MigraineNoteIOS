@@ -32,6 +32,15 @@ class CloudKitManager {
     
     /// 检查iCloud账号登录状态
     func checkICloudStatus() {
+        // 首先检查用户是否启用了同步功能
+        let syncEnabled = SyncSettingsManager.isSyncCurrentlyEnabled()
+        
+        if !syncEnabled {
+            syncStatus = .disabled
+            isICloudAvailable = false
+            return
+        }
+        
         // 使用 ubiquityIdentityToken 检查iCloud登录状态
         // 如果token不为nil，说明用户已登录iCloud
         isICloudAvailable = FileManager.default.ubiquityIdentityToken != nil
@@ -60,6 +69,7 @@ class CloudKitManager {
     
     enum SyncStatus {
         case unknown           // 未知状态
+        case disabled          // 同步已关闭
         case available         // 可用（已登录iCloud）
         case notSignedIn       // 未登录iCloud
         case syncing           // 同步中
@@ -70,6 +80,8 @@ class CloudKitManager {
             switch self {
             case .unknown:
                 return "检查中..."
+            case .disabled:
+                return "同步已关闭"
             case .available:
                 return "iCloud同步已启用"
             case .notSignedIn:
@@ -87,6 +99,8 @@ class CloudKitManager {
             switch self {
             case .unknown:
                 return "questionmark.circle"
+            case .disabled:
+                return "icloud.slash"
             case .available:
                 return "checkmark.icloud.fill"
             case .notSignedIn:
@@ -103,6 +117,8 @@ class CloudKitManager {
         var color: Color {
             switch self {
             case .unknown:
+                return .gray
+            case .disabled:
                 return .gray
             case .available, .syncCompleted:
                 return .green

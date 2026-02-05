@@ -43,6 +43,59 @@ class WeatherManager: NSObject {
         locationManager.requestLocation()
     }
     
+    // MARK: - 天气翻译
+    
+    /// 将英文天气状况翻译为中文
+    private func translateWeatherCondition(_ englishCondition: String) -> String {
+        let lowercased = englishCondition.lowercased()
+        
+        // 映射表
+        let mapping: [String: String] = [
+            "clear": "晴天",
+            "sunny": "晴天",
+            "cloudy": "多云",
+            "mostly cloudy": "多云",
+            "partly cloudy": "多云",
+            "overcast": "阴天",
+            "rain": "雨",
+            "drizzle": "小雨",
+            "light rain": "小雨",
+            "moderate rain": "中雨",
+            "heavy rain": "大雨",
+            "rainy": "雨",
+            "thunderstorm": "雷阵雨",
+            "thunder": "雷阵雨",
+            "snow": "雪",
+            "snowy": "雪",
+            "sleet": "雨夹雪",
+            "fog": "雾",
+            "foggy": "雾",
+            "haze": "霾",
+            "hazy": "霾",
+            "dust": "沙尘",
+            "sandstorm": "沙尘暴",
+            "wind": "大风",
+            "windy": "大风",
+            "hot": "炎热",
+            "cold": "寒冷",
+            "freezing": "极寒",
+            "tropical storm": "热带风暴",
+            "hurricane": "飓风",
+            "tornado": "龙卷风",
+            "blizzard": "暴风雪"
+        ]
+        
+        // 查找匹配的键（支持部分匹配）
+        for (key, value) in mapping {
+            if lowercased.contains(key) {
+                return value
+            }
+        }
+        
+        // 如果没有匹配，返回原始值（可能已经是中文）
+        return englishCondition
+    }
+    
     // MARK: - 获取当前天气
     
     /// 获取当前天气快照（带缓存）
@@ -74,7 +127,7 @@ class WeatherManager: NSObject {
             snapshot.temperature = weather.currentWeather.temperature.value
             snapshot.humidity = weather.currentWeather.humidity * 100 // 转换为百分比
             snapshot.windSpeed = weather.currentWeather.wind.speed.value
-            snapshot.condition = weather.currentWeather.condition.description
+            snapshot.condition = translateWeatherCondition(weather.currentWeather.condition.description)
             snapshot.location = await reverseGeocode(location)
             
             // 更新缓存
@@ -151,7 +204,7 @@ class WeatherManager: NSObject {
         // 使用默认值或从其他字段获取
         snapshot.humidity = 50.0 // 默认湿度
         snapshot.windSpeed = dayWeather.wind.speed.value
-        snapshot.condition = dayWeather.condition.description
+        snapshot.condition = translateWeatherCondition(dayWeather.condition.description)
         snapshot.location = await reverseGeocode(location)
         
         return snapshot

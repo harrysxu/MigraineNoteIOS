@@ -14,6 +14,7 @@ struct DataExportView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Query(sort: \AttackRecord.startTime, order: .reverse) private var allAttacks: [AttackRecord]
+    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var allHealthEvents: [HealthEvent]
     @Query private var profiles: [UserProfile]
     
     @State private var selectedTimeRange: ExportTimeRange = .last3Months
@@ -34,6 +35,13 @@ struct DataExportView: View {
         let dateRange = selectedTimeRange.dateInterval(customStart: customStartDate, customEnd: customEndDate)
         return allAttacks.filter { attack in
             attack.startTime >= dateRange.start && attack.startTime <= dateRange.end
+        }
+    }
+    
+    private var filteredHealthEvents: [HealthEvent] {
+        let dateRange = selectedTimeRange.dateInterval(customStart: customStartDate, customEnd: customEndDate)
+        return allHealthEvents.filter { event in
+            event.eventDate >= dateRange.start && event.eventDate <= dateRange.end
         }
     }
     
@@ -127,6 +135,8 @@ struct DataExportView: View {
                                 Divider()
                                 DataPreviewRow(label: "发作天数", value: "\(attackDaysCount)天")
                                 Divider()
+                                DataPreviewRow(label: "健康事件", value: "\(filteredHealthEvents.count)条")
+                                Divider()
                                 DataPreviewRow(label: "平均强度", value: String(format: "%.1f/10", averagePainIntensity))
                                 Divider()
                                 DataPreviewRow(label: "用药天数", value: "\(medicationDaysCount)天")
@@ -175,9 +185,9 @@ struct DataExportView: View {
                         )
                         .cornerRadius(Spacing.cornerRadiusMedium)
                     }
-                    .disabled(isGenerating || filteredAttacks.isEmpty)
+                    .disabled(isGenerating || (filteredAttacks.isEmpty && filteredHealthEvents.isEmpty))
                     
-                    if filteredAttacks.isEmpty {
+                    if filteredAttacks.isEmpty && filteredHealthEvents.isEmpty {
                         Text("所选时间范围内无记录数据")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
@@ -255,9 +265,10 @@ struct DataExportView: View {
         let exporter = CSVExporter()
         let analytics = AnalyticsEngine(modelContext: modelContext)
         
-        // 使用综合报告导出
-        let csvData = exporter.exportComprehensiveReport(
+        // 导出完整健康数据（包括发作记录和健康事件）
+        let csvData = exporter.exportCompleteHealthData(
             filteredAttacks,
+            healthEvents: filteredHealthEvents,
             analytics: analytics,
             dateRange: (dateRange.start, dateRange.end)
         )
@@ -265,7 +276,7 @@ struct DataExportView: View {
         // 创建临时文件
         let tempDirectory = FileManager.default.temporaryDirectory
         let filename = exporter.generateFilename(
-            prefix: "偏头痛综合报告",
+            prefix: "完整健康数据",
             dateRange: (dateRange.start, dateRange.end)
         )
         let fileURL = tempDirectory.appendingPathComponent(filename)
@@ -360,5 +371,5 @@ private struct DataPreviewRow: View {
 
 #Preview("数据导出") {
     DataExportView()
-        .modelContainer(for: [AttackRecord.self, UserProfile.self], inMemory: true)
+        .modelContainer(for: [AttackRecord.self, HealthEvent.self, UserProfile.self], inMemory: true)
 }

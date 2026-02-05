@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 @Observable
-class RecordingViewModel {
+class RecordingViewModel: MedicationManaging {
     var currentAttack: AttackRecord?
     var currentStep: RecordingStep = .timeAndDuration
     var isEditMode: Bool = false
@@ -170,9 +170,9 @@ class RecordingViewModel {
         // 加载疼痛性质名称
         self.selectedPainQualityNames = Set(attack.painQuality)
         
-        // 加载先兆数据
+        // 加载先兆数据（直接使用字符串数组，包含自定义标签）
         self.hasAura = attack.hasAura
-        self.selectedAuraTypeNames = Set(attack.auraTypesList.map { $0.rawValue })
+        self.selectedAuraTypeNames = Set(attack.auraTypes)
         if let duration = attack.auraDuration, duration > 0 {
             self.auraDuration = duration / 60.0 // 转换为分钟
         }
@@ -255,9 +255,9 @@ class RecordingViewModel {
         // 保存疼痛性质名称（支持自定义）
         attack.painQuality = Array(selectedPainQualityNames)
         
-        // 设置先兆
-        attack.hasAura = hasAura
-        if hasAura {
+        // 设置先兆（根据是否选择了先兆类型自动确定）
+        attack.hasAura = !selectedAuraTypeNames.isEmpty
+        if !selectedAuraTypeNames.isEmpty {
             // 将字符串名称转换回枚举（如果可能），否则保留字符串
             let auraTypes = selectedAuraTypeNames.compactMap { AuraType(rawValue: $0) }
             attack.setAuraTypes(auraTypes)

@@ -1014,6 +1014,373 @@ struct CompactAnalyticStatCard: View {
             Spacer()
         }
         .padding(16)
+        .frame(maxWidth: isWide ? .infinity : 180)
+        .background(Color.surface)
+        .cornerRadius(AppSpacing.cornerRadiusDefault)
+    }
+}
+
+/// 频率行
+struct FrequencyRow: View {
+    let name: String
+    let count: Int
+    let percentage: Double
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // 名称
+            Text(name)
+                .font(.body)
+                .foregroundStyle(Color.textPrimary)
+                .lineLimit(1)
+            
+            Spacer(minLength: 12)
+            
+            // 进度条
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.backgroundTertiary)
+                        .frame(height: 6)
+                    
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.accentPrimary.opacity(0.7))
+                        .frame(
+                            width: max(geometry.size.width * (percentage / 100), 2),
+                            height: 6
+                        )
+                }
+            }
+            .frame(width: 60, height: 6)
+            
+            // 次数和百分比
+            HStack(spacing: 6) {
+                Text("\(count)次")
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(minWidth: 40, alignment: .trailing)
+                
+                Text("(\(String(format: "%.1f%%", percentage)))")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                    .frame(minWidth: 50, alignment: .leading)
+            }
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.backgroundPrimary)
+        .cornerRadius(10)
+    }
+}
+
+// MARK: - Supporting Types
+
+enum TimeRange: String, CaseIterable, Identifiable {
+                
+                if adherenceStats.totalDays > 0 {
+                    VStack(spacing: 16) {
+                        // 依从性百分比
+                        HStack(spacing: 20) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("依从率")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.textSecondary)
+                                
+                                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                    Text(String(format: "%.1f", adherenceStats.adherenceRate))
+                                        .font(.system(size: 36, weight: .bold))
+                                        .foregroundStyle(adherenceRateColor(adherenceStats.adherenceRate))
+                                    
+                                    Text("%")
+                                        .font(.title3)
+                                        .foregroundStyle(Color.textSecondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            // 环形进度
+                            ZStack {
+                                Circle()
+                                    .stroke(Color.divider, lineWidth: 6)
+                                    .frame(width: 64, height: 64)
+                                
+                                Circle()
+                                    .trim(from: 0, to: adherenceStats.adherenceRate / 100)
+                                    .stroke(
+                                        adherenceRateColor(adherenceStats.adherenceRate),
+                                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                                    )
+                                    .frame(width: 64, height: 64)
+                                    .rotationEffect(.degrees(-90))
+                            }
+                        }
+                        
+                        Divider()
+                        
+                        // 详细数据
+                        HStack(spacing: 20) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("用药天数")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                                Text("\(adherenceStats.medicationDays) 天")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.textPrimary)
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("遗漏天数")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                                Text("\(adherenceStats.missedDays) 天")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(adherenceStats.missedDays > 3 ? Color.statusWarning : Color.textPrimary)
+                            }
+                        }
+                    }
+                } else {
+                    Text("暂无日常用药记录")
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
+            }
+        }
+    }
+    
+    private func adherenceRateColor(_ rate: Double) -> Color {
+        if rate >= 80 {
+            return Color.statusSuccess
+        } else if rate >= 60 {
+            return Color.statusWarning
+        } else {
+            return Color.statusError
+        }
+    }
+    
+    // MARK: - 中医治疗统计
+    
+    private var tcmTreatmentStatisticsSection: some View {
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack {
+                    Image(systemName: "leaf.circle.fill")
+                        .foregroundStyle(Color.statusSuccess)
+                    Text("中医治疗统计")
+                        .font(.headline)
+                        .foregroundStyle(Color.textPrimary)
+                }
+                
+                let tcmStats = analyticsEngine.analyzeTCMTreatment(in: currentDateRange)
+                
+                if tcmStats.totalTreatments > 0 {
+                    VStack(spacing: 12) {
+                        // 总治疗次数
+                        HStack {
+                            Text("总治疗次数")
+                                .font(.subheadline)
+                                .foregroundStyle(Color.textSecondary)
+                            Spacer()
+                            Text("\(tcmStats.totalTreatments) 次")
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(Color.textPrimary)
+                        }
+                        
+                        if tcmStats.averageDurationMinutes > 0 {
+                            HStack {
+                                Text("平均治疗时长")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Color.textSecondary)
+                                Spacer()
+                                Text("\(tcmStats.averageDurationMinutes) 分钟")
+                                    .font(.title3.weight(.bold))
+                                    .foregroundStyle(Color.textPrimary)
+                            }
+                        }
+                        
+                        // 治疗类型分布
+                        if !tcmStats.treatmentTypes.isEmpty {
+                            Divider()
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("治疗类型分布")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(Color.textPrimary)
+                                
+                                ForEach(tcmStats.treatmentTypes) { type in
+                                    FrequencyRow(
+                                        name: type.typeName,
+                                        count: type.count,
+                                        percentage: type.percentage
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Text("暂无中医治疗记录")
+                        .font(.caption)
+                        .foregroundStyle(Color.textSecondary)
+                }
+            }
+        }
+    }
+    
+    // MARK: - 治疗效果关联分析
+    
+    private var treatmentCorrelationSection: some View {
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                HStack {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .foregroundStyle(Color.accentPrimary)
+                    Text("治疗效果分析")
+                        .font(.headline)
+                        .foregroundStyle(Color.textPrimary)
+                }
+                
+                // 分析用药治疗的效果
+                if let medicationCorrelation = analyticsEngine.analyzeCorrelationBetweenTreatmentAndAttacks(
+                    treatmentType: .medication,
+                    beforeDays: 30,
+                    afterDays: 30
+                ) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("开始日常用药治疗后")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color.textSecondary)
+                        
+                        HStack(spacing: 20) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("治疗前30天")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                                Text("\(medicationCorrelation.beforeAttackDays) 天发作")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.textPrimary)
+                            }
+                            
+                            Image(systemName: "arrow.right")
+                                .foregroundStyle(Color.textTertiary)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("治疗后30天")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                                Text("\(medicationCorrelation.afterAttackDays) 天发作")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(medicationCorrelation.hasImprovement ? Color.statusSuccess : Color.textPrimary)
+                            }
+                        }
+                        
+                        if medicationCorrelation.hasImprovement {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.statusSuccess)
+                                Text("发作天数减少 \(medicationCorrelation.attackDaysReduction) 天")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.statusSuccess)
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.statusSuccess.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+                
+                // 分析中医治疗的效果
+                if let tcmCorrelation = analyticsEngine.analyzeCorrelationBetweenTreatmentAndAttacks(
+                    treatmentType: .tcmTreatment,
+                    beforeDays: 30,
+                    afterDays: 30
+                ) {
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("开始中医治疗后")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color.textSecondary)
+                        
+                        HStack(spacing: 20) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("治疗前30天")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                                Text("\(tcmCorrelation.beforeAttackDays) 天发作")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(Color.textPrimary)
+                            }
+                            
+                            Image(systemName: "arrow.right")
+                                .foregroundStyle(Color.textTertiary)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("治疗后30天")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                                Text("\(tcmCorrelation.afterAttackDays) 天发作")
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(tcmCorrelation.hasImprovement ? Color.statusSuccess : Color.textPrimary)
+                            }
+                        }
+                        
+                        if tcmCorrelation.hasImprovement {
+                            HStack(spacing: 8) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(Color.statusSuccess)
+                                Text("发作天数减少 \(tcmCorrelation.attackDaysReduction) 天")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.statusSuccess)
+                            }
+                            .padding(8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.statusSuccess.opacity(0.1))
+                            .cornerRadius(8)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Supporting Views
+
+/// 紧凑分析统计卡片
+struct CompactAnalyticStatCard: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+    var isWide: Bool = false
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // 图标
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color)
+                .frame(width: 44, height: 44)
+                .background(color.opacity(0.15))
+                .clipShape(Circle())
+            
+            // 数值和标签
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(color)
+                
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+            }
+            
+            Spacer()
+        }
+        .padding(16)
         .frame(maxWidth: .infinity)
         .background(Color.backgroundPrimary)
         .cornerRadius(16)

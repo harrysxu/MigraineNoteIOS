@@ -12,10 +12,44 @@ import SwiftData
 struct AttackListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
+    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
     
     @State private var viewModel = AttackListViewModel()
     @State private var showingFilterSheet = false
     @State private var selectedAttack: AttackRecord?
+    @State private var selectedHealthEvent: HealthEvent?
+    
+    // 合并后的时间轴数据
+    private var timelineItems: [TimelineItemType] {
+        var items: [TimelineItemType] = []
+        
+        // 添加偏头痛发作记录
+        let filteredAttacks = viewModel.filteredAttacks(attacks)
+        if viewModel.recordTypeFilter == .all || viewModel.recordTypeFilter == .attacksOnly {
+            items.append(contentsOf: filteredAttacks.map { .attack($0) })
+        }
+        
+        // 添加健康事件
+        let filteredEvents = viewModel.filteredHealthEvents(healthEvents)
+        if viewModel.recordTypeFilter != .attacksOnly {
+            items.append(contentsOf: filteredEvents.map { .healthEvent($0) })
+        }
+        
+        // 按日期排序
+        items.sort { item1, item2 in
+            switch viewModel.sortOption {
+            case .dateDescending:
+                return item1.eventDate > item2.eventDate
+            case .dateAscending:
+                return item1.eventDate < item2.eventDate
+            case .intensityDescending, .durationDescending:
+                // 健康事件没有强度和持续时间，放在后面
+                return item1.eventDate > item2.eventDate
+            }
+        }
+        
+        return items
+    }
     
     var body: some View {
         NavigationStack {
@@ -23,10 +57,10 @@ struct AttackListView: View {
                 // 背景色
                 AppColors.background.ignoresSafeArea()
                 
-                if attacks.isEmpty {
+                if attacks.isEmpty && healthEvents.isEmpty {
                     emptyStateView
                 } else {
-                    attackListContent
+                    timelineListContent
                 }
             }
             .navigationTitle("")
@@ -47,6 +81,9 @@ struct AttackListView: View {
             }
             .sheet(item: $selectedAttack) { attack in
                 AttackDetailView(attack: attack)
+            }
+            .sheet(item: $selectedHealthEvent) { event in
+                HealthEventDetailView(event: event)
             }
         }
     }
@@ -73,20 +110,21 @@ struct AttackListView: View {
     
     // MARK: - List Content
     
-    private var attackListContent: some View {
+    private var timelineListContent: some View {
         ScrollView {
             LazyVStack(spacing: AppSpacing.medium) {
-                let filteredAttacks = viewModel.filteredAttacks(attacks)
+                let items = timelineItems
                 
-                if filteredAttacks.isEmpty {
+                if items.isEmpty {
                     noResultsView
                 } else {
-                    let groupedAttacks = Dictionary(grouping: filteredAttacks) { attack in
-                        attack.startTime.year
+                    // 按年份分组
+                    let groupedItems = Dictionary(grouping: items) { item in
+                        item.year
                     }
                     .sorted { sortYears($0.key, $1.key) }
                     
-                    ForEach(groupedAttacks, id: \.key) { year, yearAttacks in
+                    ForEach(groupedItems, id: \.key) { year, yearItems in
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             // 年份标题
                             Text("\(year)年")
@@ -96,16 +134,12 @@ struct AttackListView: View {
                                 .padding(.horizontal, AppSpacing.medium)
                                 .padding(.top, AppSpacing.small)
                             
-                            // 该年份的记录（需要重新排序，因为 Dictionary grouping 会打乱顺序）
-                            let sortedYearAttacks = sortYearAttacks(yearAttacks)
-                            ForEach(sortedYearAttacks) { attack in
-                                AttackRowView(attack: attack)
-                                    .onTapGesture {
-                                        selectedAttack = attack
-                                    }
+                            // 该年份的记录
+                            ForEach(yearItems) { item in
+                                timelineItemRow(for: item)
                                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                         Button(role: .destructive) {
-                                            viewModel.deleteAttack(attack, from: modelContext)
+                                            deleteTimelineItem(item)
                                         } label: {
                                             Label("删除", systemImage: "trash")
                                         }
@@ -117,6 +151,32 @@ struct AttackListView: View {
             }
             .padding(.horizontal, AppSpacing.medium)
             .padding(.vertical, AppSpacing.small)
+        }
+    }
+    
+    @ViewBuilder
+    private func timelineItemRow(for item: TimelineItemType) -> some View {
+        switch item {
+        case .attack(let attack):
+            AttackRowView(attack: attack)
+                .onTapGesture {
+                    selectedAttack = attack
+                }
+        case .healthEvent(let event):
+            HealthEventRowView(event: event)
+                .onTapGesture {
+                    selectedHealthEvent = event
+                }
+        }
+    }
+    
+    private func deleteTimelineItem(_ item: TimelineItemType) {
+        switch item {
+        case .attack(let attack):
+            viewModel.deleteAttack(attack, from: modelContext)
+        case .healthEvent(let event):
+            modelContext.delete(event)
+            try? modelContext.save()
         }
     }
     
@@ -263,6 +323,17 @@ struct FilterSheetView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // 记录类型
+                Section("记录类型") {
+                    Picker("类型", selection: $viewModel.recordTypeFilter) {
+                        ForEach(AttackListViewModel.RecordTypeFilter.allCases, id: \.self) { filter in
+                            Label(filter.rawValue, systemImage: filter.systemImage)
+                                .tag(filter)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                }
+                
                 // 时间范围
                 Section("时间范围") {
                     Picker("筛选", selection: $viewModel.filterOption) {
@@ -393,7 +464,82 @@ struct FilterSheetView: View {
     }
 }
 
+// MARK: - Health Event Row View
+
+struct HealthEventRowView: View {
+    let event: HealthEvent
+    
+    private var eventColor: Color {
+        switch event.eventType {
+        case .medication:
+            return Color.accentPrimary
+        case .tcmTreatment:
+            return Color.statusSuccess
+        case .surgery:
+            return Color.statusInfo
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // 左侧事件类型图标
+            VStack(spacing: 4) {
+                Image(systemName: event.eventType.icon)
+                    .font(.system(size: 24))
+                    .foregroundStyle(eventColor)
+                
+                Text(event.eventType.rawValue)
+                    .font(.caption2)
+                    .foregroundStyle(AppColors.textTertiary)
+            }
+            .frame(width: 56, height: 56)
+            .background(eventColor.opacity(0.15))
+            .cornerRadius(12)
+            
+            // 中间内容
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.displayTitle)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(AppColors.textPrimary)
+                
+                HStack(spacing: 8) {
+                    // 时间
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.caption2)
+                        Text(event.eventDate.smartFormatted())
+                    }
+                    .font(.caption)
+                    .foregroundStyle(AppColors.textSecondary)
+                    
+                    // 详细信息
+                    if let detail = event.displayDetail {
+                        HStack(spacing: 4) {
+                            Image(systemName: "info.circle")
+                                .font(.caption2)
+                            Text(detail)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(AppColors.textSecondary)
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // 右侧箭头
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(AppColors.textTertiary)
+        }
+        .padding(12)
+        .background(AppColors.surface)
+        .cornerRadius(12)
+        .shadow(color: AppColors.shadowColor, radius: AppSpacing.shadowRadiusSmall)
+    }
+}
+
 #Preview {
     AttackListView()
-        .modelContainer(for: AttackRecord.self, inMemory: true)
+        .modelContainer(for: [AttackRecord.self, HealthEvent.self], inMemory: true)
 }

@@ -183,11 +183,6 @@ struct PrivacyPage: View {
                         .padding(.bottom, 4)
                     
                     PermissionRow(
-                        icon: "heart.text.square.fill",
-                        text: "HealthKit - 同步睡眠数据"
-                    )
-                    
-                    PermissionRow(
                         icon: "location.fill",
                         text: "位置服务 - 记录天气诱因"
                     )

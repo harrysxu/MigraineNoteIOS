@@ -21,13 +21,17 @@ struct migraine_noteApp: App {
             Medication.self,
             WeatherSnapshot.self,
             UserProfile.self,
-            CustomLabelConfig.self
+            CustomLabelConfig.self,
+            HealthEvent.self
         ])
+        
+        // 根据用户设置决定是否启用iCloud同步
+        let syncEnabled = SyncSettingsManager.isSyncCurrentlyEnabled()
         
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            cloudKitDatabase: .automatic
+            cloudKitDatabase: syncEnabled ? .automatic : .none
         )
 
         do {
