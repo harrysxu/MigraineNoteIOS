@@ -144,8 +144,9 @@ class AttackListViewModel {
         
         switch filterOption {
         case .thisMonth:
-            let monthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
-            return attacks.filter { $0.startTime >= monthAgo }
+            // 本月：从本月1号0:00到现在
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            return attacks.filter { $0.startTime >= startOfMonth }
             
         case .last3Months:
             let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!
@@ -225,8 +226,9 @@ class AttackListViewModel {
         
         switch filterOption {
         case .thisMonth:
-            let monthAgo = calendar.date(byAdding: .month, value: -1, to: now)!
-            return events.filter { $0.eventDate >= monthAgo }
+            // 本月：从本月1号0:00到现在
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            return events.filter { $0.eventDate >= startOfMonth }
             
         case .last3Months:
             let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!

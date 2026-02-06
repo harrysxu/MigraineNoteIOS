@@ -137,13 +137,19 @@ class CalendarViewModel {
         let totalAttacks = attacks.count
         let averageIntensity = attacks.isEmpty ? 0 : attacks.reduce(0.0) { $0 + Double($1.painIntensity) } / Double(attacks.count)
         
-        // 计算用药天数
+        // 计算用药天数和用药次数
         var medicationDays = Set<Date>()
+        var totalMedicationUses = 0
         for attack in attacks {
             if !attack.medicationLogs.isEmpty {
                 medicationDays.insert(calendar.startOfDay(for: attack.startTime))
+                totalMedicationUses += attack.medicationLogs.count
             }
         }
+        
+        // 计算平均持续时长（只统计已结束的发作）
+        let completedAttacks = attacks.filter { $0.duration != nil }
+        let averageDuration = completedAttacks.isEmpty ? 0 : completedAttacks.reduce(0.0) { $0 + ($1.duration ?? 0) } / Double(completedAttacks.count)
         
         // 检测MOH风险
         let period = DateInterval(start: monthStart, end: monthEnd)
@@ -154,7 +160,9 @@ class CalendarViewModel {
             totalAttacks: totalAttacks,
             averagePainIntensity: averageIntensity,
             medicationDays: medicationDays.count,
-            mohRisk: mohRisk
+            mohRisk: mohRisk,
+            averageDuration: averageDuration,
+            totalMedicationUses: totalMedicationUses
         )
     }
     
@@ -253,6 +261,8 @@ struct MonthlyStatistics {
     let averagePainIntensity: Double
     let medicationDays: Int
     let mohRisk: MOHRiskLevel
+    let averageDuration: TimeInterval
+    let totalMedicationUses: Int
     
     var isChronic: Bool {
         attackDays >= 15
@@ -260,5 +270,10 @@ struct MonthlyStatistics {
     
     var averageIntensityFormatted: String {
         String(format: "%.1f", averagePainIntensity)
+    }
+    
+    var averageDurationFormatted: String {
+        let hours = averageDuration / 3600
+        return String(format: "%.1fh", hours)
     }
 }

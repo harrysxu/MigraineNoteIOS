@@ -434,9 +434,11 @@ struct FilterSheetView: View {
     
     private func updateCustomDateRange() {
         if viewModel.filterOption == .custom {
+            // 规范化日期范围，确保包含完整的结束日期
+            let normalized = Date.normalizedDateRange(start: customStartDate, end: customEndDate)
             viewModel.selectedDateRange = AttackListViewModel.DateRange(
-                start: customStartDate,
-                end: customEndDate
+                start: normalized.start,
+                end: normalized.end
             )
         }
     }

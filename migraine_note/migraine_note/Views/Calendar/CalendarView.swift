@@ -229,7 +229,7 @@ struct MonthlyStatsCard: View {
                 Spacer()
             }
             
-            // 统计数据网格
+            // 统计数据网格 - 3x2布局
             LazyVGrid(columns: [
                 GridItem(.flexible()),
                 GridItem(.flexible())
@@ -237,30 +237,44 @@ struct MonthlyStatsCard: View {
                 StatItem(
                     title: "发作天数",
                     value: "\(stats.attackDays)",
-                    icon: "calendar",
-                    color: stats.isChronic ? AppColors.error : Color.accentPrimary,
+                    icon: "calendar.badge.exclamationmark",
+                    color: stats.isChronic ? AppColors.error : AppColors.warning,
                     subtitle: stats.isChronic ? "慢性偏头痛" : nil
                 )
                 
                 StatItem(
-                    title: "总发作次数",
+                    title: "发作次数",
                     value: "\(stats.totalAttacks)",
-                    icon: "bolt.fill",
-                    color: Color.accentPrimary
+                    icon: "exclamationmark.triangle.fill",
+                    color: AppColors.error
+                )
+                
+                StatItem(
+                    title: "平均持续时长",
+                    value: stats.averageDurationFormatted,
+                    icon: "clock.fill",
+                    color: Color.accentSecondary
                 )
                 
                 StatItem(
                     title: "平均强度",
                     value: stats.averageIntensityFormatted,
-                    icon: "chart.line.uptrend.xyaxis",
+                    icon: "waveform.path.ecg",
                     color: AppColors.painCategoryColor(for: Int(stats.averagePainIntensity))
                 )
                 
                 StatItem(
                     title: "用药天数",
                     value: "\(stats.medicationDays)",
-                    icon: "pills.fill",
+                    icon: "calendar.badge.plus",
                     color: stats.mohRisk != .none ? AppColors.warning : AppColors.success
+                )
+                
+                StatItem(
+                    title: "用药次数",
+                    value: "\(stats.totalMedicationUses)",
+                    icon: "pills.fill",
+                    color: Color.accentPrimary
                 )
             }
             

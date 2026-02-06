@@ -224,20 +224,28 @@ enum ExportTimeRange: String, CaseIterable, Identifiable {
         let calendar = Calendar.current
         
         let startDate: Date
+        let endDate: Date
+        
         switch self {
         case .lastMonth:
             startDate = calendar.date(byAdding: .month, value: -1, to: now)!
+            endDate = now
         case .last3Months:
             startDate = calendar.date(byAdding: .month, value: -3, to: now)!
+            endDate = now
         case .last6Months:
             startDate = calendar.date(byAdding: .month, value: -6, to: now)!
+            endDate = now
         case .lastYear:
             startDate = calendar.date(byAdding: .year, value: -1, to: now)!
+            endDate = now
         case .custom:
-            return DateInterval(start: customStart, end: customEnd)
+            // 规范化自定义日期范围，确保包含完整的结束日期
+            let normalized = Date.normalizedDateRange(start: customStart, end: customEnd)
+            return DateInterval(start: normalized.start, end: normalized.end)
         }
         
-        return DateInterval(start: startDate, end: now)
+        return DateInterval(start: startDate, end: endDate)
     }
 }
 

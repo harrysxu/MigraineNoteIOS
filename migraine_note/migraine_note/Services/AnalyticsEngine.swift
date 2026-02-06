@@ -119,11 +119,10 @@ class AnalyticsEngine {
             hourDistribution[hour, default: 0] += 1
         }
         
-        return hourDistribution
-            .map { hour, count in
-                CircadianData(hour: hour, count: count)
-            }
-            .sorted { $0.hour < $1.hour }
+        // 确保返回完整的24小时数据，没有数据的小时计数为0
+        return (0..<24).map { hour in
+            CircadianData(hour: hour, count: hourDistribution[hour] ?? 0)
+        }
     }
     
     // MARK: - 疼痛强度分布统计
@@ -458,16 +457,12 @@ class AnalyticsEngine {
             )
         }
     }
-}
-
-// MARK: - 数据结构
-
-struct FrequencyResult: Identifiable {
-    let id = UUID()
-    let name: String
-    let count: Int
-    let percentage: Double
-}
+    
+    /// 分析用药依从性
+    func analyzeMedicationAdherence(in dateRange: (Date, Date)) -> MedicationAdherenceStats {
+        let startDate = dateRange.0
+        let endDate = dateRange.1
+        let calendar = Calendar.current
         
         // 查询健康事件中的用药记录
         let healthEventDescriptor = FetchDescriptor<HealthEvent>(
@@ -864,4 +859,11 @@ struct TreatmentCorrelationResult {
     var hasImprovement: Bool {
         attackDaysReduction > 0 || intensityReduction > 0
     }
+}
+
+struct FrequencyResult: Identifiable {
+    let id = UUID()
+    let name: String
+    let count: Int
+    let percentage: Double
 }

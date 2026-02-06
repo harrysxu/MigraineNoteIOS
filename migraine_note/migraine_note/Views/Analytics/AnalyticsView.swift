@@ -231,7 +231,7 @@ struct AnalyticsView: View {
     
     private var overallSummaryCard: some View {
         EmotionalCard(style: .elevated) {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
                 // 标题行
                 HStack {
                     Text("整体概况")
@@ -248,53 +248,59 @@ struct AnalyticsView: View {
                         .cornerRadius(8)
                 }
                 
-                // 统计卡片网格 - 2x3布局
-                VStack(spacing: 12) {
-                    // 第一行
-                    HStack(spacing: 12) {
-                        CompactAnalyticStatCard(
-                            value: "\(getTotalAttacksCount())",
-                            label: "发作次数",
-                            icon: "exclamationmark.triangle.fill",
-                            color: .statusError
-                        )
-                        
-                        CompactAnalyticStatCard(
-                            value: "\(getAttackDaysCount())",
-                            label: "发作天数",
-                            icon: "calendar.badge.exclamationmark",
-                            color: .statusWarning
-                        )
-                    }
+                // 统计数据网格 - 3x2布局
+                let durationStats = analyticsEngine.analyzeDurationStatistics(in: currentDateRange)
+                let attackDays = getAttackDaysCount()
+                let medicationDays = getMedicationDays()
+                let isChronic = attackDays >= 15
+                let hasMOHRisk = medicationDays >= 10
+                
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: Spacing.md) {
+                    StatItem(
+                        title: "发作天数",
+                        value: "\(attackDays)",
+                        icon: "calendar.badge.exclamationmark",
+                        color: isChronic ? Color.statusError : Color.statusWarning,
+                        subtitle: isChronic ? "慢性偏头痛" : nil
+                    )
                     
-                    // 第二行
-                    HStack(spacing: 12) {
-                        CompactAnalyticStatCard(
-                            value: String(format: "%.1f", getAveragePainIntensity()),
-                            label: "平均强度",
-                            icon: "waveform.path.ecg",
-                            color: .statusInfo
-                        )
-                        
-                        CompactAnalyticStatCard(
-                            value: "\(getMedicationCount())",
-                            label: "用药次数",
-                            icon: "pills.fill",
-                            color: .accentPrimary
-                        )
-                    }
+                    StatItem(
+                        title: "发作次数",
+                        value: "\(getTotalAttacksCount())",
+                        icon: "exclamationmark.triangle.fill",
+                        color: Color.statusError
+                    )
                     
-                    // 第三行（单列）
-                    let durationStats = analyticsEngine.analyzeDurationStatistics(in: currentDateRange)
-                    HStack(spacing: 12) {
-                        CompactAnalyticStatCard(
-                            value: String(format: "%.1fh", durationStats.averageDurationHours),
-                            label: "平均持续时长",
-                            icon: "clock.fill",
-                            color: .accentSecondary,
-                            isWide: true
-                        )
-                    }
+                    StatItem(
+                        title: "平均持续时长",
+                        value: String(format: "%.1fh", durationStats.averageDurationHours),
+                        icon: "clock.fill",
+                        color: Color.accentSecondary
+                    )
+                    
+                    StatItem(
+                        title: "平均强度",
+                        value: String(format: "%.1f", getAveragePainIntensity()),
+                        icon: "waveform.path.ecg",
+                        color: Color.painCategoryColor(for: Int(getAveragePainIntensity()))
+                    )
+                    
+                    StatItem(
+                        title: "用药天数",
+                        value: "\(medicationDays)",
+                        icon: "calendar.badge.plus",
+                        color: hasMOHRisk ? Color.statusWarning : Color.statusSuccess
+                    )
+                    
+                    StatItem(
+                        title: "用药次数",
+                        value: "\(getMedicationCount())",
+                        icon: "pills.fill",
+                        color: Color.accentPrimary
+                    )
                 }
             }
         }
@@ -569,9 +575,9 @@ struct AnalyticsView: View {
                         }
                     }
                     .frame(height: 180)
-                    .chartXScale(domain: 0...24)
+                    .chartXScale(domain: 0...23)
                     .chartXAxis {
-                        AxisMarks(values: [0, 6, 12, 18, 24]) { value in
+                        AxisMarks(values: [0, 6, 12, 18, 23]) { value in
                             AxisValueLabel {
                                 if let hour = value.as(Int.self) {
                                     Text("\(hour)时")
@@ -960,6 +966,20 @@ struct AnalyticsView: View {
         return attacksInRange.reduce(0) { $0 + $1.medications.count }
     }
     
+    private func getMedicationDays() -> Int {
+        let calendar = Calendar.current
+        let (start, end) = currentDateRange
+        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
+        
+        let medicationDays = Set(
+            attacksInRange
+                .filter { !$0.medications.isEmpty }
+                .map { calendar.startOfDay(for: $0.startTime) }
+        )
+        
+        return medicationDays.count
+    }
+    
     private func getCurrentMonthMedicationDays() -> Int {
         let calendar = Calendar.current
         let now = Date()
@@ -978,7 +998,6 @@ struct AnalyticsView: View {
         
         return medicationDays.count
     }
-}
 
 // MARK: - Supporting Views
 
@@ -1072,93 +1091,6 @@ struct FrequencyRow: View {
         .cornerRadius(10)
     }
 }
-
-// MARK: - Supporting Types
-
-enum TimeRange: String, CaseIterable, Identifiable {
-                
-                if adherenceStats.totalDays > 0 {
-                    VStack(spacing: 16) {
-                        // 依从性百分比
-                        HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("依从率")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.textSecondary)
-                                
-                                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                    Text(String(format: "%.1f", adherenceStats.adherenceRate))
-                                        .font(.system(size: 36, weight: .bold))
-                                        .foregroundStyle(adherenceRateColor(adherenceStats.adherenceRate))
-                                    
-                                    Text("%")
-                                        .font(.title3)
-                                        .foregroundStyle(Color.textSecondary)
-                                }
-                            }
-                            
-                            Spacer()
-                            
-                            // 环形进度
-                            ZStack {
-                                Circle()
-                                    .stroke(Color.divider, lineWidth: 6)
-                                    .frame(width: 64, height: 64)
-                                
-                                Circle()
-                                    .trim(from: 0, to: adherenceStats.adherenceRate / 100)
-                                    .stroke(
-                                        adherenceRateColor(adherenceStats.adherenceRate),
-                                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                                    )
-                                    .frame(width: 64, height: 64)
-                                    .rotationEffect(.degrees(-90))
-                            }
-                        }
-                        
-                        Divider()
-                        
-                        // 详细数据
-                        HStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("用药天数")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
-                                Text("\(adherenceStats.medicationDays) 天")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Color.textPrimary)
-                            }
-                            
-                            Spacer()
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("遗漏天数")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.textSecondary)
-                                Text("\(adherenceStats.missedDays) 天")
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(adherenceStats.missedDays > 3 ? Color.statusWarning : Color.textPrimary)
-                            }
-                        }
-                    }
-                } else {
-                    Text("暂无日常用药记录")
-                        .font(.caption)
-                        .foregroundStyle(Color.textSecondary)
-                }
-            }
-        }
-    }
-    
-    private func adherenceRateColor(_ rate: Double) -> Color {
-        if rate >= 80 {
-            return Color.statusSuccess
-        } else if rate >= 60 {
-            return Color.statusWarning
-        } else {
-            return Color.statusError
-        }
-    }
     
     // MARK: - 中医治疗统计
     
@@ -1522,8 +1454,9 @@ enum TimeRange: String, CaseIterable, Identifiable {
         
         switch self {
         case .thisMonth:
-            let start = calendar.date(byAdding: .month, value: -1, to: now)!
-            return (start, now)
+            // 本月：从本月1号0:00到现在
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            return (startOfMonth, now)
         case .threeMonths:
             let start = calendar.date(byAdding: .month, value: -3, to: now)!
             return (start, now)
@@ -1535,11 +1468,13 @@ enum TimeRange: String, CaseIterable, Identifiable {
             return (start, now)
         case .custom:
             if let customStart = customStart, let customEnd = customEnd {
-                return (customStart, customEnd)
+                // 规范化自定义日期范围，确保包含完整的结束日期
+                let normalized = Date.normalizedDateRange(start: customStart, end: customEnd)
+                return (normalized.start, normalized.end)
             }
-            // 默认返回最近1个月
-            let start = calendar.date(byAdding: .month, value: -1, to: now)!
-            return (start, now)
+            // 默认返回本月
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            return (startOfMonth, now)
         }
     }
 }

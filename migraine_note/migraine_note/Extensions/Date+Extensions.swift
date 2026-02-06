@@ -108,4 +108,27 @@ extension Date {
     func yearTitle() -> String {
         return "\(year)年"
     }
+    
+    // MARK: - 日期范围处理
+    
+    /// 获取当天的开始时间（00:00:00）
+    func startOfDay() -> Date {
+        return Calendar.current.startOfDay(for: self)
+    }
+    
+    /// 获取当天的结束时间（23:59:59.999）
+    func endOfDay() -> Date {
+        let calendar = Calendar.current
+        let startOfNextDay = calendar.date(byAdding: .day, value: 1, to: startOfDay())!
+        return startOfNextDay.addingTimeInterval(-0.001)
+    }
+    
+    /// 规范化日期范围：确保结束日期包含完整的一天
+    /// - Parameters:
+    ///   - start: 开始日期
+    ///   - end: 结束日期
+    /// - Returns: 规范化后的日期范围，开始日期为当天00:00:00，结束日期为当天23:59:59.999
+    static func normalizedDateRange(start: Date, end: Date) -> (start: Date, end: Date) {
+        return (start.startOfDay(), end.endOfDay())
+    }
 }
