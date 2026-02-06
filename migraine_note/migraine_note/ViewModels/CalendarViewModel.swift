@@ -54,16 +54,16 @@ class CalendarViewModel {
     }
     
     private func loadAttacks() {
-        // 获取当前月份的开始和结束日期
+        // 获取当前月份的开始和结束日期（使用下月首日0点作为 exclusive end，以包含月末整天）
         guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth)),
-              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+              let monthEndExclusive = calendar.date(byAdding: .month, value: 1, to: monthStart) else {
             return
         }
         
         // 查询该月份的所有发作记录
         let descriptor = FetchDescriptor<AttackRecord>(
             predicate: #Predicate { attack in
-                attack.startTime >= monthStart && attack.startTime <= monthEnd
+                attack.startTime >= monthStart && attack.startTime < monthEndExclusive
             },
             sortBy: [SortDescriptor(\.startTime, order: .forward)]
         )
@@ -84,16 +84,16 @@ class CalendarViewModel {
     }
     
     private func loadHealthEvents() {
-        // 获取当前月份的开始和结束日期
+        // 获取当前月份的开始和结束日期（使用下月首日0点作为 exclusive end，以包含月末整天）
         guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth)),
-              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+              let monthEndExclusive = calendar.date(byAdding: .month, value: 1, to: monthStart) else {
             return
         }
         
         // 查询该月份的所有健康事件
         let descriptor = FetchDescriptor<HealthEvent>(
             predicate: #Predicate { event in
-                event.eventDate >= monthStart && event.eventDate <= monthEnd
+                event.eventDate >= monthStart && event.eventDate < monthEndExclusive
             },
             sortBy: [SortDescriptor(\.eventDate, order: .forward)]
         )
@@ -114,55 +114,66 @@ class CalendarViewModel {
     }
     
     private func calculateMonthlyStats() {
+        // 使用下月首日0点作为 exclusive end，与图表月度趋势逻辑一致
         guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: currentMonth)),
-              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+              let monthEndExclusive = calendar.date(byAdding: .month, value: 1, to: monthStart) else {
             monthlyStats = nil
             return
         }
         
         // 查询该月份的所有发作记录
-        let descriptor = FetchDescriptor<AttackRecord>(
+        let attackDescriptor = FetchDescriptor<AttackRecord>(
             predicate: #Predicate { attack in
-                attack.startTime >= monthStart && attack.startTime <= monthEnd
+                attack.startTime >= monthStart && attack.startTime < monthEndExclusive
             }
         )
         
-        guard let attacks = try? modelContext.fetch(descriptor) else {
+        guard let attacks = try? modelContext.fetch(attackDescriptor) else {
             monthlyStats = nil
             return
         }
         
-        // 计算统计数据
+        // 查询该月份的所有健康事件
+        let healthEventDescriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= monthStart && event.eventDate < monthEndExclusive
+            }
+        )
+        
+        let healthEvents = (try? modelContext.fetch(healthEventDescriptor)) ?? []
+        
+        // 计算基本统计数据
         let attackDays = Set(attacks.map { calendar.startOfDay(for: $0.startTime) }).count
         let totalAttacks = attacks.count
         let averageIntensity = attacks.isEmpty ? 0 : attacks.reduce(0.0) { $0 + Double($1.painIntensity) } / Double(attacks.count)
-        
-        // 计算用药天数和用药次数
-        var medicationDays = Set<Date>()
-        var totalMedicationUses = 0
-        for attack in attacks {
-            if !attack.medicationLogs.isEmpty {
-                medicationDays.insert(calendar.startOfDay(for: attack.startTime))
-                totalMedicationUses += attack.medicationLogs.count
-            }
-        }
         
         // 计算平均持续时长（只统计已结束的发作）
         let completedAttacks = attacks.filter { $0.duration != nil }
         let averageDuration = completedAttacks.isEmpty ? 0 : completedAttacks.reduce(0.0) { $0 + ($1.duration ?? 0) } / Double(completedAttacks.count)
         
-        // 检测MOH风险
-        let period = DateInterval(start: monthStart, end: monthEnd)
+        // 使用统一的统计方法计算细分数据
+        let medicationStats = DetailedMedicationStatistics.calculate(
+            attacks: attacks,
+            healthEvents: healthEvents,
+            dateRange: (monthStart, monthEndExclusive)
+        )
+        
+        // 检测MOH风险（仅基于急性用药天数）
+        let period = DateInterval(start: monthStart, end: monthEndExclusive)
         let mohRisk = MOHDetector.checkMOHRisk(for: period, attacks: attacks)
         
         monthlyStats = MonthlyStatistics(
             attackDays: attackDays,
             totalAttacks: totalAttacks,
             averagePainIntensity: averageIntensity,
-            medicationDays: medicationDays.count,
             mohRisk: mohRisk,
             averageDuration: averageDuration,
-            totalMedicationUses: totalMedicationUses
+            acuteMedicationDays: medicationStats.acuteMedicationDays,
+            acuteMedicationCount: medicationStats.acuteMedicationCount,
+            preventiveMedicationDays: medicationStats.preventiveMedicationDays,
+            preventiveMedicationCount: medicationStats.preventiveMedicationCount,
+            tcmTreatmentCount: medicationStats.tcmTreatmentCount,
+            surgeryCount: medicationStats.surgeryCount
         )
     }
     
@@ -259,10 +270,29 @@ struct MonthlyStatistics {
     let attackDays: Int
     let totalAttacks: Int
     let averagePainIntensity: Double
-    let medicationDays: Int
     let mohRisk: MOHRiskLevel
     let averageDuration: TimeInterval
-    let totalMedicationUses: Int
+    
+    // 细分的用药和治疗统计
+    let acuteMedicationDays: Int       // 急性用药天数（仅发作期间）
+    let acuteMedicationCount: Int      // 急性用药次数（仅发作期间）
+    let preventiveMedicationDays: Int  // 预防性用药天数（健康事件中）
+    let preventiveMedicationCount: Int // 预防性用药次数（健康事件中）
+    let tcmTreatmentCount: Int         // 中医治疗次数
+    let surgeryCount: Int              // 手术次数
+    
+    // 便捷属性：判断是否有数据
+    var hasPreventiveMedication: Bool { preventiveMedicationCount > 0 }
+    var hasTCMTreatment: Bool { tcmTreatmentCount > 0 }
+    var hasSurgery: Bool { surgeryCount > 0 }
+    
+    // 兼容性：保留原有的总计字段（用于MOH风险判断等现有逻辑）
+    var medicationDays: Int {
+        acuteMedicationDays + preventiveMedicationDays
+    }
+    var totalMedicationUses: Int {
+        acuteMedicationCount + preventiveMedicationCount
+    }
     
     var isChronic: Bool {
         attackDays >= 15

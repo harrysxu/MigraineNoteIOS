@@ -116,47 +116,47 @@ struct SimplifiedRecordingView: View {
                         painAssessmentContent
                     }
                     
-                    // 症状记录（可折叠）
+                    // 症状记录（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "症状记录",
+                        title: symptomsSectionTitle,
                         icon: "heart.text.square",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         symptomsContent
                     }
                     
-                    // 诱因分析（可折叠）
+                    // 诱因分析（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "诱因分析",
+                        title: triggersSectionTitle,
                         icon: "sparkles",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         triggersContent
                     }
                     
-                    // 用药记录（可折叠）
+                    // 用药记录（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "用药记录",
+                        title: medicationsSectionTitle,
                         icon: "pills.fill",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         medicationsContent
                     }
                     
-                    // 非药物干预（可折叠）
+                    // 非药物干预（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "非药物干预",
+                        title: nonPharmSectionTitle,
                         icon: "figure.mind.and.body",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         nonPharmContent
                     }
                     
-                    // 备注（可折叠）
+                    // 备注（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "备注",
+                        title: notesSectionTitle,
                         icon: "note.text",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         notesContent
                     }
@@ -215,6 +215,32 @@ struct SimplifiedRecordingView: View {
                 }
             )
         }
+    }
+    
+    // MARK: - Section Titles with Summary
+    
+    private var symptomsSectionTitle: String {
+        let count = viewModel.selectedSymptomNames.count + (viewModel.hasAura ? viewModel.selectedAuraTypeNames.count : 0)
+        return count > 0 ? "症状记录 (\(count)项)" : "症状记录"
+    }
+    
+    private var triggersSectionTitle: String {
+        let count = viewModel.selectedTriggers.count
+        return count > 0 ? "诱因分析 (\(count)项)" : "诱因分析"
+    }
+    
+    private var medicationsSectionTitle: String {
+        let count = viewModel.selectedMedications.count
+        return count > 0 ? "用药记录 (\(count)项)" : "用药记录"
+    }
+    
+    private var nonPharmSectionTitle: String {
+        let count = viewModel.selectedNonPharmacological.count
+        return count > 0 ? "非药物干预 (\(count)项)" : "非药物干预"
+    }
+    
+    private var notesSectionTitle: String {
+        return viewModel.notes.isEmpty ? "备注" : "备注 (已填写)"
     }
     
     // MARK: - Time Section

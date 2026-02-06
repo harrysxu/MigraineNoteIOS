@@ -39,13 +39,14 @@ class CSVExporter {
             "先兆类型",
             "先兆持续时间(分钟)",
             "伴随症状",
+            "症状严重程度",
             "诱因",
+            "诱因类别",
             "用药",
             "用药剂量",
+            "用药疗效",
+            "副作用",
             "非药物干预",
-            "月经周期第几天",
-            "前晚睡眠(小时)",
-            "平均心率",
             "天气情况",
             "中医证候",
             "备注",
@@ -72,9 +73,13 @@ class CSVExporter {
                 escapeCSV(attack.auraTypes.joined(separator: "; ")),
                 escapeCSV(attack.auraDuration.map { String(format: "%.1f", $0 / 60) } ?? ""),
                 escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
+                escapeCSV(attack.symptoms.map { "\($0.name):\($0.severity)" }.joined(separator: "; ")),
                 escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
-                escapeCSV(attack.medications.map { $0.medication?.name ?? "" }.joined(separator: "; ")),
-                escapeCSV(attack.medications.map { String(format: "%.1f", $0.dosage) }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.category.rawValue }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.efficacy.displayName }.joined(separator: "; ")),
+                escapeCSV(attack.medications.flatMap { $0.sideEffects }.joined(separator: "; ")),
                 escapeCSV(attack.nonPharmInterventionList.joined(separator: "; ")),
                 escapeCSV(formatWeather(attack.weatherSnapshot)),
                 escapeCSV(attack.tcmPattern.joined(separator: "; ")),
@@ -231,13 +236,14 @@ class CSVExporter {
             "先兆类型",
             "先兆持续时间(分钟)",
             "伴随症状",
+            "症状严重程度",
             "诱因",
+            "诱因类别",
             "用药",
             "用药剂量",
+            "用药疗效",
+            "副作用",
             "非药物干预",
-            "月经周期第几天",
-            "前晚睡眠(小时)",
-            "平均心率",
             "天气情况",
             "中医证候",
             "备注",
@@ -263,9 +269,13 @@ class CSVExporter {
                 escapeCSV(attack.auraTypes.joined(separator: "; ")),
                 escapeCSV(attack.auraDuration.map { String(format: "%.1f", $0 / 60) } ?? ""),
                 escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
+                escapeCSV(attack.symptoms.map { "\($0.name):\($0.severity)" }.joined(separator: "; ")),
                 escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
-                escapeCSV(attack.medications.map { $0.medication?.name ?? "" }.joined(separator: "; ")),
-                escapeCSV(attack.medications.map { String(format: "%.1f", $0.dosage) }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.category.rawValue }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.efficacy.displayName }.joined(separator: "; ")),
+                escapeCSV(attack.medications.flatMap { $0.sideEffects }.joined(separator: "; ")),
                 escapeCSV(attack.nonPharmInterventionList.joined(separator: "; ")),
                 escapeCSV(formatWeather(attack.weatherSnapshot)),
                 escapeCSV(attack.tcmPattern.joined(separator: "; ")),
@@ -435,10 +445,16 @@ class CSVExporter {
             parts.append("湿度:\(String(format: "%.0f", weather.humidity))%")
         }
         if weather.pressure != 0 {
-            parts.append("气压:\(String(format: "%.0f", weather.pressure))hPa")
+            parts.append("气压:\(String(format: "%.0f", weather.pressure))hPa(\(weather.pressureTrend.rawValue))")
+        }
+        if weather.windSpeed != 0 {
+            parts.append("风速:\(String(format: "%.1f", weather.windSpeed))m/s")
         }
         if !weather.condition.isEmpty {
             parts.append("天气:\(weather.condition)")
+        }
+        if !weather.location.isEmpty {
+            parts.append("位置:\(weather.location)")
         }
         
         return parts.joined(separator: " | ")
@@ -607,10 +623,15 @@ class CSVExporter {
             "疼痛性质",
             "有先兆",
             "先兆类型",
+            "先兆持续时间(分钟)",
             "伴随症状",
+            "症状严重程度",
             "诱因",
+            "诱因类别",
             "用药",
             "用药剂量",
+            "用药疗效",
+            "副作用",
             "非药物干预",
             "天气情况",
             "中医证候",
@@ -634,10 +655,15 @@ class CSVExporter {
                 escapeCSV(attack.painQuality.joined(separator: "; ")),
                 escapeCSV(attack.hasAura ? "是" : "否"),
                 escapeCSV(attack.auraTypes.joined(separator: "; ")),
+                escapeCSV(attack.auraDuration.map { String(format: "%.1f", $0 / 60) } ?? ""),
                 escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
+                escapeCSV(attack.symptoms.map { "\($0.name):\($0.severity)" }.joined(separator: "; ")),
                 escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.category.rawValue }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
+                escapeCSV(attack.medications.map { $0.efficacy.displayName }.joined(separator: "; ")),
+                escapeCSV(attack.medications.flatMap { $0.sideEffects }.joined(separator: "; ")),
                 escapeCSV(attack.nonPharmInterventionList.joined(separator: "; ")),
                 escapeCSV(formatWeather(attack.weatherSnapshot)),
                 escapeCSV(attack.tcmPattern.joined(separator: "; ")),

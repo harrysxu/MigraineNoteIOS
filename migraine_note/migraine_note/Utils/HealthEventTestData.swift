@@ -51,6 +51,29 @@ struct HealthEventTestData {
                 )
                 medLog.medicationName = ["布洛芬", "对乙酰氨基酚", "盐酸氟桂利嗪", "舒马普坦", "麦角胺咖啡因"].randomElement()
                 medLog.unit = "mg"
+                
+                // 随机疗效评估（40%未评估，30%部分缓解，20%完全缓解，10%无效）
+                let efficacyRandom = Double.random(in: 0...1)
+                if efficacyRandom < 0.4 {
+                    medLog.efficacy = .notEvaluated
+                } else if efficacyRandom < 0.7 {
+                    medLog.efficacy = .partial
+                    medLog.efficacyCheckedAt = eventDate.addingTimeInterval(7200)
+                } else if efficacyRandom < 0.9 {
+                    medLog.efficacy = .complete
+                    medLog.efficacyCheckedAt = eventDate.addingTimeInterval(7200)
+                } else {
+                    medLog.efficacy = .noEffect
+                    medLog.efficacyCheckedAt = eventDate.addingTimeInterval(7200)
+                }
+                
+                // 随机副作用（20%概率）
+                if Double.random(in: 0...1) < 0.2 {
+                    let possibleSideEffects = ["嗜睡", "胃部不适", "头晕", "口干", "便秘", "恶心"]
+                    let count = Int.random(in: 1...2)
+                    medLog.sideEffects = Array(possibleSideEffects.shuffled().prefix(count))
+                }
+                
                 context.insert(medLog)
                 event.medicationLog = medLog
                 event.notes = ["预防性用药", "急性发作用药", "止痛药", nil].randomElement() ?? nil
@@ -66,6 +89,9 @@ struct HealthEventTestData {
                 event.doctorName = ["张医生", "李医生", "王医生"].randomElement()
                 event.notes = ["手术治疗", "神经阻滞", nil].randomElement() ?? nil
             }
+            
+            // 设置 updatedAt 与 eventDate 一致
+            event.updatedAt = eventDate
             
             context.insert(event)
             generatedCount += 1

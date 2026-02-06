@@ -465,11 +465,12 @@ class AnalyticsEngine {
         let calendar = Calendar.current
         
         // 查询健康事件中的用药记录
+        let medicationRawValue = HealthEventType.medication.rawValue
         let healthEventDescriptor = FetchDescriptor<HealthEvent>(
             predicate: #Predicate { event in
                 event.eventDate >= startDate && 
                 event.eventDate <= endDate &&
-                event.eventTypeRawValue == "medication"
+                event.eventTypeRawValue == medicationRawValue
             }
         )
         
@@ -496,11 +497,12 @@ class AnalyticsEngine {
         let startDate = dateRange.0
         let endDate = dateRange.1
         
+        let tcmRawValue = HealthEventType.tcmTreatment.rawValue
         let descriptor = FetchDescriptor<HealthEvent>(
             predicate: #Predicate { event in
                 event.eventDate >= startDate && 
                 event.eventDate <= endDate &&
-                event.eventTypeRawValue == "tcmTreatment"
+                event.eventTypeRawValue == tcmRawValue
             }
         )
         

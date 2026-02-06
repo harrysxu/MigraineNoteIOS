@@ -137,37 +137,43 @@ class AttackListViewModel {
         return filtered
     }
     
-    /// 应用日期筛选
-    private func applyDateFilter(to attacks: [AttackRecord]) -> [AttackRecord] {
+    /// 获取当前筛选对应的日期范围（与图表 TimeRange 逻辑保持一致）
+    private func getDateRangeForFilter() -> (start: Date, end: Date)? {
         let calendar = Calendar.current
         let now = Date()
         
         switch filterOption {
         case .thisMonth:
-            // 本月：从本月1号0:00到现在
+            // 本月：完整月份（与图表、日历统计一致）
             let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-            return attacks.filter { $0.startTime >= startOfMonth }
-            
+            let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+            let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
+            return (startOfMonth, endOfMonth)
         case .last3Months:
-            let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!
-            return attacks.filter { $0.startTime >= threeMonthsAgo }
-            
+            let start = calendar.date(byAdding: .month, value: -3, to: now)!
+            return (start, now)
         case .last6Months:
-            let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now)!
-            return attacks.filter { $0.startTime >= sixMonthsAgo }
-            
+            let start = calendar.date(byAdding: .month, value: -6, to: now)!
+            return (start, now)
         case .lastYear:
-            let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now)!
-            return attacks.filter { $0.startTime >= oneYearAgo }
-            
+            let start = calendar.date(byAdding: .year, value: -1, to: now)!
+            return (start, now)
         case .custom:
             if let dateRange = selectedDateRange {
-                return attacks.filter { attack in
-                    attack.startTime >= dateRange.start && attack.startTime <= dateRange.end
-                }
+                return (dateRange.start, dateRange.end)
             }
-            return attacks
+            // 自定义但未选择日期时，默认返回本月
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+            let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+            let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
+            return (startOfMonth, endOfMonth)
         }
+    }
+    
+    /// 应用日期筛选
+    private func applyDateFilter(to attacks: [AttackRecord]) -> [AttackRecord] {
+        guard let range = getDateRangeForFilter() else { return attacks }
+        return attacks.filter { $0.startTime >= range.start && $0.startTime <= range.end }
     }
     
     /// 排序记录
@@ -221,35 +227,8 @@ class AttackListViewModel {
     
     /// 应用日期筛选到健康事件
     private func applyDateFilterToHealthEvents(to events: [HealthEvent]) -> [HealthEvent] {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        switch filterOption {
-        case .thisMonth:
-            // 本月：从本月1号0:00到现在
-            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-            return events.filter { $0.eventDate >= startOfMonth }
-            
-        case .last3Months:
-            let threeMonthsAgo = calendar.date(byAdding: .month, value: -3, to: now)!
-            return events.filter { $0.eventDate >= threeMonthsAgo }
-            
-        case .last6Months:
-            let sixMonthsAgo = calendar.date(byAdding: .month, value: -6, to: now)!
-            return events.filter { $0.eventDate >= sixMonthsAgo }
-            
-        case .lastYear:
-            let oneYearAgo = calendar.date(byAdding: .year, value: -1, to: now)!
-            return events.filter { $0.eventDate >= oneYearAgo }
-            
-        case .custom:
-            if let dateRange = selectedDateRange {
-                return events.filter { event in
-                    event.eventDate >= dateRange.start && event.eventDate <= dateRange.end
-                }
-            }
-            return events
-        }
+        guard let range = getDateRangeForFilter() else { return events }
+        return events.filter { $0.eventDate >= range.start && $0.eventDate <= range.end }
     }
     
     /// 重置所有筛选
@@ -265,7 +244,12 @@ class AttackListViewModel {
     /// 删除记录
     func deleteAttack(_ attack: AttackRecord, from context: ModelContext) {
         context.delete(attack)
-        try? context.save()
+        do {
+            try context.save()
+            AppToastManager.shared.showSuccess("记录已删除")
+        } catch {
+            AppToastManager.shared.showError("删除失败，请重试")
+        }
     }
     
     /// 批量删除记录
@@ -273,6 +257,11 @@ class AttackListViewModel {
         for attack in attacks {
             context.delete(attack)
         }
-        try? context.save()
+        do {
+            try context.save()
+            AppToastManager.shared.showSuccess("已删除 \(attacks.count) 条记录")
+        } catch {
+            AppToastManager.shared.showError("批量删除失败，请重试")
+        }
     }
 }

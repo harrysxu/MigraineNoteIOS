@@ -23,6 +23,9 @@ final class MedicationLog {
     // 反向关系：指向所属的发作记录
     @Relationship(inverse: \AttackRecord.medicationsData) var attackRecord: AttackRecord?
     
+    // 反向关系：指向所属的健康事件
+    @Relationship(inverse: \HealthEvent.medicationLogsData) var healthEvent: HealthEvent?
+    
     init(dosage: Double, timeTaken: Date = Date()) {
         self.dosage = dosage
         self.timeTaken = timeTaken

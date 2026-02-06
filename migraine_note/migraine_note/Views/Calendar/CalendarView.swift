@@ -53,19 +53,19 @@ struct CalendarView: View {
     // MARK: - 日历网格部分
     
     private var calendarGridSection: some View {
-        VStack(spacing: AppSpacing.medium) {
-            // 月份标题和导航
-            monthHeader
-            
-            // 星期标题行
-            weekdayHeader
-            
-            // 日期网格
-            dateGrid
+        EmotionalCard(style: .default) {
+            VStack(spacing: AppSpacing.medium) {
+                // 月份标题和导航
+                monthHeader
+                
+                // 星期标题行
+                weekdayHeader
+                
+                // 日期网格
+                dateGrid
+            }
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.surface)
-        .cornerRadius(AppSpacing.cornerRadiusMedium)
+        .padding(.horizontal)
     }
     
     // MARK: - 月份标题
@@ -144,11 +144,18 @@ struct DayCell: View {
     
     private let calendar = Calendar.current
     
+    private var isSelected: Bool {
+        if let selectedDate = viewModel.selectedDate {
+            return calendar.isDate(date, inSameDayAs: selectedDate)
+        }
+        return false
+    }
+    
     var body: some View {
         VStack(spacing: 4) {
             // 日期数字
             Text(calendar.component(.day, from: date).description)
-                .font(.system(size: 14, weight: isToday ? .bold : .regular))
+                .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
                 .foregroundStyle(textColor)
             
             // 指示器（头痛记录 + 健康事件）
@@ -175,12 +182,19 @@ struct DayCell: View {
         .cornerRadius(AppSpacing.cornerRadiusSmall)
         .overlay(
             RoundedRectangle(cornerRadius: AppSpacing.cornerRadiusSmall)
-                .stroke(isToday ? Color.accentPrimary : Color.clear, lineWidth: 2)
+                .stroke(borderColor, lineWidth: isSelected ? 2 : (isToday ? 1.5 : 0))
         )
         .onTapGesture {
             if isInCurrentMonth {
-                viewModel.selectedDate = date
-                // TODO: 导航到该日期的详情页面
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isSelected {
+                        viewModel.selectedDate = nil // 再次点击取消选中
+                    } else {
+                        viewModel.selectedDate = date
+                    }
+                }
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
             }
         }
     }
@@ -194,7 +208,9 @@ struct DayCell: View {
     }
     
     private var textColor: Color {
-        if !isInCurrentMonth {
+        if isSelected {
+            return .white
+        } else if !isInCurrentMonth {
             return AppColors.textTertiary
         } else if isToday {
             return Color.accentPrimary
@@ -204,10 +220,187 @@ struct DayCell: View {
     }
     
     private var backgroundColor: Color {
-        if viewModel.getAttacks(for: date).isEmpty {
-            return Color.clear
-        } else {
+        if isSelected {
+            return Color.accentPrimary
+        } else if !viewModel.getAttacks(for: date).isEmpty {
             return AppColors.surface.opacity(0.5)
+        } else {
+            return Color.clear
+        }
+    }
+    
+    private var borderColor: Color {
+        if isSelected {
+            return Color.accentPrimary
+        } else if isToday {
+            return Color.accentPrimary.opacity(0.5)
+        } else {
+            return Color.clear
+        }
+    }
+}
+
+// MARK: - 选中日期详情面板
+
+struct SelectedDateDetailPanel: View {
+    let date: Date
+    let attacks: [AttackRecord]
+    let healthEvents: [HealthEvent]
+    var onAttackTap: ((AttackRecord) -> Void)?
+    var onHealthEventTap: ((HealthEvent) -> Void)?
+    
+    private let calendar = Calendar.current
+    
+    var body: some View {
+        EmotionalCard(style: .elevated) {
+            VStack(alignment: .leading, spacing: 12) {
+                // 日期标题
+                HStack {
+                    Text(date.fullDate())
+                        .font(.headline)
+                        .foregroundStyle(Color.textPrimary)
+                    
+                    if calendar.isDateInToday(date) {
+                        Text("今天")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .background(Color.accentPrimary)
+                            .cornerRadius(8)
+                    }
+                    
+                    Spacer()
+                }
+                
+                if attacks.isEmpty && healthEvents.isEmpty {
+                    // 无记录
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(Color.statusSuccess)
+                        Text("当天无发作记录")
+                            .font(.subheadline)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .padding(.vertical, 8)
+                } else {
+                    // 发作记录
+                    if !attacks.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("发作记录")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Color.textSecondary)
+                            
+                            ForEach(attacks, id: \.id) { attack in
+                                Button {
+                                    onAttackTap?(attack)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        // 疼痛强度
+                                        Text("\(attack.painIntensity)")
+                                            .font(.system(size: 20, weight: .bold))
+                                            .foregroundStyle(Color.painCategoryColor(for: attack.painIntensity))
+                                            .frame(width: 40, height: 40)
+                                            .background(Color.painCategoryColor(for: attack.painIntensity).opacity(0.15))
+                                            .cornerRadius(10)
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(attack.startTime.shortTime() + (attack.endTime != nil ? " - \(attack.endTime!.shortTime())" : " (进行中)"))
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundStyle(Color.textPrimary)
+                                            
+                                            if let duration = attack.duration {
+                                                let hours = Int(duration) / 3600
+                                                let minutes = (Int(duration) % 3600) / 60
+                                                Text("持续 \(hours > 0 ? "\(hours)h" : "")\(minutes)m")
+                                                    .font(.caption)
+                                                    .foregroundStyle(Color.textSecondary)
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        // 用药标记
+                                        if !attack.medications.isEmpty {
+                                            Image(systemName: "pills.fill")
+                                                .font(.caption)
+                                                .foregroundStyle(Color.accentPrimary)
+                                        }
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.textTertiary)
+                                    }
+                                    .padding(10)
+                                    .background(Color.backgroundPrimary)
+                                    .cornerRadius(10)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    
+                    // 健康事件
+                    if !healthEvents.isEmpty {
+                        if !attacks.isEmpty {
+                            Divider()
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("健康事件")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Color.textSecondary)
+                            
+                            ForEach(healthEvents, id: \.id) { event in
+                                Button {
+                                    onHealthEventTap?(event)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: event.eventType.icon)
+                                            .font(.title3)
+                                            .foregroundStyle(healthEventColor(for: event.eventType))
+                                            .frame(width: 40, height: 40)
+                                            .background(healthEventColor(for: event.eventType).opacity(0.15))
+                                            .cornerRadius(10)
+                                        
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(event.displayTitle)
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundStyle(Color.textPrimary)
+                                            
+                                            if let detail = event.displayDetail {
+                                                Text(detail)
+                                                    .font(.caption)
+                                                    .foregroundStyle(Color.textSecondary)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.textTertiary)
+                                    }
+                                    .padding(10)
+                                    .background(Color.backgroundPrimary)
+                                    .cornerRadius(10)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    private func healthEventColor(for eventType: HealthEventType) -> Color {
+        switch eventType {
+        case .medication: return .accentPrimary
+        case .tcmTreatment: return .statusSuccess
+        case .surgery: return .statusInfo
         }
     }
 }
@@ -218,74 +411,110 @@ struct MonthlyStatsCard: View {
     let stats: MonthlyStatistics
     
     var body: some View {
-        VStack(spacing: AppSpacing.medium) {
-            // 标题
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(Color.accentPrimary)
-                Text("本月统计")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(AppColors.textPrimary)
-                Spacer()
-            }
-            
-            // 统计数据网格 - 3x2布局
-            LazyVGrid(columns: [
-                GridItem(.flexible()),
-                GridItem(.flexible())
-            ], spacing: AppSpacing.medium) {
-                StatItem(
-                    title: "发作天数",
-                    value: "\(stats.attackDays)",
-                    icon: "calendar.badge.exclamationmark",
-                    color: stats.isChronic ? AppColors.error : AppColors.warning,
-                    subtitle: stats.isChronic ? "慢性偏头痛" : nil
-                )
+        EmotionalCard(style: .elevated) {
+            VStack(alignment: .leading, spacing: Spacing.md) {
+                // 标题行 - 与图表页整体概况保持一致
+                HStack {
+                    Text("本月统计")
+                        .font(.title3.weight(.semibold))
+                    
+                    Spacer()
+                }
                 
-                StatItem(
-                    title: "发作次数",
-                    value: "\(stats.totalAttacks)",
-                    icon: "exclamationmark.triangle.fill",
-                    color: AppColors.error
-                )
+                // 统计数据网格
+                LazyVGrid(columns: [
+                    GridItem(.flexible()),
+                    GridItem(.flexible())
+                ], spacing: Spacing.md) {
+                    // 核心指标
+                    StatItem(
+                        title: "发作天数",
+                        value: "\(stats.attackDays)",
+                        icon: "calendar.badge.exclamationmark",
+                        color: stats.isChronic ? Color.statusError : Color.statusWarning,
+                        subtitle: stats.isChronic ? "慢性偏头痛" : nil
+                    )
+                    
+                    StatItem(
+                        title: "发作次数",
+                        value: "\(stats.totalAttacks)",
+                        icon: "exclamationmark.triangle.fill",
+                        color: Color.statusError
+                    )
+                    
+                    StatItem(
+                        title: "平均持续时长",
+                        value: stats.averageDurationFormatted,
+                        icon: "clock.fill",
+                        color: Color.accentSecondary
+                    )
+                    
+                    StatItem(
+                        title: "平均强度",
+                        value: stats.averageIntensityFormatted,
+                        icon: "waveform.path.ecg",
+                        color: Color.painCategoryColor(for: Int(stats.averagePainIntensity))
+                    )
+                    
+                    // 急性用药（始终显示）
+                    StatItem(
+                        title: "急性用药天数",
+                        value: "\(stats.acuteMedicationDays)",
+                        icon: "calendar.badge.clock",
+                        color: stats.acuteMedicationDays >= 10 ? Color.statusWarning : Color.statusSuccess
+                    )
+                    
+                    StatItem(
+                        title: "急性用药次数",
+                        value: "\(stats.acuteMedicationCount)",
+                        icon: "pills.fill",
+                        color: stats.acuteMedicationDays >= 10 ? Color.statusWarning : Color.accentPrimary
+                    )
+                    
+                    // 预防性用药（有数据时显示）
+                    if stats.hasPreventiveMedication {
+                        StatItem(
+                            title: "预防性用药天数",
+                            value: "\(stats.preventiveMedicationDays)",
+                            icon: "calendar.badge.plus",
+                            color: Color.statusSuccess
+                        )
+                        
+                        StatItem(
+                            title: "预防性用药次数",
+                            value: "\(stats.preventiveMedicationCount)",
+                            icon: "shield.fill",
+                            color: Color.statusSuccess
+                        )
+                    }
+                    
+                    // 中医治疗（有数据时显示）
+                    if stats.hasTCMTreatment {
+                        StatItem(
+                            title: "中医治疗次数",
+                            value: "\(stats.tcmTreatmentCount)",
+                            icon: "leaf.circle.fill",
+                            color: Color.statusSuccess
+                        )
+                    }
+                    
+                    // 手术（有数据时显示）
+                    if stats.hasSurgery {
+                        StatItem(
+                            title: "手术次数",
+                            value: "\(stats.surgeryCount)",
+                            icon: "cross.case.circle.fill",
+                            color: Color.statusInfo
+                        )
+                    }
+                }
                 
-                StatItem(
-                    title: "平均持续时长",
-                    value: stats.averageDurationFormatted,
-                    icon: "clock.fill",
-                    color: Color.accentSecondary
-                )
-                
-                StatItem(
-                    title: "平均强度",
-                    value: stats.averageIntensityFormatted,
-                    icon: "waveform.path.ecg",
-                    color: AppColors.painCategoryColor(for: Int(stats.averagePainIntensity))
-                )
-                
-                StatItem(
-                    title: "用药天数",
-                    value: "\(stats.medicationDays)",
-                    icon: "calendar.badge.plus",
-                    color: stats.mohRisk != .none ? AppColors.warning : AppColors.success
-                )
-                
-                StatItem(
-                    title: "用药次数",
-                    value: "\(stats.totalMedicationUses)",
-                    icon: "pills.fill",
-                    color: Color.accentPrimary
-                )
-            }
-            
-            // MOH风险警告
-            if stats.mohRisk != .none {
-                mohRiskWarning
+                // MOH风险警告
+                if stats.mohRisk != .none {
+                    mohRiskWarning
+                }
             }
         }
-        .padding(AppSpacing.medium)
-        .background(AppColors.surface)
-        .cornerRadius(AppSpacing.cornerRadiusMedium)
     }
     
     @ViewBuilder
@@ -386,7 +615,7 @@ struct StatItem: View {
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.small)
-        .background(AppColors.background)
+        .background(Color.backgroundPrimary)
         .cornerRadius(AppSpacing.cornerRadiusSmall)
     }
 }

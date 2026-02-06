@@ -18,10 +18,11 @@ struct HomeView: View {
     @State private var selectedAttackForEdit: AttackRecord?
     @State private var selectedHealthEventForDetail: HealthEvent?
     @State private var showAddHealthEventSheet = false
+    @State private var itemToDelete: TimelineItemType?
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
-        ZStack {
-            NavigationStack {
+        NavigationStack {
                 ScrollView {
                     VStack(spacing: 20) {
                         if let vm = viewModel {
@@ -53,14 +54,30 @@ struct HomeView: View {
                             .fadeIn(delay: 0.3)
                             .padding(.horizontal, 20)
                             
-                            // 健康事件记录按钮
-                            SecondaryActionButton(
-                                title: "记录健康事件",
-                                icon: "calendar.badge.plus",
-                                onTap: {
-                                    showAddHealthEventSheet = true
-                                }
-                            )
+                            // 快速开始/结束 + 健康事件按钮（横排）
+                            HStack(spacing: 12) {
+                                SecondaryActionButton(
+                                    title: vm.ongoingAttack == nil ? "快速开始" : "快速结束",
+                                    icon: vm.ongoingAttack == nil ? "bolt.fill" : "checkmark",
+                                    onTap: {
+                                        if let attack = vm.ongoingAttack {
+                                            vm.quickEndRecording(attack)
+                                        } else {
+                                            Task {
+                                                _ = await vm.quickStartRecording()
+                                            }
+                                        }
+                                    }
+                                )
+                                
+                                SecondaryActionButton(
+                                    title: "健康事件",
+                                    icon: "calendar.badge.plus",
+                                    onTap: {
+                                        showAddHealthEventSheet = true
+                                    }
+                                )
+                            }
                             .fadeIn(delay: 0.35)
                             .padding(.horizontal, 20)
                             
@@ -116,7 +133,8 @@ struct HomeView: View {
                                                 }
                                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                                     Button(role: .destructive) {
-                                                        deleteTimelineItem(item)
+                                                        itemToDelete = item
+                                                        showDeleteConfirmation = true
                                                     } label: {
                                                         Label("删除", systemImage: "trash")
                                                     }
@@ -190,36 +208,32 @@ struct HomeView: View {
                             viewModel?.refreshData()
                         }
                 }
+                .alert("确认删除", isPresented: $showDeleteConfirmation) {
+                    Button("取消", role: .cancel) {
+                        itemToDelete = nil
+                    }
+                    Button("删除", role: .destructive) {
+                        if let item = itemToDelete {
+                            deleteTimelineItem(item)
+                        }
+                        itemToDelete = nil
+                    }
+                } message: {
+                    if let item = itemToDelete {
+                        switch item {
+                        case .attack:
+                            Text("确定要删除这条发作记录吗？此操作不可撤销。")
+                        case .healthEvent:
+                            Text("确定要删除这条健康事件吗？此操作不可撤销。")
+                        }
+                    }
+                }
             }
             .onAppear {
                 if viewModel == nil {
                     viewModel = HomeViewModel(modelContext: modelContext, weatherManager: weatherManager)
                 }
             }
-            
-            // 浮动快速操作按钮
-            if let vm = viewModel {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        FloatingQuickActionButton(
-                            ongoingAttack: vm.ongoingAttack,
-                            onQuickStart: {
-                                Task {
-                                    _ = await vm.quickStartRecording()
-                                }
-                            },
-                            onQuickEnd: { attack in
-                                vm.quickEndRecording(attack)
-                            }
-                        )
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
-                    }
-                }
-            }
-        }
     }
     
     // MARK: - Helper Methods
@@ -229,8 +243,9 @@ struct HomeView: View {
         do {
             try modelContext.save()
             viewModel?.refreshData()
+            AppToastManager.shared.showSuccess("记录已删除")
         } catch {
-            print("删除失败: \(error)")
+            AppToastManager.shared.showError("删除失败，请重试")
         }
     }
     
@@ -245,8 +260,9 @@ struct HomeView: View {
         do {
             try modelContext.save()
             viewModel?.refreshData()
+            AppToastManager.shared.showSuccess("记录已删除")
         } catch {
-            print("删除失败: \(error)")
+            AppToastManager.shared.showError("删除失败，请重试")
         }
     }
 }
@@ -335,6 +351,9 @@ struct CompactStatusCard: View {
         }
     }
     
+    // 统一卡片内容高度，避免状态切换时闪烁
+    private let cardContentHeight: CGFloat = 48
+    
     var body: some View {
         EmotionalCard(style: .elevated) {
             if let attack = ongoingAttack {
@@ -343,6 +362,7 @@ struct CompactStatusCard: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 36))
                         .foregroundStyle(Color.statusWarning)
+                        .frame(width: 48, height: cardContentHeight)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text("发作进行中")
@@ -355,16 +375,18 @@ struct CompactStatusCard: View {
                     
                     Spacer()
                 }
+                .frame(minHeight: cardContentHeight)
             } else {
                 // 无发作状态 - 横向布局
                 HStack(spacing: 16) {
                     Text(streakEmoji)
-                        .font(.system(size: 48))
+                        .font(.system(size: 36))
+                        .frame(width: 48, height: cardContentHeight)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         if streakDays > 0 {
                             Text("\(streakDays) 天")
-                                .font(.system(size: 28, weight: .bold))
+                                .font(.headline)
                                 .foregroundStyle(Color.accentPrimary)
                             Text("无头痛")
                                 .font(.subheadline)
@@ -381,6 +403,7 @@ struct CompactStatusCard: View {
                     
                     Spacer()
                 }
+                .frame(minHeight: cardContentHeight)
             }
         }
     }
@@ -394,52 +417,6 @@ struct CompactStatusCard: View {
             return "\(hours)小时\(minutes)分钟"
         } else {
             return "\(minutes)分钟"
-        }
-    }
-}
-
-// MARK: - 微型趋势图（占位）
-
-struct MiniTrendSparkline: View {
-    // 模拟过去7天的数据（0表示无发作，1-10表示疼痛强度）
-    let mockData: [CGFloat] = [0, 0, 5, 0, 0, 7, 0]
-    
-    var body: some View {
-        GeometryReader { geometry in
-            let width = geometry.size.width
-            let height = geometry.size.height
-            let spacing = width / CGFloat(mockData.count)
-            
-            ZStack {
-                // 背景线
-                Path { path in
-                    for i in 0..<mockData.count {
-                        let x = CGFloat(i) * spacing + spacing / 2
-                        let y = height - (mockData[i] / 10 * height)
-                        
-                        if i == 0 {
-                            path.move(to: CGPoint(x: x, y: y))
-                        } else {
-                            path.addLine(to: CGPoint(x: x, y: y))
-                        }
-                    }
-                }
-                .stroke(
-                    Color.accentPrimary.opacity(0.3),
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
-                )
-                
-                // 数据点
-                ForEach(0..<mockData.count, id: \.self) { index in
-                    let x = CGFloat(index) * spacing + spacing / 2
-                    let y = height - (mockData[index] / 10 * height)
-                    
-                    Circle()
-                        .fill(mockData[index] > 0 ? Color.statusWarning : Color.statusSuccess)
-                        .frame(width: 6, height: 6)
-                        .position(x: x, y: y)
-                }
-            }
         }
     }
 }
@@ -505,64 +482,6 @@ struct SecondaryActionButton: View {
             )
         }
         .buttonStyle(.plain)
-    }
-}
-
-// MARK: - 浮动快速操作按钮 (FAB)
-
-struct FloatingQuickActionButton: View {
-    let ongoingAttack: AttackRecord?
-    let onQuickStart: () -> Void
-    let onQuickEnd: (AttackRecord) -> Void
-    
-    @State private var isBreathing = false
-    
-    var body: some View {
-        Button(action: {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.impactOccurred()
-            
-            if let attack = ongoingAttack {
-                // 有进行中的记录，执行快速结束
-                onQuickEnd(attack)
-            } else {
-                // 没有进行中的记录，执行快速开始
-                onQuickStart()
-            }
-        }) {
-            ZStack {
-                // 外圈呼吸光晕
-                Circle()
-                    .fill(ongoingAttack == nil ? Color.primaryGradient : LinearGradient(
-                        colors: [Color.statusSuccess, Color.statusSuccess.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 64, height: 64)
-                    .scaleEffect(isBreathing ? 1.15 : 1.0)
-                    .opacity(isBreathing ? 0.3 : 0.5)
-                
-                // 主按钮
-                Circle()
-                    .fill(ongoingAttack == nil ? Color.primaryGradient : LinearGradient(
-                        colors: [Color.statusSuccess, Color.statusSuccess.opacity(0.8)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .frame(width: 56, height: 56)
-                    .shadow(color: (ongoingAttack == nil ? Color.accentPrimary : Color.statusSuccess).opacity(0.4), radius: 12, x: 0, y: 6)
-                
-                Image(systemName: ongoingAttack == nil ? "bolt.fill" : "checkmark")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(.white)
-            }
-        }
-        .buttonStyle(.plain)
-        .onAppear {
-            withAnimation(EmotionalAnimation.breathe) {
-                isBreathing = true
-            }
-        }
     }
 }
 
@@ -859,8 +778,9 @@ struct MonthlyOverviewCard: View {
                     }
                 }
                 
-                // 统计数据网格 - 2x2布局
+                // 统计数据网格
                 VStack(spacing: 12) {
+                    // 第一行：发作统计
                     HStack(spacing: 12) {
                         CompactStatCard(
                             value: "\(monthlyAttackDays)",
@@ -877,20 +797,72 @@ struct MonthlyOverviewCard: View {
                         )
                     }
                     
+                    // 第二行：急性用药（始终显示）
                     HStack(spacing: 12) {
                         CompactStatCard(
-                            value: "\(getTotalMedicationCount())",
-                            label: "用药次数",
+                            value: "\(detailedMedicationStats.acuteMedicationCount)",
+                            label: "急性用药次数",
                             icon: "pills.fill",
-                            color: getTotalMedicationCount() >= 10 ? .statusWarning : .accentPrimary
+                            color: detailedMedicationStats.acuteMedicationCount >= 10 ? .statusWarning : .accentPrimary
                         )
                         
                         CompactStatCard(
-                            value: "\(getMedicationDays())",
-                            label: "用药天数",
+                            value: "\(detailedMedicationStats.acuteMedicationDays)",
+                            label: "急性用药天数",
                             icon: "calendar.badge.clock",
-                            color: getMedicationDays() >= 10 ? .statusWarning : .accentPrimary
+                            color: detailedMedicationStats.acuteMedicationDays >= 10 ? .statusWarning : .accentPrimary
                         )
+                    }
+                    
+                    // 第三行：预防性用药（有数据时显示）
+                    if detailedMedicationStats.hasPreventiveMedication {
+                        HStack(spacing: 12) {
+                            CompactStatCard(
+                                value: "\(detailedMedicationStats.preventiveMedicationCount)",
+                                label: "预防性用药次数",
+                                icon: "shield.fill",
+                                color: Color.statusSuccess
+                            )
+                            
+                            CompactStatCard(
+                                value: "\(detailedMedicationStats.preventiveMedicationDays)",
+                                label: "预防性用药天数",
+                                icon: "calendar.badge.plus",
+                                color: Color.statusSuccess
+                            )
+                        }
+                    }
+                    
+                    // 第四行：中医治疗和手术（有数据时显示）
+                    if detailedMedicationStats.hasTCMTreatment || detailedMedicationStats.hasSurgery {
+                        HStack(spacing: 12) {
+                            if detailedMedicationStats.hasTCMTreatment {
+                                CompactStatCard(
+                                    value: "\(detailedMedicationStats.tcmTreatmentCount)",
+                                    label: "中医治疗次数",
+                                    icon: "leaf.circle.fill",
+                                    color: Color.statusSuccess
+                                )
+                            }
+                            
+                            if detailedMedicationStats.hasSurgery {
+                                CompactStatCard(
+                                    value: "\(detailedMedicationStats.surgeryCount)",
+                                    label: "手术次数",
+                                    icon: "cross.case.circle.fill",
+                                    color: Color.statusInfo
+                                )
+                            }
+                            
+                            // 如果只有一个统计项，添加占位符保持对齐
+                            if detailedMedicationStats.hasTCMTreatment && !detailedMedicationStats.hasSurgery {
+                                Spacer()
+                                    .frame(maxWidth: .infinity)
+                            } else if !detailedMedicationStats.hasTCMTreatment && detailedMedicationStats.hasSurgery {
+                                Spacer()
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
                 }
             }
@@ -899,12 +871,33 @@ struct MonthlyOverviewCard: View {
     
     // MARK: - 计算属性
     
-    private var monthlyAttacks: [AttackRecord] {
+    /// 当前月份的日期范围（与其他模块保持一致）
+    private var currentMonthRange: (start: Date, end: Date) {
         let calendar = Calendar.current
         let now = Date()
         let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        
-        return attacks.filter { $0.startTime >= startOfMonth }
+        let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+        let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
+        return (startOfMonth, endOfMonth)
+    }
+    
+    private var monthlyAttacks: [AttackRecord] {
+        let range = currentMonthRange
+        return attacks.filter { $0.startTime >= range.start && $0.startTime <= range.end }
+    }
+    
+    private var monthlyHealthEvents: [HealthEvent] {
+        let range = currentMonthRange
+        return healthEvents.filter { $0.eventDate >= range.start && $0.eventDate <= range.end }
+    }
+    
+    private var detailedMedicationStats: DetailedMedicationStatistics {
+        let range = currentMonthRange
+        return DetailedMedicationStatistics.calculate(
+            attacks: monthlyAttacks,
+            healthEvents: monthlyHealthEvents,
+            dateRange: range
+        )
     }
     
     private var monthlyAttackDays: Int {
@@ -923,53 +916,10 @@ struct MonthlyOverviewCard: View {
         return Double(total) / Double(monthlyAttacks.count)
     }
     
-    private func getMedicationDays() -> Int {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        
-        var medicationDays = Set<Date>()
-        
-        // 偏头痛发作期间的用药天数
-        let attackMedDays = monthlyAttacks
-            .filter { !$0.medications.isEmpty }
-            .map { calendar.startOfDay(for: $0.startTime) }
-        medicationDays.formUnion(attackMedDays)
-        
-        // 健康事件中的用药天数
-        let healthEventMedDays = healthEvents
-            .filter { $0.eventDate >= startOfMonth && $0.eventType == .medication && !$0.medicationLogs.isEmpty }
-            .map { calendar.startOfDay(for: $0.eventDate) }
-        medicationDays.formUnion(healthEventMedDays)
-        
-        return medicationDays.count
-    }
-    
-    private func getTotalMedicationCount() -> Int {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        
-        // 偏头痛发作期间的用药次数
-        let attackMedCount = monthlyAttacks.reduce(0) { total, attack in
-            total + attack.medications.count
-        }
-        
-        // 健康事件中的用药次数
-        let healthEventMedCount = healthEvents
-            .filter { $0.eventDate >= startOfMonth && $0.eventType == .medication }
-            .reduce(0) { total, event in
-                total + event.medicationLogs.count
-            }
-        
-        return attackMedCount + healthEventMedCount
-    }
-    
     private func getUniqueFreePainDays() -> Int {
         let calendar = Calendar.current
         let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let daysInMonth = calendar.range(of: .day, in: .month, for: now)!.count
+        let range = currentMonthRange
         
         // 获取所有发作的天数
         let attackDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
@@ -1357,47 +1307,47 @@ struct SimplifiedRecordingViewWrapper: View {
                         painAssessmentContent
                     }
                     
-                    // 症状记录（可折叠）
+                    // 症状记录（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "症状记录",
+                        title: symptomsSectionTitle,
                         icon: "heart.text.square",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         symptomsContent
                     }
                     
-                    // 诱因分析（可折叠）
+                    // 诱因分析（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "诱因分析",
+                        title: triggersSectionTitle,
                         icon: "sparkles",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         triggersContent
                     }
                     
-                    // 用药记录（可折叠）
+                    // 用药记录（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "用药记录",
+                        title: medicationsSectionTitle,
                         icon: "pills.fill",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         medicationsContent
                     }
                     
-                    // 非药物干预（可折叠）
+                    // 非药物干预（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "非药物干预",
+                        title: nonPharmSectionTitle,
                         icon: "figure.mind.and.body",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         nonPharmContent
                     }
                     
-                    // 备注（可折叠）
+                    // 备注（可折叠，默认收起）
                     CollapsibleSection(
-                        title: "备注",
+                        title: notesSectionTitle,
                         icon: "note.text",
-                        isExpandedByDefault: true
+                        isExpandedByDefault: false
                     ) {
                         notesContent
                     }
@@ -1453,6 +1403,32 @@ struct SimplifiedRecordingViewWrapper: View {
                 }
             )
         }
+    }
+    
+    // MARK: - Section Titles with Summary
+    
+    private var symptomsSectionTitle: String {
+        let count = viewModel.selectedSymptomNames.count + (viewModel.hasAura ? viewModel.selectedAuraTypeNames.count : 0)
+        return count > 0 ? "症状记录 (\(count)项)" : "症状记录"
+    }
+    
+    private var triggersSectionTitle: String {
+        let count = viewModel.selectedTriggers.count
+        return count > 0 ? "诱因分析 (\(count)项)" : "诱因分析"
+    }
+    
+    private var medicationsSectionTitle: String {
+        let count = viewModel.selectedMedications.count
+        return count > 0 ? "用药记录 (\(count)项)" : "用药记录"
+    }
+    
+    private var nonPharmSectionTitle: String {
+        let count = viewModel.selectedNonPharmacological.count
+        return count > 0 ? "非药物干预 (\(count)项)" : "非药物干预"
+    }
+    
+    private var notesSectionTitle: String {
+        return viewModel.notes.isEmpty ? "备注" : "备注 (已填写)"
     }
     
     // MARK: - Header
@@ -1992,10 +1968,15 @@ struct SimplifiedRecordingViewWrapper: View {
                 await MainActor.run {
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.success)
+                    AppToastManager.shared.showSuccess("记录保存成功")
                     dismiss()
                 }
             } catch {
-                print("保存失败: \(error)")
+                await MainActor.run {
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.error)
+                    AppToastManager.shared.showError("保存失败，请重试")
+                }
             }
         }
     }

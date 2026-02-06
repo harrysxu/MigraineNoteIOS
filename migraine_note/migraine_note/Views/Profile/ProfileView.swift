@@ -14,6 +14,8 @@ struct ProfileView: View {
     @Environment(ThemeManager.self) private var themeManager
     @Query private var medications: [Medication]
     @Query private var medicationLogs: [MedicationLog]
+    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
+    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
     
     @State private var cloudKitManager = CloudKitManager()
     
@@ -97,7 +99,7 @@ struct ProfileView: View {
                                 Image(systemName: "calendar")
                                     .font(.caption)
                                     .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.accentPrimary)
-                                Text("本月用药")
+                                Text("本月急性用药")
                                     .font(.caption)
                                     .foregroundStyle(Color.textSecondary)
                             }
@@ -285,6 +287,21 @@ struct ProfileView: View {
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
+                    
+                    Divider()
+                        .padding(.leading, 44)
+                    
+                    NavigationLink {
+                        MedicationReminderView()
+                    } label: {
+                        SettingRow(
+                            icon: "bell.badge.fill",
+                            iconColor: .orange,
+                            title: "用药提醒"
+                        )
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -368,21 +385,28 @@ struct ProfileView: View {
     
     // MARK: - 辅助计算属性
     
-    /// 本月用药天数
+    /// 本月急性用药天数（仅发作期间，用于MOH风险评估）
     private var monthlyMedicationDays: Int {
         let calendar = Calendar.current
         let now = Date()
         let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+        let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
         
-        let monthlyLogs = medicationLogs.filter { log in
-            log.takenAt >= startOfMonth
+        let monthAttacks = attacks.filter { attack in
+            attack.startTime >= startOfMonth && attack.startTime <= endOfMonth
+        }
+        let monthHealthEvents = healthEvents.filter { event in
+            event.eventDate >= startOfMonth && event.eventDate <= endOfMonth
         }
         
-        let uniqueDays = Set(monthlyLogs.map { log in
-            calendar.startOfDay(for: log.takenAt)
-        })
+        let stats = DetailedMedicationStatistics.calculate(
+            attacks: monthAttacks,
+            healthEvents: monthHealthEvents,
+            dateRange: (startOfMonth, endOfMonth)
+        )
         
-        return uniqueDays.count
+        return stats.acuteMedicationDays
     }
     
     /// MOH风险等级

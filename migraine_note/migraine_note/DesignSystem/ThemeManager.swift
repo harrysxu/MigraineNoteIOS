@@ -59,12 +59,8 @@ enum AppTheme: String, CaseIterable, Identifiable {
 /// 主题管理器 - 使用 @Observable 宏（iOS 17+）
 @Observable
 class ThemeManager {
-    /// 当前主题（存储在 UserDefaults）
-    var currentTheme: AppTheme {
-        didSet {
-            UserDefaults.standard.set(currentTheme.rawValue, forKey: "app_theme")
-        }
-    }
+    /// 当前主题
+    var currentTheme: AppTheme
     
     init() {
         // 从 UserDefaults 加载主题设置
@@ -77,9 +73,10 @@ class ThemeManager {
         }
     }
     
-    /// 切换主题
+    /// 切换主题并持久化
     func setTheme(_ theme: AppTheme) {
         currentTheme = theme
+        UserDefaults.standard.set(theme.rawValue, forKey: "app_theme")
     }
 }
 

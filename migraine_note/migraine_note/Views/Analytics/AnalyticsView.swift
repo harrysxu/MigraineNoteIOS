@@ -12,6 +12,7 @@ import Charts
 struct AnalyticsView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
+    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
     
     @State private var selectedTimeRange: TimeRange = .thisMonth
     @State private var selectedView: DataViewType = .analytics
@@ -121,6 +122,9 @@ struct AnalyticsView: View {
             mohDetector = MOHDetector(modelContext: modelContext)
             if calendarViewModel == nil {
                 calendarViewModel = CalendarViewModel(modelContext: modelContext)
+            } else {
+                // 每次视图出现时刷新日历数据，保持与图表统计一致
+                calendarViewModel?.loadData()
             }
             
             // 监听从HomeView切换到日历视图的通知
@@ -131,6 +135,20 @@ struct AnalyticsView: View {
             ) { _ in
                 selectedView = .calendar
             }
+        }
+        .onChange(of: selectedView) { _, newValue in
+            // 切换到日历视图时刷新数据
+            if newValue == .calendar {
+                calendarViewModel?.loadData()
+            }
+        }
+        .onChange(of: attacks.count) { _, _ in
+            // 当发作记录数据变化时，同步刷新日历视图数据
+            calendarViewModel?.loadData()
+        }
+        .onChange(of: healthEvents.count) { _, _ in
+            // 当健康事件数据变化时，同步刷新日历视图数据
+            calendarViewModel?.loadData()
         }
     }
     
@@ -170,6 +188,9 @@ struct AnalyticsView: View {
     
     // MARK: - Calendar Content
     
+    @State private var selectedAttackFromCalendar: AttackRecord?
+    @State private var selectedHealthEventFromCalendar: HealthEvent?
+    
     private var calendarContent: some View {
         ScrollView {
             VStack(spacing: Spacing.lg) {
@@ -187,9 +208,32 @@ struct AnalyticsView: View {
                     // 日历网格
                     CalendarGridSection(viewModel: viewModel)
                         .padding(.horizontal)
+                    
+                    // 选中日期详情面板
+                    if let selectedDate = viewModel.selectedDate {
+                        SelectedDateDetailPanel(
+                            date: selectedDate,
+                            attacks: viewModel.getAttacks(for: selectedDate),
+                            healthEvents: viewModel.getHealthEvents(for: selectedDate),
+                            onAttackTap: { attack in
+                                selectedAttackFromCalendar = attack
+                            },
+                            onHealthEventTap: { event in
+                                selectedHealthEventFromCalendar = event
+                            }
+                        )
+                        .padding(.horizontal)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
             }
             .padding(.vertical)
+        }
+        .sheet(item: $selectedAttackFromCalendar) { attack in
+            AttackDetailView(attack: attack)
+        }
+        .sheet(item: $selectedHealthEventFromCalendar) { event in
+            HealthEventDetailView(event: event)
         }
     }
     
@@ -221,6 +265,9 @@ struct AnalyticsView: View {
                 
                 // 用药频次提醒
                 mohRiskSection
+                
+                // 经期关联分析
+                MenstrualCycleAnalyticsCard()
             }
             .padding(Spacing.md)
         }
@@ -248,17 +295,18 @@ struct AnalyticsView: View {
                         .cornerRadius(8)
                 }
                 
-                // 统计数据网格 - 3x2布局
+                // 统计数据网格
                 let durationStats = analyticsEngine.analyzeDurationStatistics(in: currentDateRange)
                 let attackDays = getAttackDaysCount()
-                let medicationDays = getMedicationDays()
+                let stats = getDetailedMedicationStats()
                 let isChronic = attackDays >= 15
-                let hasMOHRisk = medicationDays >= 10
+                let hasMOHRisk = stats.acuteMedicationDays >= 10
                 
                 LazyVGrid(columns: [
                     GridItem(.flexible()),
                     GridItem(.flexible())
                 ], spacing: Spacing.md) {
+                    // 核心指标
                     StatItem(
                         title: "发作天数",
                         value: "\(attackDays)",
@@ -288,19 +336,57 @@ struct AnalyticsView: View {
                         color: Color.painCategoryColor(for: Int(getAveragePainIntensity()))
                     )
                     
+                    // 急性用药（始终显示）
                     StatItem(
-                        title: "用药天数",
-                        value: "\(medicationDays)",
-                        icon: "calendar.badge.plus",
+                        title: "急性用药天数",
+                        value: "\(stats.acuteMedicationDays)",
+                        icon: "calendar.badge.clock",
                         color: hasMOHRisk ? Color.statusWarning : Color.statusSuccess
                     )
                     
                     StatItem(
-                        title: "用药次数",
-                        value: "\(getMedicationCount())",
+                        title: "急性用药次数",
+                        value: "\(stats.acuteMedicationCount)",
                         icon: "pills.fill",
-                        color: Color.accentPrimary
+                        color: hasMOHRisk ? Color.statusWarning : Color.accentPrimary
                     )
+                    
+                    // 预防性用药（有数据时显示）
+                    if stats.hasPreventiveMedication {
+                        StatItem(
+                            title: "预防性用药天数",
+                            value: "\(stats.preventiveMedicationDays)",
+                            icon: "calendar.badge.plus",
+                            color: Color.statusSuccess
+                        )
+                        
+                        StatItem(
+                            title: "预防性用药次数",
+                            value: "\(stats.preventiveMedicationCount)",
+                            icon: "shield.fill",
+                            color: Color.statusSuccess
+                        )
+                    }
+                    
+                    // 中医治疗（有数据时显示）
+                    if stats.hasTCMTreatment {
+                        StatItem(
+                            title: "中医治疗次数",
+                            value: "\(stats.tcmTreatmentCount)",
+                            icon: "leaf.circle.fill",
+                            color: Color.statusSuccess
+                        )
+                    }
+                    
+                    // 手术（有数据时显示）
+                    if stats.hasSurgery {
+                        StatItem(
+                            title: "手术次数",
+                            value: "\(stats.surgeryCount)",
+                            icon: "cross.case.circle.fill",
+                            color: Color.statusInfo
+                        )
+                    }
                 }
             }
         }
@@ -330,7 +416,7 @@ struct AnalyticsView: View {
                 HStack(spacing: 20) {
                     // 左侧数值
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("本月用药天数")
+                        Text("本月急性用药天数")
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                         
@@ -940,6 +1026,18 @@ struct AnalyticsView: View {
     
     // MARK: - 数据获取辅助方法
     
+    private func getDetailedMedicationStats() -> DetailedMedicationStatistics {
+        let (start, end) = currentDateRange
+        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
+        let healthEventsInRange = healthEvents.filter { $0.eventDate >= start && $0.eventDate <= end }
+        
+        return DetailedMedicationStatistics.calculate(
+            attacks: attacksInRange,
+            healthEvents: healthEventsInRange,
+            dateRange: (start, end)
+        )
+    }
+    
     private func getTotalAttacksCount() -> Int {
         let (start, end) = currentDateRange
         return attacks.filter { $0.startTime >= start && $0.startTime <= end }.count
@@ -960,26 +1058,6 @@ struct AnalyticsView: View {
         return Double(total) / Double(attacksInRange.count)
     }
     
-    private func getMedicationCount() -> Int {
-        let (start, end) = currentDateRange
-        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
-        return attacksInRange.reduce(0) { $0 + $1.medications.count }
-    }
-    
-    private func getMedicationDays() -> Int {
-        let calendar = Calendar.current
-        let (start, end) = currentDateRange
-        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
-        
-        let medicationDays = Set(
-            attacksInRange
-                .filter { !$0.medications.isEmpty }
-                .map { calendar.startOfDay(for: $0.startTime) }
-        )
-        
-        return medicationDays.count
-    }
-    
     private func getCurrentMonthMedicationDays() -> Int {
         let calendar = Calendar.current
         let now = Date()
@@ -989,109 +1067,20 @@ struct AnalyticsView: View {
         let monthAttacks = attacks.filter { attack in
             attack.startTime >= startOfMonth && attack.startTime < endOfMonth
         }
+        let monthHealthEvents = healthEvents.filter { event in
+            event.eventDate >= startOfMonth && event.eventDate < endOfMonth
+        }
         
-        let medicationDays = Set(
-            monthAttacks
-                .filter { !$0.medications.isEmpty }
-                .map { calendar.startOfDay(for: $0.startTime) }
+        // 仅统计急性用药天数（用于MOH风险评估）
+        let stats = DetailedMedicationStatistics.calculate(
+            attacks: monthAttacks,
+            healthEvents: monthHealthEvents,
+            dateRange: (startOfMonth, endOfMonth)
         )
         
-        return medicationDays.count
+        return stats.acuteMedicationDays
     }
 
-// MARK: - Supporting Views
-
-/// 紧凑分析统计卡片
-struct CompactAnalyticStatCard: View {
-    let value: String
-    let label: String
-    let icon: String
-    let color: Color
-    var isWide: Bool = false
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // 图标
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(color)
-                .frame(width: 44, height: 44)
-                .background(color.opacity(0.15))
-                .clipShape(Circle())
-            
-            // 数值和标签
-            VStack(alignment: .leading, spacing: 4) {
-                Text(value)
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundStyle(color)
-                
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-            }
-            
-            Spacer()
-        }
-        .padding(16)
-        .frame(maxWidth: isWide ? .infinity : 180)
-        .background(Color.surface)
-        .cornerRadius(AppSpacing.cornerRadiusDefault)
-    }
-}
-
-/// 频率行
-struct FrequencyRow: View {
-    let name: String
-    let count: Int
-    let percentage: Double
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // 名称
-            Text(name)
-                .font(.body)
-                .foregroundStyle(Color.textPrimary)
-                .lineLimit(1)
-            
-            Spacer(minLength: 12)
-            
-            // 进度条
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.backgroundTertiary)
-                        .frame(height: 6)
-                    
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.accentPrimary.opacity(0.7))
-                        .frame(
-                            width: max(geometry.size.width * (percentage / 100), 2),
-                            height: 6
-                        )
-                }
-            }
-            .frame(width: 60, height: 6)
-            
-            // 次数和百分比
-            HStack(spacing: 6) {
-                Text("\(count)次")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Color.textPrimary)
-                    .frame(minWidth: 40, alignment: .trailing)
-                
-                Text("(\(String(format: "%.1f%%", percentage)))")
-                    .font(.caption)
-                    .foregroundStyle(Color.textSecondary)
-                    .frame(minWidth: 50, alignment: .leading)
-            }
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(Color.backgroundPrimary)
-        .cornerRadius(10)
-    }
-}
-    
     // MARK: - 中医治疗统计
     
     private var tcmTreatmentStatisticsSection: some View {
@@ -1454,9 +1443,11 @@ enum TimeRange: String, CaseIterable, Identifiable {
         
         switch self {
         case .thisMonth:
-            // 本月：从本月1号0:00到现在
+            // 本月：完整月份（与日历统计保持一致）
             let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-            return (startOfMonth, now)
+            let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+            let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
+            return (startOfMonth, endOfMonth)
         case .threeMonths:
             let start = calendar.date(byAdding: .month, value: -3, to: now)!
             return (start, now)
@@ -1568,19 +1559,18 @@ struct CalendarGridSection: View {
     @Bindable var viewModel: CalendarViewModel
     
     var body: some View {
-        VStack(spacing: Spacing.md) {
-            // 月份标题和导航
-            monthHeader
-            
-            // 星期标题行
-            weekdayHeader
-            
-            // 日期网格
-            dateGrid
+        EmotionalCard(style: .default) {
+            VStack(spacing: Spacing.md) {
+                // 月份标题和导航
+                monthHeader
+                
+                // 星期标题行
+                weekdayHeader
+                
+                // 日期网格
+                dateGrid
+            }
         }
-        .padding(Spacing.md)
-        .background(Color.surface)
-        .cornerRadius(CornerRadius.md)
     }
     
     // MARK: - 月份标题
@@ -1659,11 +1649,18 @@ struct CalendarDayCell: View {
     
     private let calendar = Calendar.current
     
+    private var isSelected: Bool {
+        if let selectedDate = viewModel.selectedDate {
+            return calendar.isDate(date, inSameDayAs: selectedDate)
+        }
+        return false
+    }
+    
     var body: some View {
         VStack(spacing: 4) {
             // 日期数字
             Text(calendar.component(.day, from: date).description)
-                .font(.system(size: 14, weight: isToday ? .bold : .regular))
+                .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
                 .foregroundStyle(textColor)
             
             // 疼痛强度指示器
@@ -1683,8 +1680,21 @@ struct CalendarDayCell: View {
         .cornerRadius(CornerRadius.sm)
         .overlay(
             RoundedRectangle(cornerRadius: CornerRadius.sm)
-                .stroke(isToday ? Color.primary : Color.clear, lineWidth: 2)
+                .stroke(borderColor, lineWidth: isSelected ? 2 : (isToday ? 1.5 : 0))
         )
+        .onTapGesture {
+            if viewModel.isDateInCurrentMonth(date) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if isSelected {
+                        viewModel.selectedDate = nil
+                    } else {
+                        viewModel.selectedDate = date
+                    }
+                }
+                let impact = UIImpactFeedbackGenerator(style: .light)
+                impact.impactOccurred()
+            }
+        }
     }
     
     private var isInCurrentMonth: Bool {
@@ -1696,20 +1706,34 @@ struct CalendarDayCell: View {
     }
     
     private var textColor: Color {
-        if !isInCurrentMonth {
+        if isSelected {
+            return .white
+        } else if !isInCurrentMonth {
             return Color.textTertiary
         } else if isToday {
-            return Color.primary
+            return Color.accentPrimary
         } else {
             return Color.textPrimary
         }
     }
     
     private var backgroundColor: Color {
-        if viewModel.getAttacks(for: date).isEmpty {
-            return Color.clear
-        } else {
+        if isSelected {
+            return Color.accentPrimary
+        } else if !viewModel.getAttacks(for: date).isEmpty {
             return Color.surface.opacity(0.5)
+        } else {
+            return Color.clear
+        }
+    }
+    
+    private var borderColor: Color {
+        if isSelected {
+            return Color.accentPrimary
+        } else if isToday {
+            return Color.accentPrimary.opacity(0.5)
+        } else {
+            return Color.clear
         }
     }
 }
@@ -1766,37 +1790,36 @@ struct TimeRangeSheetView: View {
 
 struct PainIntensityLegend: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("疼痛强度图例")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.textSecondary)
-            
-            HStack(spacing: 16) {
-                // 轻度疼痛 (1-3)
-                LegendItem(
-                    intensity: 2,
-                    label: "轻度",
-                    range: "1-3"
-                )
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("疼痛强度图例")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
                 
-                // 中度疼痛 (4-6)
-                LegendItem(
-                    intensity: 5,
-                    label: "中度",
-                    range: "4-6"
-                )
-                
-                // 重度疼痛 (7-10)
-                LegendItem(
-                    intensity: 8,
-                    label: "重度",
-                    range: "7-10"
-                )
+                HStack(spacing: 16) {
+                    // 轻度疼痛 (1-3)
+                    LegendItem(
+                        intensity: 2,
+                        label: "轻度",
+                        range: "1-3"
+                    )
+                    
+                    // 中度疼痛 (4-6)
+                    LegendItem(
+                        intensity: 5,
+                        label: "中度",
+                        range: "4-6"
+                    )
+                    
+                    // 重度疼痛 (7-10)
+                    LegendItem(
+                        intensity: 8,
+                        label: "重度",
+                        range: "7-10"
+                    )
+                }
             }
         }
-        .padding(Spacing.md)
-        .background(Color.surface)
-        .cornerRadius(CornerRadius.md)
     }
 }
 

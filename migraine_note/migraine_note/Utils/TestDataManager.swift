@@ -223,6 +223,13 @@ class TestDataManager {
                 }
                 log.efficacyCheckedAt = log.timeTaken.addingTimeInterval(7200)
                 
+                // 副作用（15%概率）
+                if Double.random(in: 0...1) < 0.15 {
+                    let possibleSideEffects = ["嗜睡", "胃部不适", "头晕", "口干", "便秘", "恶心", "乏力"]
+                    let count = Int.random(in: 1...2)
+                    log.sideEffects = Array(possibleSideEffects.shuffled().prefix(count))
+                }
+                
                 medicationLogs.append(log)
             }
             record.medicationsData = medicationLogs
@@ -447,14 +454,48 @@ class TestDataManager {
         return generatedCount
     }
     
+    /// 生成用户档案测试数据
+    /// - Returns: 生成的 UserProfile
+    func generateUserProfile() async throws -> UserProfile {
+        // 先检查是否已有档案
+        let descriptor = FetchDescriptor<UserProfile>()
+        let existing = try modelContext.fetch(descriptor)
+        if let profile = existing.first {
+            return profile
+        }
+        
+        let profile = UserProfile()
+        
+        let names = ["测试用户", "张三", "李四", "王五"]
+        profile.name = names.randomElement()
+        profile.age = Int.random(in: 20...60)
+        
+        let genders: [Gender] = [.male, .female, .other]
+        profile.gender = genders.randomElement()
+        
+        if let age = profile.age {
+            profile.migraineOnsetAge = max(5, age - Int.random(in: 2...20))
+        }
+        
+        profile.familyHistory = Double.random(in: 0...1) < 0.4
+        profile.enableTCMFeatures = true
+        profile.enableWeatherTracking = true
+        
+        modelContext.insert(profile)
+        try modelContext.save()
+        return profile
+    }
+    
     // MARK: - 数据清空
     
     /// 清空所有数据
     func clearAllData() throws {
         try clearRecords()
+        try clearHealthEvents()
+        try clearOrphanedMedicationLogs()
         try clearMedications()
         try clearCustomLabels()
-        try clearHealthEvents()
+        try clearUserProfiles()
     }
     
     /// 清空发作记录
@@ -499,6 +540,30 @@ class TestDataManager {
         HealthEventTestData.clearTestEvents(in: modelContext)
     }
     
+    /// 清空孤立的用药日志（不属于任何发作记录或健康事件的 MedicationLog）
+    func clearOrphanedMedicationLogs() throws {
+        let descriptor = FetchDescriptor<MedicationLog>()
+        let allLogs = try modelContext.fetch(descriptor)
+        
+        for log in allLogs where log.attackRecord == nil && log.healthEvent == nil {
+            modelContext.delete(log)
+        }
+        
+        try modelContext.save()
+    }
+    
+    /// 清空用户档案
+    func clearUserProfiles() throws {
+        let descriptor = FetchDescriptor<UserProfile>()
+        let profiles = try modelContext.fetch(descriptor)
+        
+        for profile in profiles {
+            modelContext.delete(profile)
+        }
+        
+        try modelContext.save()
+    }
+    
     // MARK: - 数据统计
     
     /// 获取当前数据统计
@@ -511,12 +576,16 @@ class TestDataManager {
             )
         )
         let healthEventCount = try modelContext.fetchCount(FetchDescriptor<HealthEvent>())
+        let userProfileCount = try modelContext.fetchCount(FetchDescriptor<UserProfile>())
+        let medicationLogCount = try modelContext.fetchCount(FetchDescriptor<MedicationLog>())
         
         return DataStatistics(
             recordCount: recordCount,
             medicationCount: medicationCount,
             customLabelCount: customLabelCount,
-            healthEventCount: healthEventCount
+            healthEventCount: healthEventCount,
+            userProfileCount: userProfileCount,
+            medicationLogCount: medicationLogCount
         )
     }
     
@@ -539,6 +608,8 @@ struct DataStatistics {
     let medicationCount: Int
     let customLabelCount: Int
     let healthEventCount: Int
+    let userProfileCount: Int
+    let medicationLogCount: Int
 }
 
 #endif

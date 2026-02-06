@@ -11,6 +11,7 @@ import SwiftData
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
+    @State private var themeManager = ThemeManager()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
     var body: some View {
@@ -45,7 +46,7 @@ struct MainTabView: View {
                     .tag(3)
             }
             .tint(Color.accentPrimary) // 使用新的主色调
-            .preferredColorScheme(.dark) // 暗黑模式优先
+            .preferredColorScheme(themeManager.currentTheme.colorScheme) // 跟随用户主题设置
             
             // Onboarding覆盖层
             if !hasCompletedOnboarding {
@@ -54,6 +55,7 @@ struct MainTabView: View {
                     .zIndex(100)
             }
         }
+        .withGlobalToast()
         .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
         .onAppear {
             setupNotificationObservers()

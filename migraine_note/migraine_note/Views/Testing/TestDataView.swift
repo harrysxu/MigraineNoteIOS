@@ -71,6 +71,9 @@ struct TestDataView: View {
                 // 健康事件配置
                 healthEventSection
                 
+                // 用户档案配置
+                userProfileSection
+                
                 // 危险操作区
                 dangerZone
             }
@@ -116,7 +119,7 @@ struct TestDataView: View {
             }
         } message: {
             if let stats = statistics {
-                Text("即将删除：\n• \(stats.recordCount) 条发作记录\n• \(stats.medicationCount) 种药物\n• \(stats.customLabelCount) 个自定义标签\n• \(stats.healthEventCount) 个健康事件\n\n此操作不可恢复！")
+                Text("即将删除：\n• \(stats.recordCount) 条发作记录\n• \(stats.medicationCount) 种药物\n• \(stats.customLabelCount) 个自定义标签\n• \(stats.healthEventCount) 个健康事件\n• \(stats.userProfileCount) 个用户档案\n• \(stats.medicationLogCount) 条用药日志\n\n此操作不可恢复！")
             } else {
                 Text("即将删除所有数据，此操作不可恢复！")
             }
@@ -173,7 +176,7 @@ struct TestDataView: View {
                     Spacer()
                     
                     if let stats = statistics {
-                        Text("共 \(stats.recordCount + stats.medicationCount + stats.customLabelCount + stats.healthEventCount) 项")
+                        Text("共 \(stats.recordCount + stats.medicationCount + stats.customLabelCount + stats.healthEventCount + stats.userProfileCount) 项")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -210,6 +213,22 @@ struct TestDataView: View {
                                 title: "健康事件",
                                 count: stats.healthEventCount,
                                 color: .green
+                            )
+                        }
+                        
+                        HStack(spacing: 12) {
+                            statisticItem(
+                                icon: "person.circle.fill",
+                                title: "用户档案",
+                                count: stats.userProfileCount,
+                                color: .orange
+                            )
+                            
+                            statisticItem(
+                                icon: "pills.fill",
+                                title: "用药日志",
+                                count: stats.medicationLogCount,
+                                color: .cyan
                             )
                         }
                     }
@@ -477,6 +496,25 @@ struct TestDataView: View {
         }
     }
     
+    /// 用户档案区段
+    private var userProfileSection: some View {
+        EmotionalCard(style: .default) {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader(
+                    icon: "person.circle.fill",
+                    title: "用户档案生成",
+                    color: .orange
+                )
+                
+                Text("生成一个包含随机信息的测试用户档案（姓名、年龄、性别、病史等）")
+                    .font(.caption)
+                    .foregroundStyle(Color.textSecondary)
+                
+                PrimaryButton(title: isGenerating ? "生成中..." : "生成用户档案", action: generateUserProfile, isEnabled: !isGenerating)
+            }
+        }
+    }
+    
     /// 危险操作区
     private var dangerZone: some View {
         EmotionalCard(style: .warning) {
@@ -586,6 +624,11 @@ struct TestDataView: View {
                         
                         HStack {
                             Label("\(stats.healthEventCount) 个健康事件", systemImage: "heart.text.square")
+                            Spacer()
+                        }
+                        
+                        HStack {
+                            Label("\(stats.userProfileCount) 个用户档案", systemImage: "person.circle")
                             Spacer()
                         }
                     }
@@ -716,6 +759,30 @@ struct TestDataView: View {
                 await MainActor.run {
                     isGenerating = false
                     alertMessage = "成功生成 \(count) 个健康事件（过去\(healthEventDayRange)天）"
+                    showSuccessAlert = true
+                    refreshStatistics()
+                }
+            } catch {
+                await MainActor.run {
+                    isGenerating = false
+                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    showSuccessAlert = true
+                }
+            }
+        }
+    }
+    
+    /// 生成用户档案
+    private func generateUserProfile() {
+        isGenerating = true
+        
+        Task {
+            do {
+                let _ = try await manager.generateUserProfile()
+                
+                await MainActor.run {
+                    isGenerating = false
+                    alertMessage = "成功生成用户档案测试数据"
                     showSuccessAlert = true
                     refreshStatistics()
                 }

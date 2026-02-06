@@ -294,7 +294,8 @@ struct DataExportView: View {
         let pdfData = try generator.generateReport(
             attacks: filteredAttacks,
             userProfile: userProfile,
-            dateRange: dateRange
+            dateRange: dateRange,
+            healthEvents: filteredHealthEvents
         )
         
         // 创建临时文件

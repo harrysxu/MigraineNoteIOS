@@ -18,6 +18,8 @@ struct MedicationListView: View {
     @State private var showingAddSheet = false
     @State private var showingFilterSheet = false
     @State private var selectedMedication: Medication?
+    @State private var medicationToDelete: Medication?
+    @State private var showDeleteConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -48,6 +50,21 @@ struct MedicationListView: View {
             }
             .sheet(item: $selectedMedication) { medication in
                 MedicationDetailView(medication: medication)
+            }
+            .alert("确认删除药物", isPresented: $showDeleteConfirmation) {
+                Button("取消", role: .cancel) {
+                    medicationToDelete = nil
+                }
+                Button("删除", role: .destructive) {
+                    if let medication = medicationToDelete {
+                        viewModel.deleteMedication(medication, from: modelContext)
+                    }
+                    medicationToDelete = nil
+                }
+            } message: {
+                if let medication = medicationToDelete {
+                    Text("确定要从药箱中删除「\(medication.name)」吗？相关的用药记录不会被删除。")
+                }
             }
         }
     }
@@ -105,7 +122,8 @@ struct MedicationListView: View {
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                viewModel.deleteMedication(medication, from: modelContext)
+                                medicationToDelete = medication
+                                showDeleteConfirmation = true
                             } label: {
                                 Label("删除", systemImage: "trash")
                             }

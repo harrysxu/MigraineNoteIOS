@@ -23,8 +23,8 @@ final class HealthEvent {
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     
-    // 用药事件专属字段
-    @Relationship(deleteRule: .cascade) var medicationLogs: [MedicationLog] = []
+    // 用药事件专属字段（CloudKit 要求关系必须可选）
+    @Relationship(deleteRule: .cascade) var medicationLogsData: [MedicationLog]?
     
     // 中医治疗事件专属字段
     var tcmTreatmentType: String? // 针灸、按摩、拔罐、刮痧、艾灸等
@@ -45,6 +45,12 @@ final class HealthEvent {
     var eventType: HealthEventType {
         get { HealthEventType(rawValue: eventTypeRawValue) ?? .medication }
         set { eventTypeRawValue = newValue.rawValue }
+    }
+    
+    // 便捷访问计算属性（unwrap可选数组）
+    var medicationLogs: [MedicationLog] {
+        get { medicationLogsData ?? [] }
+        set { medicationLogsData = newValue }
     }
     
     // 保持向后兼容的计算属性

@@ -156,13 +156,23 @@ class MedicationViewModel {
     
     /// 删除药物
     func deleteMedication(_ medication: Medication, from context: ModelContext) {
+        let name = medication.name
         context.delete(medication)
-        try? context.save()
+        do {
+            try context.save()
+            AppToastManager.shared.showSuccess("\(name) 已从药箱中删除")
+        } catch {
+            AppToastManager.shared.showError("删除药物失败，请重试")
+        }
     }
     
     /// 更新库存
     func updateInventory(_ medication: Medication, newCount: Int, context: ModelContext) {
         medication.inventory = max(0, newCount)
-        try? context.save()
+        do {
+            try context.save()
+        } catch {
+            AppToastManager.shared.showError("更新库存失败，请重试")
+        }
     }
 }

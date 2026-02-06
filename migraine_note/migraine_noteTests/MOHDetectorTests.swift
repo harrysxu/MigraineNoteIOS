@@ -2,14 +2,13 @@
 //  MOHDetectorTests.swift
 //  migraine_noteTests
 //
-//  Created on 2026/2/1.
+//  MOH检测器单元测试
 //
 
 import XCTest
 import SwiftData
 @testable import migraine_note
 
-/// MOH检测器单元测试
 final class MOHDetectorTests: XCTestCase {
     
     var detector: MOHDetector!
@@ -17,17 +16,7 @@ final class MOHDetectorTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
-        
-        // 创建内存中的ModelContainer用于测试
-        let schema = Schema([
-            AttackRecord.self,
-            Medication.self,
-            MedicationLog.self
-        ])
-        let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: schema, configurations: config)
-        modelContext = ModelContext(container)
-        
+        modelContext = try! makeTestModelContext()
         detector = MOHDetector(modelContext: modelContext)
     }
     
@@ -37,158 +26,168 @@ final class MOHDetectorTests: XCTestCase {
         super.tearDown()
     }
     
-    // MARK: - NSAID类MOH检测测试
+    // MARK: - detectCurrentMonthRisk 测试
     
-    func testNSAID_NoRisk() {
-        // 给定：本月使用NSAID 10天（低于15天阈值）
-        createMedicationLogs(category: .nsaid, count: 10, inCurrentMonth: true)
-        
-        // 当：检测MOH风险
+    func testDetectCurrentMonthRisk_NoData_NoRisk() {
         let result = detector.detectCurrentMonthRisk()
-        
-        // 则：应该是无风险
-        XCTAssertEqual(result.riskLevel, .none, "使用10天NSAID应该无风险")
-        XCTAssertEqual(result.nsaidDays, 10, "NSAID天数应为10")
+        XCTAssertEqual(result, RiskLevel.none, "无数据应无风险")
     }
     
-    func testNSAID_HighRisk() {
-        // 给定：本月使用NSAID 20天（超过15天阈值）
-        createMedicationLogs(category: .nsaid, count: 20, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_NSAID_Low() {
+        createMedicationDays(category: .nsaid, count: 10)
         
-        // 当：检测MOH风险
         let result = detector.detectCurrentMonthRisk()
-        
-        // 则：应该是高风险
-        XCTAssertEqual(result.riskLevel, .high, "使用20天NSAID应该是高风险")
-        XCTAssertEqual(result.nsaidDays, 20, "NSAID天数应为20")
+        XCTAssertEqual(result, .low, "10天NSAID应为低风险")
     }
     
-    // MARK: - 曲普坦类MOH检测测试
-    
-    func testTriptan_NoRisk() {
-        // 给定：本月使用曲普坦 8天（低于10天阈值）
-        createMedicationLogs(category: .triptan, count: 8, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_NSAID_Medium() {
+        createMedicationDays(category: .nsaid, count: 12)
         
-        // 当：检测MOH风险
         let result = detector.detectCurrentMonthRisk()
-        
-        // 则：应该是无风险
-        XCTAssertEqual(result.riskLevel, .none, "使用8天曲普坦应该无风险")
-        XCTAssertEqual(result.triptanDays, 8, "曲普坦天数应为8")
+        XCTAssertEqual(result, .medium, "12天NSAID应为中风险")
     }
     
-    func testTriptan_HighRisk() {
-        // 给定：本月使用曲普坦 15天（超过10天阈值）
-        createMedicationLogs(category: .triptan, count: 15, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_NSAID_High() {
+        createMedicationDays(category: .nsaid, count: 15)
         
-        // 当：检测MOH风险
         let result = detector.detectCurrentMonthRisk()
-        
-        // 则：应该是高风险
-        XCTAssertEqual(result.riskLevel, .high, "使用15天曲普坦应该是高风险")
-        XCTAssertEqual(result.triptanDays, 15, "曲普坦天数应为15")
+        XCTAssertEqual(result, .high, "15天NSAID应为高风险")
     }
     
-    // MARK: - 组合用药MOH检测测试
-    
-    func testCombinedMedications_HighRisk() {
-        // 给定：本月使用NSAID 12天 + 曲普坦 8天（合计20天）
-        createMedicationLogs(category: .nsaid, count: 12, inCurrentMonth: true)
-        createMedicationLogs(category: .triptan, count: 8, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_Triptan_Low() {
+        createMedicationDays(category: .triptan, count: 6)
         
-        // 当：检测MOH风险
         let result = detector.detectCurrentMonthRisk()
-        
-        // 则：应该是高风险（任一类超标或总天数过多）
-        XCTAssertTrue(result.riskLevel == .medium || result.riskLevel == .high,
-                      "组合用药应该有中高风险")
-        XCTAssertEqual(result.nsaidDays, 12, "NSAID天数应为12")
-        XCTAssertEqual(result.triptanDays, 8, "曲普坦天数应为8")
+        XCTAssertEqual(result, .low, "6天曲普坦应为低风险")
     }
     
-    // MARK: - 跨月份测试
-    
-    func testOnlyCurrentMonthCounted() {
-        // 给定：上月使用20天，本月使用5天
-        createMedicationLogs(category: .nsaid, count: 20, inCurrentMonth: false)
-        createMedicationLogs(category: .nsaid, count: 5, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_Triptan_High() {
+        createMedicationDays(category: .triptan, count: 10)
         
-        // 当：检测MOH风险
         let result = detector.detectCurrentMonthRisk()
-        
-        // 则：只计算本月，应该无风险
-        XCTAssertEqual(result.riskLevel, .none, "只应计算本月用药")
-        XCTAssertEqual(result.nsaidDays, 5, "NSAID天数应为5（仅本月）")
+        XCTAssertEqual(result, .high, "10天曲普坦应为高风险")
     }
     
-    // MARK: - 边界值测试
-    
-    func testNSAID_ThresholdBoundary() {
-        // 测试15天临界值
-        createMedicationLogs(category: .nsaid, count: 15, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_Opioid_High() {
+        createMedicationDays(category: .opioid, count: 10)
         
         let result = detector.detectCurrentMonthRisk()
-        
-        // 15天应该是中等风险或高风险
-        XCTAssertTrue(result.riskLevel == .medium || result.riskLevel == .high,
-                      "15天NSAID应该有风险警告")
+        XCTAssertEqual(result, .high, "10天阿片类应为高风险")
     }
     
-    func testTriptan_ThresholdBoundary() {
-        // 测试10天临界值
-        createMedicationLogs(category: .triptan, count: 10, inCurrentMonth: true)
+    func testDetectCurrentMonthRisk_BelowAllThresholds_None() {
+        createMedicationDays(category: .nsaid, count: 5)
+        createMedicationDays(category: .triptan, count: 3)
         
         let result = detector.detectCurrentMonthRisk()
+        XCTAssertEqual(result, .none, "低用量应无风险")
+    }
+    
+    // MARK: - 静态方法 checkMOHRisk 测试
+    
+    func testCheckMOHRisk_EmptyAttacks() {
+        let period = DateInterval(start: dateAgo(days: 30), end: Date())
+        let risk = MOHDetector.checkMOHRisk(for: period, attacks: [])
         
-        // 10天应该是中等风险或高风险
-        XCTAssertTrue(result.riskLevel == .medium || result.riskLevel == .high,
-                      "10天曲普坦应该有风险警告")
+        XCTAssertEqual(risk, MOHRiskLevel.none)
+    }
+    
+    func testCheckMOHRisk_HighNSAID() {
+        var attacks: [AttackRecord] = []
+        let med = createMedication(in: modelContext, name: "布洛芬", category: .nsaid)
+        
+        for i in 0..<16 {
+            let attack = createAttack(in: modelContext, startTime: dateAgo(days: i), painIntensity: 5)
+            createMedicationLog(in: modelContext, medication: med, dosage: 400, attack: attack)
+            attacks.append(attack)
+        }
+        
+        let period = DateInterval(start: dateAgo(days: 30), end: Date())
+        let risk = MOHDetector.checkMOHRisk(for: period, attacks: attacks)
+        
+        XCTAssertEqual(risk, .high)
+    }
+    
+    // MARK: - 静态方法 getMedicationStatistics 测试
+    
+    func testGetMedicationStatistics_Empty() {
+        let period = DateInterval(start: dateAgo(days: 30), end: Date())
+        let stats = MOHDetector.getMedicationStatistics(for: period, attacks: [])
+        
+        XCTAssertEqual(stats.nsaidDays, 0)
+        XCTAssertEqual(stats.triptanDays, 0)
+        XCTAssertEqual(stats.opioidDays, 0)
+        XCTAssertEqual(stats.totalMedicationDays, 0)
+        XCTAssertFalse(stats.hasAnyRisk)
+    }
+    
+    func testGetMedicationStatistics_WithData() {
+        var attacks: [AttackRecord] = []
+        let nsaid = createMedication(in: modelContext, name: "布洛芬", category: .nsaid)
+        let triptan = createMedication(in: modelContext, name: "舒马曲普坦", category: .triptan)
+        
+        for i in 0..<5 {
+            let attack = createAttack(in: modelContext, startTime: dateAgo(days: i), painIntensity: 5)
+            createMedicationLog(in: modelContext, medication: nsaid, dosage: 400, attack: attack)
+            attacks.append(attack)
+        }
+        
+        for i in 5..<8 {
+            let attack = createAttack(in: modelContext, startTime: dateAgo(days: i), painIntensity: 6)
+            createMedicationLog(in: modelContext, medication: triptan, dosage: 50, attack: attack)
+            attacks.append(attack)
+        }
+        
+        let period = DateInterval(start: dateAgo(days: 30), end: Date())
+        let stats = MOHDetector.getMedicationStatistics(for: period, attacks: attacks)
+        
+        XCTAssertEqual(stats.nsaidDays, 5)
+        XCTAssertEqual(stats.triptanDays, 3)
+        XCTAssertEqual(stats.totalMedicationDays, 8)
+    }
+    
+    func testMedicationStatistics_ThresholdProgress() {
+        let stats = MedicationStatistics(nsaidDays: 10, triptanDays: 5, opioidDays: 3, totalMedicationDays: 18)
+        
+        XCTAssertEqual(stats.thresholdProgress(for: .nsaid), 10.0 / 15.0, accuracy: 0.01)
+        XCTAssertEqual(stats.thresholdProgress(for: .triptan), 5.0 / 10.0, accuracy: 0.01)
+        XCTAssertEqual(stats.thresholdProgress(for: .opioid), 3.0 / 10.0, accuracy: 0.01)
+        XCTAssertEqual(stats.thresholdProgress(for: .preventive), 0.0)
+    }
+    
+    // MARK: - RiskLevel 枚举测试
+    
+    func testRiskLevel_DisplayNames() {
+        XCTAssertEqual(RiskLevel.none.displayName, "无风险")
+        XCTAssertEqual(RiskLevel.low.displayName, "低风险")
+        XCTAssertEqual(RiskLevel.medium.displayName, "中风险")
+        XCTAssertEqual(RiskLevel.high.displayName, "高风险")
+    }
+    
+    // MARK: - MOHRiskLevel 枚举测试
+    
+    func testMOHRiskLevel_Descriptions() {
+        for level in [MOHRiskLevel.none, .low, .medium, .high] {
+            XCTAssertFalse(level.description.isEmpty)
+            XCTAssertFalse(level.color.isEmpty)
+            XCTAssertFalse(level.recommendation.isEmpty)
+        }
     }
     
     // MARK: - 辅助方法
     
-    /// 创建测试用的用药记录
-    private func createMedicationLogs(
-        category: MedicationCategory,
-        count: Int,
-        inCurrentMonth: Bool
-    ) {
-        // 创建药物
-        let medication = Medication(
-            name: category.rawValue,
-            category: category,
-            type: .acute,
-            standardDosage: "1片",
-            dosageUnit: "片"
-        )
-        modelContext.insert(medication)
-        
-        // 计算日期
+    /// 在当前月内创建指定天数的用药记录
+    /// detectCurrentMonthRisk 只查当前月数据，所以必须确保日期在当前月内
+    private func createMedicationDays(category: MedicationCategory, count: Int) {
+        let medication = createMedication(in: modelContext, name: category.rawValue, category: category)
         let calendar = Calendar.current
-        let now = Date()
-        let targetDate: Date
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: Date()))!
         
-        if inCurrentMonth {
-            targetDate = now
-        } else {
-            // 上个月
-            targetDate = calendar.date(byAdding: .month, value: -1, to: now)!
-        }
-        
-        // 创建用药记录（每天一条）
         for dayOffset in 0..<count {
-            let logDate = calendar.date(byAdding: .day, value: -dayOffset, to: targetDate)!
-            
-            let log = MedicationLog(
-                medication: medication,
-                dosage: "1",
-                takenAt: logDate,
-                effectiveness: .effective
-            )
-            modelContext.insert(log)
+            // 从月初开始向后创建，确保全部在当前月内
+            let date = calendar.date(byAdding: .day, value: dayOffset, to: startOfMonth)!
+            let attack = createAttack(in: modelContext, startTime: date, painIntensity: 5)
+            createMedicationLog(in: modelContext, medication: medication, dosage: 400, timeTaken: date, attack: attack)
         }
-        
-        // 保存
-        try? modelContext.save()
     }
 }

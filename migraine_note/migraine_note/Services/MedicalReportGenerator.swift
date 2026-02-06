@@ -37,11 +37,13 @@ class MedicalReportGenerator {
     ///   - attacks: 发作记录列表
     ///   - userProfile: 用户配置（可选）
     ///   - dateRange: 报告时间范围
+    ///   - healthEvents: 健康事件列表（可选）
     /// - Returns: PDF文档数据
     func generateReport(
         attacks: [AttackRecord],
         userProfile: UserProfile?,
-        dateRange: DateInterval
+        dateRange: DateInterval,
+        healthEvents: [HealthEvent] = []
     ) throws -> Data {
         
         // 创建PDF渲染器
@@ -56,11 +58,14 @@ class MedicalReportGenerator {
         let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
         
+        var pageCount = 0
+        
         let data = renderer.pdfData { context in
             var currentY: CGFloat = marginTop
             
             // 第一页：标题和患者信息
             context.beginPage()
+            pageCount += 1
             currentY = drawTitle(context: context, y: currentY)
             currentY = drawPatientInfo(context: context, y: currentY, profile: userProfile)
             currentY = drawReportPeriod(context: context, y: currentY, dateRange: dateRange)
@@ -74,20 +79,39 @@ class MedicalReportGenerator {
             // 如果当前页面空间不足，开始新页面
             if currentY > pageHeight - 200 {
                 context.beginPage()
+                pageCount += 1
                 currentY = marginTop
             }
             
             // 诱因分析
             currentY = drawTriggerAnalysis(context: context, y: currentY, attacks: attacks)
             
-            // 第二页：详细发作记录表格
-            context.beginPage()
-            currentY = marginTop
+            // 详细发作记录表格
+            if currentY > pageHeight - 200 {
+                context.beginPage()
+                pageCount += 1
+                currentY = marginTop
+            } else {
+                context.beginPage()
+                pageCount += 1
+                currentY = marginTop
+            }
             currentY = drawDetailedRecordsTable(context: context, y: currentY, attacks: attacks)
             
-            // 页脚
-            drawFooter(context: context, pageNumber: 1)
-            drawFooter(context: context, pageNumber: 2)
+            // 健康事件记录
+            if !healthEvents.isEmpty {
+                if currentY > pageHeight - 200 {
+                    context.beginPage()
+                    pageCount += 1
+                    currentY = marginTop
+                }
+                currentY = drawHealthEventsSection(context: context, y: currentY, healthEvents: healthEvents)
+            }
+            
+            // 页脚（为每一页绘制）
+            for page in 1...pageCount {
+                drawFooter(context: context, pageNumber: page)
+            }
         }
         
         return data
@@ -430,7 +454,7 @@ class MedicalReportGenerator {
             xOffset += columns[4].width
             
             // 用药
-            let medications = attack.medications.prefix(2).compactMap { $0.medication?.name }.joined(separator: ",")
+            let medications = attack.medications.prefix(2).map { $0.displayName }.joined(separator: ",")
             drawTableCell(context: context, x: xOffset, y: currentY, width: columns[5].width, height: rowHeight, text: medications.isEmpty ? "-" : medications, font: cellFont)
             xOffset += columns[5].width
             
@@ -449,6 +473,94 @@ class MedicalReportGenerator {
                 effectivenessText = "-"
             }
             drawTableCell(context: context, x: xOffset, y: currentY, width: columns[6].width, height: rowHeight, text: effectivenessText, font: cellFont)
+            
+            currentY += rowHeight
+        }
+        
+        return currentY
+    }
+    
+    /// 绘制健康事件章节
+    private func drawHealthEventsSection(context: UIGraphicsPDFRendererContext, y: CGFloat, healthEvents: [HealthEvent]) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "健康事件记录")
+        
+        let headerFont = UIFont.systemFont(ofSize: 9, weight: .medium)
+        let cellFont = UIFont.systemFont(ofSize: 8)
+        let rowHeight: CGFloat = 25
+        
+        let columns: [(title: String, width: CGFloat)] = [
+            ("日期", 65),
+            ("类型", 50),
+            ("内容", 130),
+            ("详情", 130),
+            ("备注", 120)
+        ]
+        
+        // 绘制表头
+        var xOffset = marginLeft
+        for column in columns {
+            drawTableCell(context: context, x: xOffset, y: currentY, width: column.width, height: rowHeight, text: column.title, font: headerFont, isHeader: true)
+            xOffset += column.width
+        }
+        currentY += rowHeight
+        
+        // 按时间排序
+        let sortedEvents = healthEvents.sorted { $0.eventDate > $1.eventDate }
+        
+        for event in sortedEvents {
+            // 检查是否需要换页
+            if currentY > pageHeight - marginBottom - 50 {
+                context.beginPage()
+                currentY = marginTop
+            }
+            
+            xOffset = marginLeft
+            
+            // 日期
+            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[0].width, height: rowHeight, text: event.eventDate.compactDateTime(), font: cellFont)
+            xOffset += columns[0].width
+            
+            // 类型
+            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[1].width, height: rowHeight, text: event.eventType.rawValue, font: cellFont)
+            xOffset += columns[1].width
+            
+            // 内容
+            let contentText: String
+            switch event.eventType {
+            case .medication:
+                contentText = event.displayTitle
+            case .tcmTreatment:
+                contentText = event.tcmTreatmentType ?? "中医治疗"
+            case .surgery:
+                contentText = event.surgeryName ?? "手术"
+            }
+            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[2].width, height: rowHeight, text: contentText, font: cellFont)
+            xOffset += columns[2].width
+            
+            // 详情
+            let detailText: String
+            switch event.eventType {
+            case .medication:
+                detailText = event.displayDetail ?? "-"
+            case .tcmTreatment:
+                if let duration = event.tcmDuration, duration > 0 {
+                    detailText = "\(Int(duration / 60))分钟"
+                } else {
+                    detailText = "-"
+                }
+            case .surgery:
+                var details: [String] = []
+                if let hospital = event.hospitalName { details.append(hospital) }
+                if let doctor = event.doctorName { details.append(doctor) }
+                detailText = details.isEmpty ? "-" : details.joined(separator: " ")
+            }
+            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[3].width, height: rowHeight, text: detailText, font: cellFont)
+            xOffset += columns[3].width
+            
+            // 备注
+            drawTableCell(context: context, x: xOffset, y: currentY, width: columns[4].width, height: rowHeight, text: event.notes ?? "-", font: cellFont)
             
             currentY += rowHeight
         }
