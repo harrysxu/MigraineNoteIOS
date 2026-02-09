@@ -127,9 +127,13 @@ struct ExportReportView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showShareSheet) {
+            .sheet(isPresented: $showShareSheet, onDismiss: {
+                generatedPDFData = nil
+            }) {
                 if let pdfData = generatedPDFData {
-                    ShareSheet(activityItems: [pdfData, generatePDFURL(from: pdfData)])
+                    ShareSheet(activityItems: [pdfData, generatePDFURL(from: pdfData)]) {
+                        showShareSheet = false
+                    }
                 }
             }
         }
@@ -270,9 +274,14 @@ private struct PreviewRow: View {
 
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
+    var onComplete: (() -> Void)?
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, _, _, _ in
+            onComplete?()
+        }
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}

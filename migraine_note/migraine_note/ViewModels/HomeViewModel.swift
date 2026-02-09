@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreLocation
 
 @Observable
 class HomeViewModel {
@@ -19,8 +20,21 @@ class HomeViewModel {
     var weatherError: String?
     var isRefreshingWeather: Bool = false
     
+    // MARK: - 月度统计（预计算，避免 MonthlyOverviewCard 独立 @Query）
+    var monthlyAttackDays: Int = 0
+    var monthlyAverageIntensity: Double = 0
+    var monthlyMedicationStats: DetailedMedicationStatistics?
+    
+    /// 是否定位权限被拒绝或受限（需要引导用户去设置中开启）
+    var isLocationDenied: Bool {
+        return weatherManager.isLocationDenied
+    }
+    
     private let modelContext: ModelContext
     private let weatherManager: WeatherManager
+    
+    /// 天气加载任务引用，用于取消重复请求
+    private var weatherTask: Task<Void, Never>?
     
     init(modelContext: ModelContext, weatherManager: WeatherManager = WeatherManager()) {
         self.modelContext = modelContext
@@ -34,10 +48,14 @@ class HomeViewModel {
             weatherManager.requestLocationAuthorization()
         }
         
-        // 加载天气数据
-        Task {
-            await loadWeatherData()
+        // 加载天气数据（存储引用以支持取消）
+        weatherTask = Task { [weak self] in
+            await self?.loadWeatherData()
         }
+    }
+    
+    deinit {
+        weatherTask?.cancel()
     }
     
     func loadData() {
@@ -46,6 +64,7 @@ class HomeViewModel {
         loadRecentHealthEvents()
         loadRecentTimelineItems()
         calculateStreak()
+        loadMonthlyStats()
     }
     
     private func loadOngoingAttack() {
@@ -99,58 +118,91 @@ class HomeViewModel {
         let now = Date()
         let today = calendar.startOfDay(for: now)
         
-        // 获取所有发作记录，按日期排序
-        let descriptor = FetchDescriptor<AttackRecord>(
+        // 只获取最近一条发作记录（不再加载全量数据）
+        var descriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime <= now
+            },
             sortBy: [SortDescriptor(\.startTime, order: .reverse)]
         )
+        descriptor.fetchLimit = 1
         
-        guard let allAttacks = try? modelContext.fetch(descriptor) else {
+        guard let lastAttack = try? modelContext.fetch(descriptor).first else {
             streakDays = 0
             return
         }
         
-        // 只考虑 startTime <= 当前时间的记录，过滤掉未来的记录
-        let pastAttacks = allAttacks.filter { $0.startTime <= now }
-        
-        // 如果没有任何过去的记录，显示 0 天
-        guard !pastAttacks.isEmpty else {
+        // 如果最近的记录还在进行中（没有结束时间），显示发作中
+        if lastAttack.endTime == nil {
             streakDays = 0
             return
         }
         
-        // 找到最近的记录
-        if let lastAttack = pastAttacks.first {
-            // 如果最近的记录还在进行中（没有结束时间），显示发作中
-            if lastAttack.endTime == nil {
+        // 如果有结束时间，从结束时间计算到今天的天数差
+        if let endTime = lastAttack.endTime {
+            let endDay = calendar.startOfDay(for: endTime)
+            
+            // 如果结束日期是今天，显示 0 天
+            if endDay == today {
                 streakDays = 0
-                // 注意：界面会通过 ongoingAttack 属性显示"发作进行中"状态
                 return
             }
             
-            // 如果有结束时间，从结束时间计算到今天的天数差
-            if let endTime = lastAttack.endTime {
-                let endDay = calendar.startOfDay(for: endTime)
-                
-                // 如果结束日期是今天，显示 0 天
-                if endDay == today {
-                    streakDays = 0
-                    return
-                }
-                
-                // 计算从结束日期到今天的天数
-                let daysSinceEnd = calendar.dateComponents([.day], from: endDay, to: today).day ?? 0
-                streakDays = daysSinceEnd
-                return
-            }
+            // 计算从结束日期到今天的天数
+            let daysSinceEnd = calendar.dateComponents([.day], from: endDay, to: today).day ?? 0
+            streakDays = daysSinceEnd
+        }
+    }
+    
+    // MARK: - 月度统计
+    
+    private func loadMonthlyStats() {
+        let calendar = Calendar.current
+        let now = Date()
+        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
+        let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+        let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
+        
+        // 只查询当月的发作记录（而非全量）
+        let attackDescriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= startOfMonth && attack.startTime <= endOfMonth
+            },
+            sortBy: [SortDescriptor(\.startTime, order: .reverse)]
+        )
+        let monthAttacks = (try? modelContext.fetch(attackDescriptor)) ?? []
+        
+        // 只查询当月的健康事件
+        let eventDescriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= startOfMonth && event.eventDate <= endOfMonth
+            },
+            sortBy: [SortDescriptor(\.eventDate, order: .reverse)]
+        )
+        let monthEvents = (try? modelContext.fetch(eventDescriptor)) ?? []
+        
+        // 计算统计
+        monthlyAttackDays = Set(monthAttacks.map { calendar.startOfDay(for: $0.startTime) }).count
+        
+        if monthAttacks.isEmpty {
+            monthlyAverageIntensity = 0
+        } else {
+            monthlyAverageIntensity = Double(monthAttacks.reduce(0) { $0 + $1.painIntensity }) / Double(monthAttacks.count)
         }
         
-        streakDays = 0
+        monthlyMedicationStats = DetailedMedicationStatistics.calculate(
+            attacks: monthAttacks,
+            healthEvents: monthEvents,
+            dateRange: (startOfMonth, endOfMonth)
+        )
     }
     
     func refreshData() {
         loadData()
-        Task {
-            await loadWeatherData()
+        // 取消之前的天气任务，避免多个并行请求
+        weatherTask?.cancel()
+        weatherTask = Task { [weak self] in
+            await self?.loadWeatherData()
         }
     }
     
@@ -161,18 +213,27 @@ class HomeViewModel {
             isRefreshingWeather = true
         }
         
-        // 先检查权限状态
-        if !weatherManager.isAuthorized {
-            if let authError = weatherManager.authorizationError {
-                weatherError = convertErrorToUserFriendlyMessage(authError)
-            } else {
-                weatherError = "请在设置中开启定位权限"
-            }
+        // 检查定位权限
+        let status = weatherManager.authorizationStatus
+        
+        // 如果权限未授权，设置错误信息，不加载天气数据
+        if status == .denied || status == .restricted {
+            weatherError = "请在设置中开启定位权限"
             currentWeather = nil
             isRefreshingWeather = false
             return
         }
         
+        // 如果权限未确定，请求权限（不设置错误信息，显示加载状态等待用户授权）
+        if status == .notDetermined {
+            weatherManager.requestLocationAuthorization()
+            weatherError = nil
+            currentWeather = nil
+            isRefreshingWeather = false
+            return
+        }
+        
+        // 权限已授权，尝试加载天气数据
         do {
             // 确保有位置信息
             if weatherManager.currentLocation == nil {
@@ -186,8 +247,16 @@ class HomeViewModel {
                 }
             }
             
-            currentWeather = try await weatherManager.fetchCurrentWeather(forceRefresh: forceRefresh)
-            weatherError = nil
+            let weather = try await weatherManager.fetchCurrentWeather(forceRefresh: forceRefresh)
+            
+            // 如果位置无法解析（反向地理编码失败），说明定位不可靠，不展示天气数据
+            if weather.location.isEmpty {
+                weatherError = "无法确认当前位置"
+                currentWeather = nil
+            } else {
+                currentWeather = weather
+                weatherError = nil
+            }
         } catch {
             // 将技术性错误转换为用户友好的提示
             weatherError = convertErrorToUserFriendlyMessage(error)
@@ -203,7 +272,11 @@ class HomeViewModel {
         if let weatherError = error as? WeatherError {
             switch weatherError {
             case .locationNotAvailable:
-                return "请在设置中开启定位权限"
+                if weatherManager.isLocationDenied {
+                    return "定位权限未开启，请在设置中开启"
+                } else {
+                    return "无法获取当前位置，请确认定位服务已开启后重试"
+                }
             case .dataNotAvailable:
                 return "请检查网络连接"
             case .historicalDataNotAvailable:
@@ -233,8 +306,9 @@ class HomeViewModel {
     
     /// 刷新天气数据
     func refreshWeather() {
-        Task {
-            await loadWeatherData(forceRefresh: true)
+        weatherTask?.cancel()
+        weatherTask = Task { [weak self] in
+            await self?.loadWeatherData(forceRefresh: true)
         }
     }
     
@@ -246,14 +320,12 @@ class HomeViewModel {
         modelContext.insert(attack)
         
         // 立即获取天气
-        if let location = weatherManager.currentLocation {
+        if weatherManager.currentLocation != nil {
             do {
-                print("🌤️ 快速记录：获取当前天气")
                 let weather = try await weatherManager.fetchCurrentWeather()
                 modelContext.insert(weather)
                 attack.weatherSnapshot = weather
             } catch {
-                print("❌ 快速记录获取天气失败: \(error.localizedDescription)")
                 // 天气获取失败不影响快速记录
             }
         }

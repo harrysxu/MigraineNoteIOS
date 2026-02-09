@@ -27,9 +27,58 @@ struct AnalyticsView: View {
     @State private var showExportErrorAlert = false
     @State private var exportErrorMessage = ""
     
+    // 缓存批量分析结果，避免每次渲染重复计算
+    @State private var cachedBatchAnalytics: BatchAnalyticsResult?
+    // 用于检测数据变化的标记
+    @State private var lastAnalyticsDataHash: Int = 0
+    // 防抖用的刷新任务
+    @State private var analyticsRefreshTask: Task<Void, Never>?
+    
     init(modelContext: ModelContext) {
         _analyticsEngine = State(initialValue: AnalyticsEngine(modelContext: modelContext))
         _mohDetector = State(initialValue: MOHDetector(modelContext: modelContext))
+    }
+    
+    /// 带防抖的异步刷新批量分析缓存（多次快速调用只会执行最后一次）
+    private func scheduleRefreshBatchAnalytics() {
+        analyticsRefreshTask?.cancel()
+        analyticsRefreshTask = Task {
+            // 防抖：等待 300ms，如果被取消则不执行
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            
+            // 在主线程读取 SwiftData 数据（SwiftData 要求 ModelContext 在创建线程访问）
+            let filtered = filterAttacksInRange()
+            let filteredEvents = filterHealthEventsInRange()
+            let dateRange = currentDateRange
+            
+            // 将重量级计算放到后台线程
+            let result = await Task.detached(priority: .userInitiated) {
+                BatchAnalyticsResult.compute(
+                    attacks: filtered,
+                    healthEvents: filteredEvents,
+                    dateRange: dateRange
+                )
+            }.value
+            
+            guard !Task.isCancelled else { return }
+            
+            // 回到主线程更新 UI 状态
+            await MainActor.run {
+                cachedBatchAnalytics = result
+            }
+        }
+    }
+    
+    /// 立即刷新（用于 onAppear 等不需要防抖的场景）
+    private func refreshBatchAnalytics() {
+        let filtered = filterAttacksInRange()
+        let filteredEvents = filterHealthEventsInRange()
+        cachedBatchAnalytics = BatchAnalyticsResult.compute(
+            attacks: filtered,
+            healthEvents: filteredEvents,
+            dateRange: currentDateRange
+        )
     }
     
     enum DataViewType: String, CaseIterable {
@@ -106,9 +155,16 @@ struct AnalyticsView: View {
                     customEndDate: $customEndDate
                 )
             }
-            .sheet(isPresented: $showCSVShareSheet) {
+            .sheet(isPresented: $showCSVShareSheet, onDismiss: {
                 if let csvFileURL = csvFileURL {
-                    ShareSheet(activityItems: [csvFileURL])
+                    try? FileManager.default.removeItem(at: csvFileURL)
+                }
+                csvFileURL = nil
+            }) {
+                if let csvFileURL = csvFileURL {
+                    ShareSheet(activityItems: [csvFileURL]) {
+                        showCSVShareSheet = false
+                    }
                 }
             }
             .alert("导出失败", isPresented: $showExportErrorAlert) {
@@ -118,37 +174,43 @@ struct AnalyticsView: View {
             }
         }
         .onAppear {
-            analyticsEngine = AnalyticsEngine(modelContext: modelContext)
-            mohDetector = MOHDetector(modelContext: modelContext)
+            // 仅在首次出现时初始化日历 ViewModel，避免重复创建
             if calendarViewModel == nil {
                 calendarViewModel = CalendarViewModel(modelContext: modelContext)
             } else {
-                // 每次视图出现时刷新日历数据，保持与图表统计一致
                 calendarViewModel?.loadData()
             }
-            
-            // 监听从HomeView切换到日历视图的通知
-            NotificationCenter.default.addObserver(
-                forName: NSNotification.Name("SwitchToDataCalendarView"),
-                object: nil,
-                queue: .main
-            ) { _ in
-                selectedView = .calendar
-            }
+            // 刷新批量分析缓存
+            refreshBatchAnalytics()
+        }
+        // 使用 .onReceive 替代 NotificationCenter.addObserver，自动管理生命周期
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToDataCalendarView"))) { _ in
+            selectedView = .calendar
         }
         .onChange(of: selectedView) { _, newValue in
-            // 切换到日历视图时刷新数据
             if newValue == .calendar {
                 calendarViewModel?.loadData()
             }
         }
-        .onChange(of: attacks.count) { _, _ in
-            // 当发作记录数据变化时，同步刷新日历视图数据
-            calendarViewModel?.loadData()
+        .onChange(of: selectedTimeRange) { _, _ in
+            // 时间范围变化时刷新分析缓存（带防抖）
+            scheduleRefreshBatchAnalytics()
         }
-        .onChange(of: healthEvents.count) { _, _ in
-            // 当健康事件数据变化时，同步刷新日历视图数据
+        .onChange(of: customStartDate) { _, _ in
+            scheduleRefreshBatchAnalytics()
+        }
+        .onChange(of: customEndDate) { _, _ in
+            scheduleRefreshBatchAnalytics()
+        }
+        .onChange(of: attacks.count) { oldCount, newCount in
+            guard oldCount != newCount else { return }
             calendarViewModel?.loadData()
+            scheduleRefreshBatchAnalytics()
+        }
+        .onChange(of: healthEvents.count) { oldCount, newCount in
+            guard oldCount != newCount else { return }
+            calendarViewModel?.loadData()
+            scheduleRefreshBatchAnalytics()
         }
     }
     
@@ -193,7 +255,7 @@ struct AnalyticsView: View {
     
     private var calendarContent: some View {
         ScrollView {
-            VStack(spacing: Spacing.lg) {
+            LazyVStack(spacing: Spacing.lg) {
                 if let viewModel = calendarViewModel {
                     // 月份统计卡片
                     if let stats = viewModel.monthlyStats {
@@ -201,8 +263,8 @@ struct AnalyticsView: View {
                             .padding(.horizontal)
                     }
                     
-                    // 疼痛强度图例
-                    PainIntensityLegend()
+                    // 疼痛强度图例（支持点击切换过滤）
+                    PainIntensityLegend(viewModel: viewModel)
                         .padding(.horizontal)
                     
                     // 日历网格
@@ -241,7 +303,7 @@ struct AnalyticsView: View {
     
     private var analyticsContent: some View {
         ScrollView {
-            VStack(spacing: Spacing.lg) {
+            LazyVStack(spacing: Spacing.lg) {
                 // 整体情况概览
                 overallSummaryCard
                 
@@ -260,8 +322,11 @@ struct AnalyticsView: View {
                 // 发作时间分布
                 circadianPatternSection
                 
-                // 用药统计
+                // 用药统计（急性 vs 日常）
                 medicationStatisticsSection
+                
+                // 健康事件统计
+                healthEventStatisticsSection
                 
                 // 用药频次提醒
                 mohRiskSection
@@ -296,10 +361,9 @@ struct AnalyticsView: View {
                 }
                 
                 // 统计数据网格
-                let durationStats = analyticsEngine.analyzeDurationStatistics(in: currentDateRange)
+                let durationStats = cachedBatchAnalytics?.durationStats ?? DurationStatistics(averageDuration: 0, longestDuration: 0, shortestDuration: 0)
                 let attackDays = getAttackDaysCount()
                 let stats = getDetailedMedicationStats()
-                let isChronic = attackDays >= 15
                 let hasMOHRisk = stats.acuteMedicationDays >= 10
                 
                 LazyVGrid(columns: [
@@ -311,8 +375,7 @@ struct AnalyticsView: View {
                         title: "发作天数",
                         value: "\(attackDays)",
                         icon: "calendar.badge.exclamationmark",
-                        color: isChronic ? Color.statusError : Color.statusWarning,
-                        subtitle: isChronic ? "慢性偏头痛" : nil
+                        color: Color.statusWarning
                     )
                     
                     StatItem(
@@ -351,20 +414,20 @@ struct AnalyticsView: View {
                         color: hasMOHRisk ? Color.statusWarning : Color.accentPrimary
                     )
                     
-                    // 预防性用药（有数据时显示）
+                    // 日常用药（有数据时显示）
                     if stats.hasPreventiveMedication {
                         StatItem(
-                            title: "预防性用药天数",
+                            title: "日常用药天数",
                             value: "\(stats.preventiveMedicationDays)",
                             icon: "calendar.badge.plus",
-                            color: Color.statusSuccess
+                            color: Color.accentPrimary
                         )
                         
                         StatItem(
-                            title: "预防性用药次数",
+                            title: "日常用药次数",
                             value: "\(stats.preventiveMedicationCount)",
-                            icon: "shield.fill",
-                            color: Color.statusSuccess
+                            icon: "pills.circle.fill",
+                            color: Color.accentPrimary
                         )
                     }
                     
@@ -395,16 +458,27 @@ struct AnalyticsView: View {
     // MARK: - MOH Risk Section
     
     private var mohRiskSection: some View {
-        let medicationStats = analyticsEngine.analyzeMedicationUsage(in: currentDateRange)
-        let currentMonthStats = getCurrentMonthMedicationDays()
+        let totalDays = getMedicationDaysForRange()
+        let monthCount = getMonthCountForRange()
+        let isMultiMonth = monthCount > 1
+        // 多月时显示月均值，单月时显示总天数
+        let monthlyAvg = isMultiMonth ? Double(totalDays) / Double(monthCount) : Double(totalDays)
+        let displayDays = isMultiMonth ? Int(round(monthlyAvg)) : totalDays
+        let isWarning = monthlyAvg >= 10.0
         
-        return EmotionalCard(style: currentMonthStats >= 10 ? .warning : .default) {
+        let rangeLabel = isMultiMonth ? "月均急性用药天数" : "本月急性用药天数"
+        let thresholdText = isMultiMonth ? "建议不超过 10 天/月" : "建议不超过 10 天"
+        let warningText = isMultiMonth
+            ? "月均用药天数已达到或超过10天，建议就医咨询专业医生"
+            : "当月用药天数已达到或超过10天，建议就医咨询专业医生"
+        
+        return EmotionalCard(style: isWarning ? .warning : .default) {
             VStack(alignment: .leading, spacing: 16) {
                 // 标题
                 HStack(spacing: 8) {
                     Image(systemName: "pills.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary)
+                        .foregroundStyle(isWarning ? Color.statusWarning : Color.accentPrimary)
                     Text("用药频次提醒")
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
@@ -412,18 +486,18 @@ struct AnalyticsView: View {
                     Spacer()
                 }
                 
-                // 当月用药天数 - 横向布局
+                // 用药天数 - 横向布局
                 HStack(spacing: 20) {
                     // 左侧数值
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("本月急性用药天数")
+                        Text(rangeLabel)
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                         
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("\(currentMonthStats)")
+                            Text("\(displayDays)")
                                 .font(.system(size: 36, weight: .bold))
-                                .foregroundStyle(currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary)
+                                .foregroundStyle(isWarning ? Color.statusWarning : Color.accentPrimary)
                             
                             Text("天")
                                 .font(.title3)
@@ -439,16 +513,16 @@ struct AnalyticsView: View {
                                         .frame(height: 8)
                                     
                                     RoundedRectangle(cornerRadius: 4)
-                                        .fill(currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary)
+                                        .fill(isWarning ? Color.statusWarning : Color.accentPrimary)
                                         .frame(
-                                            width: geometry.size.width * min(Double(currentMonthStats) / 15.0, 1.0),
+                                            width: geometry.size.width * min(monthlyAvg / 15.0, 1.0),
                                             height: 8
                                         )
                                 }
                             }
                             .frame(height: 8)
                             
-                            Text("建议不超过 10 天")
+                            Text(thresholdText)
                                 .font(.caption2)
                                 .foregroundStyle(Color.textTertiary)
                         }
@@ -463,28 +537,28 @@ struct AnalyticsView: View {
                             .frame(width: 64, height: 64)
                         
                         Circle()
-                            .trim(from: 0, to: min(Double(currentMonthStats) / 15.0, 1.0))
+                            .trim(from: 0, to: min(monthlyAvg / 15.0, 1.0))
                             .stroke(
-                                currentMonthStats >= 10 ? Color.statusWarning : Color.accentPrimary,
+                                isWarning ? Color.statusWarning : Color.accentPrimary,
                                 style: StrokeStyle(lineWidth: 6, lineCap: .round)
                             )
                             .frame(width: 64, height: 64)
                             .rotationEffect(.degrees(-90))
                         
-                        Text(String(format: "%.0f%%", min(Double(currentMonthStats) / 10.0 * 100, 100)))
+                        Text(String(format: "%.0f%%", min(monthlyAvg / 10.0 * 100, 100)))
                             .font(.caption.weight(.bold))
                             .foregroundStyle(Color.textPrimary)
                     }
                 }
                 
                 // 提醒说明
-                if currentMonthStats >= 10 {
+                if isWarning {
                     HStack(spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.caption)
                             .foregroundStyle(Color.statusWarning)
                         
-                        Text("当月用药天数已达到或超过10天，建议就医咨询专业医生")
+                        Text(warningText)
                             .font(.caption)
                             .foregroundStyle(Color.textPrimary)
                     }
@@ -541,15 +615,6 @@ struct AnalyticsView: View {
                             }
                         }
                         
-                        // 慢性偏头痛阈值线
-                        RuleMark(y: .value("慢性阈值", 15))
-                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
-                            .foregroundStyle(Color.statusError.opacity(0.5))
-                            .annotation(position: .topTrailing, alignment: .leading) {
-                                Text("慢性阈值(15天)")
-                                    .font(.caption2)
-                                    .foregroundStyle(Color.statusError)
-                            }
                     }
                     .frame(height: 200)
                     .chartYAxis {
@@ -583,7 +648,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let triggerData = analyticsEngine.analyzeTriggerFrequency(in: currentDateRange)
+                let triggerData = cachedBatchAnalytics?.triggerFrequency ?? []
                 
                 if triggerData.isEmpty {
                     Text("暂无诱因数据")
@@ -618,7 +683,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let circadianData = analyticsEngine.analyzeCircadianPattern(in: currentDateRange)
+                let circadianData = cachedBatchAnalytics?.circadianPattern ?? []
                 
                 if circadianData.isEmpty {
                     Text("数据不足")
@@ -713,9 +778,9 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: currentDateRange)
-                let locationFreq = analyticsEngine.analyzePainLocationFrequency(in: currentDateRange)
-                let qualityFreq = analyticsEngine.analyzePainQualityFrequency(in: currentDateRange)
+                let intensityDist = cachedBatchAnalytics?.painIntensityDistribution ?? PainIntensityDistribution(mild: 0, moderate: 0, severe: 0)
+                let locationFreq = cachedBatchAnalytics?.painLocationFrequency ?? []
+                let qualityFreq = cachedBatchAnalytics?.painQualityFrequency ?? []
                 
                 // 疼痛强度分布
                 VStack(alignment: .leading, spacing: 12) {
@@ -813,8 +878,8 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let symptomFreq = analyticsEngine.analyzeSymptomFrequency(in: currentDateRange)
-                let auraStats = analyticsEngine.analyzeAuraStatistics(in: currentDateRange)
+                let symptomFreq = cachedBatchAnalytics?.symptomFrequency ?? []
+                let auraStats = cachedBatchAnalytics?.auraStatistics ?? AuraStatistics(totalAttacks: 0, attacksWithAura: 0, auraTypeFrequency: [])
                 
                 // 伴随症状频次
                 if !symptomFreq.isEmpty {
@@ -882,7 +947,7 @@ struct AnalyticsView: View {
         }
     }
     
-    // MARK: - 用药统计
+    // MARK: - 用药统计（急性用药 vs 日常用药）
     
     private var medicationStatisticsSection: some View {
         EmotionalCard(style: .default) {
@@ -895,79 +960,288 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let medicationStats = analyticsEngine.analyzeMedicationUsage(in: currentDateRange)
+                let acuteStats = cachedBatchAnalytics?.acuteMedicationUsage ?? MedicationUsageStatistics(totalMedicationUses: 0, medicationDays: 0, categoryBreakdown: [], topMedications: [])
+                let healthEventStats = cachedBatchAnalytics?.healthEventStatistics ?? .empty
                 
-                if medicationStats.totalMedicationUses > 0 {
-                    // 用药概况
-                    HStack(spacing: 20) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("总用药次数")
+                let hasAcute = acuteStats.totalMedicationUses > 0
+                let hasDaily = healthEventStats.hasDailyMedication
+                
+                if hasAcute || hasDaily {
+                    // === 急性用药（发作期间） ===
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bolt.heart.fill")
                                 .font(.caption)
-                                .foregroundStyle(Color.textSecondary)
-                            Text("\(medicationStats.totalMedicationUses) 次")
-                                .font(.title3.weight(.bold))
+                                .foregroundStyle(Color.statusWarning)
+                            Text("急性用药（发作期间）")
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                         }
                         
-                        Spacer()
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("用药天数")
+                        if hasAcute {
+                            HStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("用药次数")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
+                                    Text("\(acuteStats.totalMedicationUses) 次")
+                                        .font(.title3.weight(.bold))
+                                        .foregroundStyle(Color.statusWarning)
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("用药天数")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
+                                    Text("\(acuteStats.medicationDays) 天")
+                                        .font(.title3.weight(.bold))
+                                        .foregroundStyle(Color.statusWarning)
+                                }
+                            }
+                            
+                            // 急性用药分类
+                            if !acuteStats.categoryBreakdown.isEmpty {
+                                VStack(spacing: 8) {
+                                    ForEach(acuteStats.categoryBreakdown) { category in
+                                        FrequencyRow(
+                                            name: category.categoryName,
+                                            count: category.count,
+                                            percentage: category.percentage
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // 急性用药 Top 药物
+                            if !acuteStats.topMedications.isEmpty {
+                                VStack(spacing: 8) {
+                                    ForEach(Array(acuteStats.topMedications.prefix(3))) { medication in
+                                        FrequencyRow(
+                                            name: medication.medicationName,
+                                            count: medication.count,
+                                            percentage: medication.percentage
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("暂无急性用药记录")
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
-                            Text("\(medicationStats.medicationDays) 天")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(Color.textPrimary)
                         }
                     }
                     
-                    // 药物分类统计
-                    if !medicationStats.categoryBreakdown.isEmpty {
-                        Divider()
-                            .padding(.vertical, 4)
-                        
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("药物分类统计")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.textPrimary)
-                            
-                            VStack(spacing: 8) {
-                                ForEach(medicationStats.categoryBreakdown) { category in
-                                    FrequencyRow(
-                                        name: category.categoryName,
-                                        count: category.count,
-                                        percentage: category.percentage
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    Divider()
+                        .padding(.vertical, 4)
                     
-                    // Top 5 常用药物
-                    if !medicationStats.topMedications.isEmpty {
-                        Divider()
-                            .padding(.vertical, 4)
-                        
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("最常用药物 (Top 5)")
+                    // === 日常用药 ===
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "pills.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(Color.accentPrimary)
+                            Text("日常用药")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
-                            
-                            VStack(spacing: 8) {
-                                ForEach(Array(medicationStats.topMedications.prefix(5))) { medication in
-                                    FrequencyRow(
-                                        name: medication.medicationName,
-                                        count: medication.count,
-                                        percentage: medication.percentage
-                                    )
+                        }
+                        
+                        if hasDaily {
+                            HStack(spacing: 20) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("用药次数")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
+                                    Text("\(healthEventStats.dailyMedicationCount) 次")
+                                        .font(.title3.weight(.bold))
+                                        .foregroundStyle(Color.accentPrimary)
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("用药天数")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textSecondary)
+                                    Text("\(healthEventStats.dailyMedicationDays) 天")
+                                        .font(.title3.weight(.bold))
+                                        .foregroundStyle(Color.accentPrimary)
                                 }
                             }
+                            
+                            // 日常用药分类
+                            if !healthEventStats.dailyMedCategories.isEmpty {
+                                VStack(spacing: 8) {
+                                    ForEach(healthEventStats.dailyMedCategories) { category in
+                                        FrequencyRow(
+                                            name: category.categoryName,
+                                            count: category.count,
+                                            percentage: category.percentage
+                                        )
+                                    }
+                                }
+                            }
+                            
+                            // 日常用药 Top 药物
+                            if !healthEventStats.dailyTopMedications.isEmpty {
+                                VStack(spacing: 8) {
+                                    ForEach(Array(healthEventStats.dailyTopMedications.prefix(3))) { medication in
+                                        FrequencyRow(
+                                            name: medication.medicationName,
+                                            count: medication.count,
+                                            percentage: medication.percentage
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            Text("暂无日常用药记录")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
                         }
                     }
                 } else {
                     Text("暂无用药数据")
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
+                }
+            }
+        }
+    }
+    
+    // MARK: - 健康事件统计
+    
+    private var healthEventStatisticsSection: some View {
+        let healthStats = cachedBatchAnalytics?.healthEventStatistics ?? .empty
+        
+        return Group {
+            if healthStats.hasAnyEvent {
+                EmotionalCard(style: .default) {
+                    VStack(alignment: .leading, spacing: Spacing.md) {
+                        HStack {
+                            Image(systemName: "heart.text.square.fill")
+                                .foregroundStyle(Color.accentPrimary)
+                            Text("健康事件统计")
+                                .font(.headline)
+                                .foregroundStyle(Color.textPrimary)
+                        }
+                        
+                        // 事件总览
+                        HStack(spacing: 0) {
+                            if healthStats.hasDailyMedication {
+                                HealthEventSummaryItem(
+                                    icon: "pills.circle.fill",
+                                    label: "日常用药",
+                                    value: "\(healthStats.dailyMedicationCount)次",
+                                    color: .accentPrimary
+                                )
+                            }
+                            
+                            if healthStats.hasTCMTreatment {
+                                HealthEventSummaryItem(
+                                    icon: "leaf.circle.fill",
+                                    label: "中医治疗",
+                                    value: "\(healthStats.tcmTreatmentCount)次",
+                                    color: .statusSuccess
+                                )
+                            }
+                            
+                            if healthStats.hasSurgery {
+                                HealthEventSummaryItem(
+                                    icon: "cross.case.circle.fill",
+                                    label: "手术",
+                                    value: "\(healthStats.surgeryCount)次",
+                                    color: .statusInfo
+                                )
+                            }
+                        }
+                        
+                        // 中医治疗详情
+                        if healthStats.hasTCMTreatment {
+                            Divider()
+                                .padding(.vertical, 4)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "leaf.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.statusSuccess)
+                                    Text("中医治疗详情")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color.textPrimary)
+                                }
+                                
+                                if healthStats.averageTcmDurationMinutes > 0 {
+                                    HStack {
+                                        Text("平均治疗时长")
+                                            .font(.caption)
+                                            .foregroundStyle(Color.textSecondary)
+                                        Spacer()
+                                        Text("\(healthStats.averageTcmDurationMinutes) 分钟")
+                                            .font(.body.weight(.semibold))
+                                            .foregroundStyle(Color.textPrimary)
+                                    }
+                                }
+                                
+                                if !healthStats.tcmTreatmentTypes.isEmpty {
+                                    VStack(spacing: 8) {
+                                        ForEach(healthStats.tcmTreatmentTypes) { type in
+                                            FrequencyRow(
+                                                name: type.typeName,
+                                                count: type.count,
+                                                percentage: type.percentage
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 手术详情
+                        if healthStats.hasSurgery {
+                            Divider()
+                                .padding(.vertical, 4)
+                            
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "cross.case.circle.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.statusInfo)
+                                    Text("手术记录")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color.textPrimary)
+                                }
+                                
+                                ForEach(healthStats.surgeryDetails) { surgery in
+                                    HStack(spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(surgery.name)
+                                                .font(.subheadline.weight(.medium))
+                                                .foregroundStyle(Color.textPrimary)
+                                            
+                                            HStack(spacing: 8) {
+                                                Text(surgery.date.fullDate())
+                                                    .font(.caption)
+                                                    .foregroundStyle(Color.textSecondary)
+                                                
+                                                if let hospital = surgery.hospital {
+                                                    Text(hospital)
+                                                        .font(.caption)
+                                                        .foregroundStyle(Color.textSecondary)
+                                                }
+                                            }
+                                        }
+                                        
+                                        Spacer()
+                                    }
+                                    .padding(10)
+                                    .background(Color.backgroundPrimary)
+                                    .cornerRadius(10)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -997,16 +1271,22 @@ struct AnalyticsView: View {
             monthsToShow = max(min(components.month ?? 3, 12), 3)  // 最少3个月，最多12个月
         }
         
-        // 获取指定月份数的数据
+        // 预先按月份分组，避免对每个月都遍历全部数据（O(n) 替代 O(n*m)）
+        var attacksByMonth: [Int: [AttackRecord]] = [:]  // key: year*100+month
+        for attack in attacks {
+            let comps = calendar.dateComponents([.year, .month], from: attack.startTime)
+            if let y = comps.year, let m = comps.month {
+                let key = y * 100 + m
+                attacksByMonth[key, default: []].append(attack)
+            }
+        }
+        
         for monthOffset in (0..<monthsToShow).reversed() {
             guard let monthDate = calendar.date(byAdding: .month, value: -monthOffset, to: end) else { continue }
             
-            let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: monthDate))!
-            let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart)!
-            
-            let monthAttacks = attacks.filter { attack in
-                attack.startTime >= monthStart && attack.startTime < monthEnd
-            }
+            let comps = calendar.dateComponents([.year, .month], from: monthDate)
+            let key = (comps.year ?? 0) * 100 + (comps.month ?? 0)
+            let monthAttacks = attacksByMonth[key] ?? []
             
             // 计算发作天数（去重）
             let attackDays = Set(monthAttacks.map { calendar.startOfDay(for: $0.startTime) }).count
@@ -1026,59 +1306,49 @@ struct AnalyticsView: View {
     
     // MARK: - 数据获取辅助方法
     
-    private func getDetailedMedicationStats() -> DetailedMedicationStatistics {
+    // MARK: - 从缓存读取预计算的统计数据（避免重复遍历）
+    
+    /// 仅在 refreshBatchAnalytics() 中使用，其他地方统一从缓存读取
+    private func filterAttacksInRange() -> [AttackRecord] {
         let (start, end) = currentDateRange
-        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
-        let healthEventsInRange = healthEvents.filter { $0.eventDate >= start && $0.eventDate <= end }
-        
-        return DetailedMedicationStatistics.calculate(
-            attacks: attacksInRange,
-            healthEvents: healthEventsInRange,
-            dateRange: (start, end)
-        )
+        return attacks.filter { $0.startTime >= start && $0.startTime <= end }
+    }
+    
+    /// 仅在 refreshBatchAnalytics() 中使用，其他地方统一从缓存读取
+    private func filterHealthEventsInRange() -> [HealthEvent] {
+        let (start, end) = currentDateRange
+        return healthEvents.filter { $0.eventDate >= start && $0.eventDate <= end }
+    }
+    
+    private func getDetailedMedicationStats() -> DetailedMedicationStatistics {
+        cachedBatchAnalytics?.detailedMedicationStats ?? .empty
     }
     
     private func getTotalAttacksCount() -> Int {
-        let (start, end) = currentDateRange
-        return attacks.filter { $0.startTime >= start && $0.startTime <= end }.count
+        cachedBatchAnalytics?.totalAttacksCount ?? 0
     }
     
     private func getAttackDaysCount() -> Int {
-        let calendar = Calendar.current
-        let (start, end) = currentDateRange
-        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
-        return Set(attacksInRange.map { calendar.startOfDay(for: $0.startTime) }).count
+        cachedBatchAnalytics?.attackDaysCount ?? 0
     }
     
     private func getAveragePainIntensity() -> Double {
-        let (start, end) = currentDateRange
-        let attacksInRange = attacks.filter { $0.startTime >= start && $0.startTime <= end }
-        guard !attacksInRange.isEmpty else { return 0 }
-        let total = attacksInRange.reduce(0) { $0 + $1.painIntensity }
-        return Double(total) / Double(attacksInRange.count)
+        cachedBatchAnalytics?.averagePainIntensity ?? 0
     }
     
-    private func getCurrentMonthMedicationDays() -> Int {
+    /// 获取选中时间范围内的急性用药天数
+    private func getMedicationDaysForRange() -> Int {
+        cachedBatchAnalytics?.detailedMedicationStats.acuteMedicationDays ?? 0
+    }
+    
+    /// 获取选中时间范围的月份数（至少为1）
+    private func getMonthCountForRange() -> Int {
         let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
-        
-        let monthAttacks = attacks.filter { attack in
-            attack.startTime >= startOfMonth && attack.startTime < endOfMonth
-        }
-        let monthHealthEvents = healthEvents.filter { event in
-            event.eventDate >= startOfMonth && event.eventDate < endOfMonth
-        }
-        
-        // 仅统计急性用药天数（用于MOH风险评估）
-        let stats = DetailedMedicationStatistics.calculate(
-            attacks: monthAttacks,
-            healthEvents: monthHealthEvents,
-            dateRange: (startOfMonth, endOfMonth)
-        )
-        
-        return stats.acuteMedicationDays
+        let (start, end) = currentDateRange
+        let components = calendar.dateComponents([.month, .day], from: start, to: end)
+        let months = components.month ?? 0
+        // 有剩余天数则向上取整
+        return max(1, months + ((components.day ?? 0) > 0 ? 1 : 0))
     }
 
     // MARK: - 中医治疗统计
@@ -1094,7 +1364,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Color.textPrimary)
                 }
                 
-                let tcmStats = analyticsEngine.analyzeTCMTreatment(in: currentDateRange)
+                let tcmStats = cachedBatchAnalytics?.tcmTreatmentStats ?? TCMTreatmentStats(totalTreatments: 0, treatmentTypes: [])
                 
                 if tcmStats.totalTreatments > 0 {
                     VStack(spacing: 12) {
@@ -1414,6 +1684,34 @@ struct FrequencyRow: View {
     }
 }
 
+/// 健康事件总览项
+struct HealthEventSummaryItem: View {
+    let icon: String
+    let label: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.title2)
+                .foregroundStyle(color)
+                .frame(width: 40, height: 40)
+                .background(color.opacity(0.15))
+                .clipShape(Circle())
+            
+            Text(value)
+                .font(.body.weight(.bold))
+                .foregroundStyle(color)
+            
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(Color.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 // MARK: - Supporting Types
 
 enum TimeRange: String, CaseIterable, Identifiable {
@@ -1663,16 +1961,23 @@ struct CalendarDayCell: View {
                 .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
                 .foregroundStyle(textColor)
             
-            // 疼痛强度指示器
-            if let intensity = viewModel.getMaxPainIntensity(for: date) {
-                Circle()
-                    .fill(Color.painCategoryColor(for: intensity))
-                    .frame(width: 8, height: 8)
-            } else {
-                Circle()
-                    .fill(Color.clear)
-                    .frame(width: 8, height: 8)
+            // 指示器（头痛记录 + 健康事件），根据图例过滤状态显示
+            HStack(spacing: 3) {
+                // 头痛记录指示器（根据过滤状态显示）
+                if let intensity = viewModel.getFilteredPainIntensity(for: date) {
+                    Circle()
+                        .fill(Color.painCategoryColor(for: intensity))
+                        .frame(width: 6, height: 6)
+                }
+                
+                // 健康事件指示器（根据过滤状态按类型显示）
+                ForEach(Array(viewModel.getFilteredHealthEventTypes(for: date)), id: \.self) { eventType in
+                    Circle()
+                        .fill(healthEventColor(for: eventType))
+                        .frame(width: 6, height: 6)
+                }
             }
+            .frame(height: 6) // 固定高度，避免布局跳动
         }
         .frame(maxWidth: .infinity)
         .frame(height: 50)
@@ -1722,6 +2027,8 @@ struct CalendarDayCell: View {
             return Color.accentPrimary
         } else if !viewModel.getAttacks(for: date).isEmpty {
             return Color.surface.opacity(0.5)
+        } else if !viewModel.getHealthEvents(for: date).isEmpty {
+            return Color.surface.opacity(0.3)
         } else {
             return Color.clear
         }
@@ -1734,6 +2041,14 @@ struct CalendarDayCell: View {
             return Color.accentPrimary.opacity(0.5)
         } else {
             return Color.clear
+        }
+    }
+    
+    private func healthEventColor(for eventType: HealthEventType) -> Color {
+        switch eventType {
+        case .medication: return .accentPrimary
+        case .tcmTreatment: return .statusSuccess
+        case .surgery: return .statusInfo
         }
     }
 }
@@ -1789,6 +2104,8 @@ struct TimeRangeSheetView: View {
 // MARK: - Pain Intensity Legend
 
 struct PainIntensityLegend: View {
+    @Bindable var viewModel: CalendarViewModel
+    
     var body: some View {
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 12) {
@@ -1801,24 +2118,105 @@ struct PainIntensityLegend: View {
                     LegendItem(
                         intensity: 2,
                         label: "轻度",
-                        range: "1-3"
-                    )
+                        range: "1-3",
+                        isSelected: viewModel.showMildPain
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.showMildPain.toggle()
+                        }
+                    }
                     
                     // 中度疼痛 (4-6)
                     LegendItem(
                         intensity: 5,
                         label: "中度",
-                        range: "4-6"
-                    )
+                        range: "4-6",
+                        isSelected: viewModel.showModeratePain
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.showModeratePain.toggle()
+                        }
+                    }
                     
                     // 重度疼痛 (7-10)
                     LegendItem(
                         intensity: 8,
                         label: "重度",
-                        range: "7-10"
-                    )
+                        range: "7-10",
+                        isSelected: viewModel.showSeverePain
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.showSeverePain.toggle()
+                        }
+                    }
+                }
+                
+                Divider()
+                
+                Text("健康事件图例")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textSecondary)
+                
+                HStack(spacing: 16) {
+                    EventLegendItem(
+                        color: .accentPrimary,
+                        label: "日常用药",
+                        isSelected: viewModel.showMedication
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.showMedication.toggle()
+                        }
+                    }
+                    
+                    EventLegendItem(
+                        color: .statusSuccess,
+                        label: "中医治疗",
+                        isSelected: viewModel.showTCMTreatment
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.showTCMTreatment.toggle()
+                        }
+                    }
+                    
+                    EventLegendItem(
+                        color: .statusInfo,
+                        label: "手术",
+                        isSelected: viewModel.showSurgery
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            viewModel.showSurgery.toggle()
+                        }
+                    }
                 }
             }
+        }
+    }
+}
+
+struct EventLegendItem: View {
+    let color: Color
+    let label: String
+    var isSelected: Bool = true
+    var onTap: (() -> Void)? = nil
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(isSelected ? color : color.opacity(0.3))
+                .frame(width: 10, height: 10)
+            
+            Text(label)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(isSelected ? Color.textPrimary : Color.textTertiary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .background(isSelected ? Color.clear : Color.backgroundTertiary.opacity(0.5))
+        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
         }
     }
 }
@@ -1827,24 +2225,34 @@ struct LegendItem: View {
     let intensity: Int
     let label: String
     let range: String
+    var isSelected: Bool = true
+    var onTap: (() -> Void)? = nil
     
     var body: some View {
         HStack(spacing: 8) {
             Circle()
-                .fill(Color.painCategoryColor(for: intensity))
+                .fill(isSelected ? Color.painCategoryColor(for: intensity) : Color.painCategoryColor(for: intensity).opacity(0.3))
                 .frame(width: 10, height: 10)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(isSelected ? Color.textPrimary : Color.textTertiary)
                 
                 Text(range)
                     .font(.caption2)
-                    .foregroundStyle(Color.textTertiary)
+                    .foregroundStyle(isSelected ? Color.textTertiary : Color.textTertiary.opacity(0.5))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+        .padding(.horizontal, 6)
+        .background(isSelected ? Color.clear : Color.backgroundTertiary.opacity(0.5))
+        .cornerRadius(6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
     }
 }
 

@@ -13,11 +13,15 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ThemeManager.self) private var themeManager
     @Query private var medications: [Medication]
-    @Query private var medicationLogs: [MedicationLog]
-    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
-    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
+    // 移除了 @Query 全量加载 attacks/healthEvents/medicationLogs
+    // 改为按需查询当月数据，大幅降低内存占用
     
     @State private var cloudKitManager = CloudKitManager()
+    @State private var showClearDataFirstConfirm = false
+    @State private var showClearDataFinalConfirm = false
+    @State private var showClearDataSuccess = false
+    @State private var isClearingData = false
+    @State private var cachedMonthlyMedDays: Int = 0
     
     var body: some View {
         NavigationStack {
@@ -38,6 +42,28 @@ struct ProfileView: View {
         }
         .onAppear {
             cloudKitManager.checkICloudStatus()
+            loadMonthlyMedicationDays()
+        }
+        .alert("确认清空数据", isPresented: $showClearDataFirstConfirm) {
+            Button("取消", role: .cancel) { }
+            Button("继续", role: .destructive) {
+                showClearDataFinalConfirm = true
+            }
+        } message: {
+            Text("此操作将删除所有发作记录、药物数据、健康事件、自定义标签和用户档案等全部信息。")
+        }
+        .alert("⚠️ 最终确认", isPresented: $showClearDataFinalConfirm) {
+            Button("取消", role: .cancel) { }
+            Button("永久删除所有数据", role: .destructive) {
+                performClearAllData()
+            }
+        } message: {
+            Text("此操作不可撤销！删除后数据将无法恢复，包括已同步到 iCloud 的数据也会被删除。请确认您已了解此操作的后果。")
+        }
+        .alert("数据已清空", isPresented: $showClearDataSuccess) {
+            Button("确定", role: .cancel) { }
+        } message: {
+            Text("所有数据已被永久删除。")
         }
     }
     
@@ -247,6 +273,41 @@ struct ProfileView: View {
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
+                    
+                    Divider()
+                        .padding(.leading, 44)
+                    
+                    Button {
+                        showClearDataFirstConfirm = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "trash.fill")
+                                .font(.title3)
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .background(Color.red)
+                                .clipShape(Circle())
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("清空所有数据")
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(Color.red)
+                                
+                                Text("删除后无法恢复")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                            }
+                            
+                            Spacer()
+                            
+                            if isClearingData {
+                                ProgressView()
+                            }
+                        }
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isClearingData)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -324,89 +385,79 @@ struct ProfileView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
-            #if DEBUG
-            // 测试与调试（仅 Debug 模式）
-            EmotionalCard(style: .warning) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("测试与调试")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.bottom, Spacing.sm)
-                    
-                    NavigationLink {
-                        TestDataView()
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "hammer.fill")
-                                .font(.title3)
-                                .foregroundStyle(.white)
-                                .frame(width: 36, height: 36)
-                                .background(Color.statusWarning)
-                                .clipShape(Circle())
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(spacing: 8) {
-                                    Text("测试数据")
-                                        .font(.body.weight(.medium))
-                                        .foregroundStyle(Color.textPrimary)
-                                    
-                                    Text("DEBUG")
-                                        .font(.caption2.bold())
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.statusWarning)
-                                        .cornerRadius(4)
-                                }
-                                
-                                Text("生成和管理测试数据")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.textTertiary)
-                            }
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(Color.textTertiary)
-                        }
-                        .padding(.vertical, 12)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            #endif
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    // MARK: - 清空数据
+    
+    private func performClearAllData() {
+        isClearingData = true
+        
+        do {
+            // 使用批量删除，更可靠且高效
+            // 先删除子实体（避免级联问题）
+            try modelContext.delete(model: Symptom.self)
+            try modelContext.delete(model: Trigger.self)
+            try modelContext.delete(model: WeatherSnapshot.self)
+            try modelContext.delete(model: MedicationLog.self)
+            
+            // 再删除主实体
+            try modelContext.delete(model: AttackRecord.self)
+            try modelContext.delete(model: HealthEvent.self)
+            try modelContext.delete(model: Medication.self)
+            try modelContext.delete(model: CustomLabelConfig.self)
+            try modelContext.delete(model: UserProfile.self)
+            
+            try modelContext.save()
+            
+            // 通知其他页面刷新数据（如首页）
+            NotificationCenter.default.post(name: .allDataCleared, object: nil)
+            
+            showClearDataSuccess = true
+        } catch {
+            print("清空数据失败: \(error)")
+        }
+        
+        isClearingData = false
+    }
+    
     // MARK: - 辅助计算属性
     
-    /// 本月急性用药天数（仅发作期间，用于MOH风险评估）
+    /// 本月急性用药天数（按需查询，仅获取当月数据）
     private var monthlyMedicationDays: Int {
+        cachedMonthlyMedDays
+    }
+    
+    /// 从 CoreData 按需加载当月用药统计（避免全量 @Query）
+    private func loadMonthlyMedicationDays() {
         let calendar = Calendar.current
         let now = Date()
         let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
         let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
         let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
         
-        let monthAttacks = attacks.filter { attack in
-            attack.startTime >= startOfMonth && attack.startTime <= endOfMonth
-        }
-        let monthHealthEvents = healthEvents.filter { event in
-            event.eventDate >= startOfMonth && event.eventDate <= endOfMonth
-        }
+        let attackDescriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= startOfMonth && attack.startTime <= endOfMonth
+            }
+        )
+        let eventDescriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= startOfMonth && event.eventDate <= endOfMonth
+            }
+        )
+        
+        let monthAttacks = (try? modelContext.fetch(attackDescriptor)) ?? []
+        let monthEvents = (try? modelContext.fetch(eventDescriptor)) ?? []
         
         let stats = DetailedMedicationStatistics.calculate(
             attacks: monthAttacks,
-            healthEvents: monthHealthEvents,
+            healthEvents: monthEvents,
             dateRange: (startOfMonth, endOfMonth)
         )
         
-        return stats.acuteMedicationDays
+        cachedMonthlyMedDays = stats.acuteMedicationDays
     }
     
     /// MOH风险等级
@@ -454,6 +505,13 @@ struct ProfileView: View {
     private var lowInventoryCount: Int {
         medications.filter { $0.inventory > 0 && $0.inventory <= 5 }.count
     }
+}
+
+// MARK: - 通知名称
+
+extension Notification.Name {
+    /// 所有数据已被清空的通知
+    static let allDataCleared = Notification.Name("com.migrainenote.allDataCleared")
 }
 
 // MARK: - Preview

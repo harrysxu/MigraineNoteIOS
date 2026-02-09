@@ -221,41 +221,42 @@ struct CloudSyncSettingsView: View {
                         .frame(width: 44, height: 44)
                         .background(cloudKitManager.syncStatus.color.opacity(0.15))
                         .cornerRadius(AppSpacing.cornerRadiusSmall)
+                        .symbolEffect(.pulse, isActive: cloudKitManager.syncStatus == .syncing)
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(cloudKitManager.syncStatus.displayText)
                             .font(.headline)
                         
-                        if cloudKitManager.syncStatus == .disabled {
-                            Text("数据仅保存在本地设备")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else if cloudKitManager.isICloudAvailable {
-                            Text("数据正在自动同步")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("请在系统设置中登录iCloud")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
+                        syncStatusSubtitle
                     }
                     
                     Spacer()
                 }
                 .padding(.vertical, AppSpacing.small)
+                .animation(.easeInOut(duration: 0.3), value: cloudKitManager.syncStatus)
             }
             
-            // 最后同步时间
-            if let lastSync = cloudKitManager.lastSyncDate {
+            // 最后同步时间（仅在同步已启用时显示）
+            if SyncSettingsManager.isSyncCurrentlyEnabled() {
                 Section {
                     HStack {
-                        Text("最后同步")
+                        Label("上次同步", systemImage: "clock.arrow.circlepath")
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text(lastSync, style: .relative)
-                            .foregroundColor(.secondary)
-                            .font(.caption)
+                        if let lastSync = cloudKitManager.lastSyncDate {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(lastSync.syncRelativeString)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text(lastSync.syncAbsoluteString)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        } else {
+                            Text("等待首次同步")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
@@ -332,6 +333,44 @@ struct CloudSyncSettingsView: View {
             }
         } message: {
             Text("更改同步设置后需要重启应用才能生效。您可以稍后手动重启，或现在立即重启。")
+        }
+    }
+    
+    // MARK: - 同步状态副标题
+    
+    @ViewBuilder
+    private var syncStatusSubtitle: some View {
+        if cloudKitManager.syncStatus == .disabled {
+            Text("数据仅保存在本地设备")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        } else if cloudKitManager.syncStatus == .syncFailed {
+            Text(cloudKitManager.errorMessage ?? "同步时遇到问题，将自动重试")
+                .font(.caption)
+                .foregroundColor(.red)
+                .lineLimit(2)
+        } else if cloudKitManager.syncStatus == .syncing {
+            Text("正在与iCloud同步数据...")
+                .font(.caption)
+                .foregroundColor(.blue)
+        } else if cloudKitManager.syncStatus == .notSignedIn {
+            Text("请在系统设置中登录iCloud")
+                .font(.caption)
+                .foregroundColor(.orange)
+        } else if cloudKitManager.isICloudAvailable {
+            if let lastSync = cloudKitManager.lastSyncDate {
+                Text("上次同步：\(lastSync.syncRelativeString)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            } else {
+                Text("已就绪，等待首次同步...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        } else {
+            Text("检查iCloud状态中...")
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
     
@@ -419,6 +458,12 @@ struct AboutView: View {
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
     
+    #if DEBUG
+    @State private var logoTapCount = 0
+    @State private var showTestView = false
+    @State private var showDevModeHint = false
+    #endif
+    
     var body: some View {
         List {
             Section {
@@ -429,6 +474,16 @@ struct AboutView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 100, height: 100)
                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        #if DEBUG
+                        .onTapGesture {
+                            logoTapCount += 1
+                            if logoTapCount >= 3 {
+                                showTestView = true
+                                logoTapCount = 0
+                            }
+                        }
+                        .sensoryFeedback(.impact, trigger: logoTapCount)
+                        #endif
                     
                     Text("偏头痛记录")
                         .font(.title2.bold())
@@ -436,6 +491,15 @@ struct AboutView: View {
                     Text("版本 \(appVersion) (\(buildNumber))")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                    
+                    #if DEBUG
+                    if showDevModeHint {
+                        Text("💡 连续点击图标3次可进入测试模式")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                            .transition(.opacity)
+                    }
+                    #endif
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, AppSpacing.large)
@@ -501,6 +565,25 @@ struct AboutView: View {
         }
         .navigationTitle("关于")
         .navigationBarTitleDisplayMode(.inline)
+        #if DEBUG
+        .navigationDestination(isPresented: $showTestView) {
+            TestDataView()
+        }
+        .onAppear {
+            // 延迟显示提示，给用户一点暗示
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    showDevModeHint = true
+                }
+                // 3秒后隐藏提示
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    withAnimation {
+                        showDevModeHint = false
+                    }
+                }
+            }
+        }
+        #endif
     }
 }
 

@@ -61,6 +61,34 @@ struct MenstrualCycleAnalyticsCard: View {
                             .foregroundStyle(Color.textSecondary)
                     }
                     .padding(.vertical, 8)
+                } else if let errorMessage = cycleManager.errorMessage {
+                    // 错误信息
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundStyle(Color.statusWarning)
+                            Text("数据加载失败")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(Color.textPrimary)
+                        }
+                        
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                        
+                        Button("重试") {
+                            cycleManager.errorMessage = nil
+                            Task {
+                                await authorizeAndLoad()
+                            }
+                        }
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Color.accentPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.accentPrimary.opacity(0.1))
+                        .cornerRadius(8)
+                    }
                 } else if let analysis = cycleManager.cycleAnalysis, analysis.totalAttacksAnalyzed > 0 {
                     // 显示分析结果
                     analysisResultView(analysis)
@@ -236,21 +264,37 @@ struct MenstrualCycleAnalyticsCard: View {
     // MARK: - Helpers
     
     private func authorizeAndLoad() async {
+        // 清除之前的错误信息
+        cycleManager.errorMessage = nil
+        
         let granted = await cycleManager.requestAuthorization()
         if granted {
-            loadData()
+            await loadDataAsync()
         }
     }
     
     private func loadData() {
-        isLoading = true
         Task {
-            await cycleManager.fetchMenstrualData(months: 6)
-            let _ = cycleManager.analyzeCycleCorrelation(with: attacks)
-            await MainActor.run {
+            await loadDataAsync()
+        }
+    }
+    
+    private func loadDataAsync() async {
+        await MainActor.run { isLoading = true }
+        
+        // 使用 defer 确保 isLoading 一定会被重置，防止页面卡在加载状态
+        defer {
+            Task { @MainActor in
                 isLoading = false
                 hasLoadedData = true
             }
+        }
+        
+        await cycleManager.fetchMenstrualData(months: 6)
+        let analysis = cycleManager.analyzeCycleCorrelation(with: attacks)
+        
+        await MainActor.run {
+            cycleManager.cycleAnalysis = analysis
         }
     }
     

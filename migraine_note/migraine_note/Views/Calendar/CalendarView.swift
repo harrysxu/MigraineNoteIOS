@@ -7,6 +7,8 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
+import Combine
 
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
@@ -46,7 +48,15 @@ struct CalendarView: View {
             }
         }
         .onAppear {
-            viewModel = CalendarViewModel(modelContext: modelContext)
+            // 仅在首次加载后刷新数据，不重新创建 ViewModel
+            viewModel.loadData()
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
+                .debounce(for: .seconds(2), scheduler: DispatchQueue.main)
+        ) { _ in
+            // iCloud 远程数据同步完成后，刷新日历数据（增大防抖时间避免频繁刷新）
+            viewModel.loadData()
         }
     }
     
@@ -158,17 +168,17 @@ struct DayCell: View {
                 .font(.system(size: 14, weight: isToday || isSelected ? .bold : .regular))
                 .foregroundStyle(textColor)
             
-            // 指示器（头痛记录 + 健康事件）
+            // 指示器（头痛记录 + 健康事件），根据图例过滤状态显示
             HStack(spacing: 3) {
-                // 头痛记录指示器
-                if let intensity = viewModel.getMaxPainIntensity(for: date) {
+                // 头痛记录指示器（根据过滤状态显示）
+                if let intensity = viewModel.getFilteredPainIntensity(for: date) {
                     Circle()
                         .fill(AppColors.painCategoryColor(for: intensity))
                         .frame(width: 6, height: 6)
                 }
                 
-                // 健康事件指示器（按类型显示）
-                ForEach(Array(viewModel.getHealthEventTypes(for: date)), id: \.self) { eventType in
+                // 健康事件指示器（根据过滤状态按类型显示）
+                ForEach(Array(viewModel.getFilteredHealthEventTypes(for: date)), id: \.self) { eventType in
                     Circle()
                         .fill(AppColors.healthEventColor(for: eventType))
                         .frame(width: 6, height: 6)
@@ -431,8 +441,7 @@ struct MonthlyStatsCard: View {
                         title: "发作天数",
                         value: "\(stats.attackDays)",
                         icon: "calendar.badge.exclamationmark",
-                        color: stats.isChronic ? Color.statusError : Color.statusWarning,
-                        subtitle: stats.isChronic ? "慢性偏头痛" : nil
+                        color: Color.statusWarning
                     )
                     
                     StatItem(
@@ -471,20 +480,20 @@ struct MonthlyStatsCard: View {
                         color: stats.acuteMedicationDays >= 10 ? Color.statusWarning : Color.accentPrimary
                     )
                     
-                    // 预防性用药（有数据时显示）
+                    // 日常用药（有数据时显示）
                     if stats.hasPreventiveMedication {
                         StatItem(
-                            title: "预防性用药天数",
+                            title: "日常用药天数",
                             value: "\(stats.preventiveMedicationDays)",
                             icon: "calendar.badge.plus",
-                            color: Color.statusSuccess
+                            color: Color.accentPrimary
                         )
                         
                         StatItem(
-                            title: "预防性用药次数",
+                            title: "日常用药次数",
                             value: "\(stats.preventiveMedicationCount)",
-                            icon: "shield.fill",
-                            color: Color.statusSuccess
+                            icon: "pills.circle.fill",
+                            color: Color.accentPrimary
                         )
                     }
                     
@@ -585,7 +594,6 @@ struct StatItem: View {
     let value: String
     let icon: String
     let color: Color
-    var subtitle: String?
     
     var body: some View {
         VStack(spacing: AppSpacing.small) {
@@ -602,16 +610,6 @@ struct StatItem: View {
             Text(value)
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(color)
-            
-            if let subtitle = subtitle {
-                Text(subtitle)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(color)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(color.opacity(0.15))
-                    .cornerRadius(4)
-            }
         }
         .frame(maxWidth: .infinity)
         .padding(AppSpacing.small)

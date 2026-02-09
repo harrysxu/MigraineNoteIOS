@@ -32,7 +32,6 @@ final class AttackListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.searchText, "")
         XCTAssertEqual(viewModel.filterOption, .thisMonth)
         XCTAssertEqual(viewModel.sortOption, .dateDescending)
-        XCTAssertNil(viewModel.selectedIntensityRange)
         XCTAssertNil(viewModel.selectedDateRange)
         XCTAssertEqual(viewModel.recordTypeFilter, .all)
     }
@@ -75,22 +74,6 @@ final class AttackListViewModelTests: XCTestCase {
         let result = viewModel.filteredAttacks([attack1, attack2, attack3])
         
         XCTAssertEqual(result.first?.painIntensity, 9, "最高强度应排在前面")
-    }
-    
-    // MARK: - 疼痛强度筛选测试
-    
-    func testIntensityRangeFilter() {
-        viewModel.filterOption = .lastYear
-        viewModel.selectedIntensityRange = 5...8
-        
-        let attack1 = createAttack(in: modelContext, startTime: dateAgo(days: 1), painIntensity: 3) // 排除
-        let attack2 = createAttack(in: modelContext, startTime: dateAgo(days: 2), painIntensity: 6) // 包含
-        let attack3 = createAttack(in: modelContext, startTime: dateAgo(days: 3), painIntensity: 9) // 排除
-        
-        let result = viewModel.filteredAttacks([attack1, attack2, attack3])
-        
-        XCTAssertEqual(result.count, 1)
-        XCTAssertEqual(result.first?.painIntensity, 6)
     }
     
     // MARK: - 搜索测试
@@ -171,7 +154,6 @@ final class AttackListViewModelTests: XCTestCase {
         viewModel.searchText = "test"
         viewModel.filterOption = .lastYear
         viewModel.sortOption = .intensityDescending
-        viewModel.selectedIntensityRange = 5...10
         viewModel.recordTypeFilter = .medicationOnly
         
         viewModel.resetFilters()
@@ -179,7 +161,6 @@ final class AttackListViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.searchText, "")
         XCTAssertEqual(viewModel.filterOption, .thisMonth)
         XCTAssertEqual(viewModel.sortOption, .dateDescending)
-        XCTAssertNil(viewModel.selectedIntensityRange)
         XCTAssertNil(viewModel.selectedDateRange)
         XCTAssertEqual(viewModel.recordTypeFilter, .all)
     }

@@ -18,43 +18,68 @@ class LabelManager {
     
     // MARK: - 初始化默认标签
     
-    /// 检查并初始化默认标签（如果数据库为空）
+    /// 检查并初始化默认标签
+    /// 按类别独立检查，确保新增类别的默认标签也能被正确初始化
     func initializeDefaultLabelsIfNeeded(context: ModelContext) {
-        // 检查是否已初始化
-        let descriptor = FetchDescriptor<CustomLabelConfig>(
-            predicate: #Predicate { $0.isDefault == true }
-        )
+        var hasChanges = false
         
-        guard let existingLabels = try? context.fetch(descriptor),
-              existingLabels.isEmpty else {
-            print("默认标签已存在，跳过初始化")
-            return
+        // 按类别逐一检查并初始化
+        if !hasDefaultLabels(forCategory: LabelCategory.symptom.rawValue, context: context) {
+            print("初始化症状默认标签...")
+            initializeSymptomLabels(context: context)
+            hasChanges = true
         }
         
-        print("开始初始化默认标签...")
+        if !hasDefaultLabels(forCategory: LabelCategory.trigger.rawValue, context: context) {
+            print("初始化诱因默认标签...")
+            initializeTriggerLabels(context: context)
+            hasChanges = true
+        }
         
-        // 初始化症状标签
-        initializeSymptomLabels(context: context)
+        if !hasDefaultLabels(forCategory: "medication", context: context) {
+            print("初始化药物预设默认标签...")
+            initializeMedicationLabels(context: context)
+            hasChanges = true
+        }
         
-        // 初始化诱因标签
-        initializeTriggerLabels(context: context)
+        if !hasDefaultLabels(forCategory: LabelCategory.painQuality.rawValue, context: context) {
+            print("初始化疼痛性质默认标签...")
+            initializePainQualityLabels(context: context)
+            hasChanges = true
+        }
         
-        // 初始化药物预设标签
-        initializeMedicationLabels(context: context)
+        if !hasDefaultLabels(forCategory: LabelCategory.intervention.rawValue, context: context) {
+            print("初始化非药物干预默认标签...")
+            initializeInterventionLabels(context: context)
+            hasChanges = true
+        }
         
-        // 初始化疼痛性质标签
-        initializePainQualityLabels(context: context)
+        if !hasDefaultLabels(forCategory: LabelCategory.aura.rawValue, context: context) {
+            print("初始化先兆类型默认标签...")
+            initializeAuraLabels(context: context)
+            hasChanges = true
+        }
         
-        // 初始化非药物干预标签
-        initializeInterventionLabels(context: context)
+        if hasChanges {
+            try? context.save()
+            print("默认标签初始化完成")
+        } else {
+            print("所有类别的默认标签已存在，跳过初始化")
+        }
+    }
+    
+    /// 检查指定类别是否已存在默认标签
+    private func hasDefaultLabels(forCategory category: String, context: ModelContext) -> Bool {
+        let descriptor = FetchDescriptor<CustomLabelConfig>(
+            predicate: #Predicate<CustomLabelConfig> { label in
+                label.isDefault == true && label.category == category
+            }
+        )
         
-        // 初始化先兆类型标签
-        initializeAuraLabels(context: context)
-        
-        // 保存到数据库
-        try? context.save()
-        
-        print("默认标签初始化完成")
+        guard let existingLabels = try? context.fetch(descriptor) else {
+            return false
+        }
+        return !existingLabels.isEmpty
     }
     
     // MARK: - 初始化症状标签
@@ -69,7 +94,12 @@ class LabelManager {
             ("photophobia", "畏光"),
             ("phonophobia", "畏声"),
             ("osmophobia", "气味敏感"),
-            ("allodynia", "头皮触痛")
+            ("allodynia", "头皮触痛"),
+            ("neckStiffness", "颈部僵硬"),
+            ("fatigue", "疲乏"),
+            ("blurredVision", "视物模糊"),
+            ("pallor", "面色苍白"),
+            ("nasalCongestion", "鼻塞/流涕")
         ]
         
         for symptom in westernSymptoms {
@@ -92,7 +122,10 @@ class LabelManager {
             ("coldExtremities", "手脚冰凉"),
             ("heavyHeadedness", "头重如裹"),
             ("dizziness", "眩晕"),
-            ("palpitation", "心悸")
+            ("palpitation", "心悸"),
+            ("greasyTongue", "舌苔厚腻"),
+            ("hypochondriacPain", "胁痛"),
+            ("constipation", "大便干结")
         ]
         
         sortOrder = 0
@@ -116,11 +149,13 @@ class LabelManager {
         let triggerData: [(category: String, triggers: [String])] = [
             ("饮食", [
                 "味精(MSG)", "巧克力", "奶酪", "红酒", "咖啡因",
-                "老火汤/高汤", "腌制/腊肉", "冰饮/冷食", "辛辣食物", "柑橘类"
+                "老火汤/高汤", "腌制/腊肉", "冰饮/冷食", "辛辣食物", "柑橘类",
+                "人工甜味剂", "酒精(啤酒/白酒)"
             ]),
             ("环境", [
                 "闷热/雷雨前", "冷风直吹", "强光", "异味", "高海拔",
-                "气压骤降", "高温", "高湿度", "噪音"
+                "气压骤降", "高温", "高湿度", "噪音",
+                "闪烁灯光", "香水/化学品气味"
             ]),
             ("睡眠", [
                 "睡过头", "失眠/熬夜", "睡眠不足", "睡眠质量差"
@@ -132,7 +167,8 @@ class LabelManager {
                 "月经期", "排卵期", "怀孕", "更年期"
             ]),
             ("生活方式", [
-                "漏餐", "脱水", "运动过度", "长时间屏幕", "姿势不良"
+                "漏餐", "脱水", "运动过度", "长时间屏幕", "姿势不良",
+                "旅行/时差"
             ]),
             ("中医诱因", [
                 "遇风加重", "阴雨天", "情志不遂", "饮食不节", "劳累过度"
@@ -226,7 +262,10 @@ class LabelManager {
             ("pressing", "压迫感"),
             ("stabbing", "刺痛"),
             ("dull", "钝痛"),
-            ("distending", "胀痛")
+            ("distending", "胀痛"),
+            ("tightening", "紧缩感"),
+            ("burning", "灼烧感"),
+            ("tearing", "撕裂样")
         ]
         
         for (index, quality) in painQualities.enumerated() {
@@ -253,7 +292,14 @@ class LabelManager {
             ("acupuncture", "针灸"),
             ("darkRoom", "暗室休息"),
             ("deepBreathing", "深呼吸"),
-            ("meditation", "冥想")
+            ("meditation", "冥想"),
+            ("yoga", "瑜伽"),
+            ("relaxationTraining", "放松训练"),
+            ("biofeedback", "生物反馈"),
+            ("lightExercise", "散步/轻度运动"),
+            ("acupressure", "按压穴位"),
+            ("cupping", "拔罐"),
+            ("moxibustion", "艾灸")
         ]
         
         for (index, intervention) in interventions.enumerated() {
@@ -276,7 +322,12 @@ class LabelManager {
             ("visual", "视觉闪光"),
             ("scotoma", "视野暗点"),
             ("numbness", "肢体麻木"),
-            ("speechDifficulty", "言语障碍")
+            ("speechDifficulty", "言语障碍"),
+            ("zigzagLines", "闪光锯齿线"),
+            ("blurredVision", "视物模糊"),
+            ("hemiparesis", "偏身无力"),
+            ("vertigo", "眩晕"),
+            ("tinnitus", "耳鸣")
         ]
         
         for (index, aura) in auras.enumerated() {

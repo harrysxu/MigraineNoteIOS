@@ -199,11 +199,15 @@ struct DataExportView: View {
             .background(Color.backgroundPrimary.ignoresSafeArea())
             .navigationTitle("数据导出")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showShareSheet) {
+            .sheet(isPresented: $showShareSheet, onDismiss: cleanupExportState) {
                 if let fileURL = exportFileURL {
-                    ShareSheet(activityItems: [fileURL])
+                    ShareSheet(activityItems: [fileURL]) {
+                        showShareSheet = false
+                    }
                 } else if let data = exportData {
-                    ShareSheet(activityItems: [data])
+                    ShareSheet(activityItems: [data]) {
+                        showShareSheet = false
+                    }
                 }
             }
         }
@@ -273,15 +277,24 @@ struct DataExportView: View {
             dateRange: (dateRange.start, dateRange.end)
         )
         
-        // 创建临时文件
+        // 创建临时文件 - 使用 ASCII 安全的文件名避免分享扩展编码问题
         let tempDirectory = FileManager.default.temporaryDirectory
-        let filename = exporter.generateFilename(
-            prefix: "完整健康数据",
-            dateRange: (dateRange.start, dateRange.end)
-        )
+        let startStr = formatDate(dateRange.start)
+        let endStr = formatDate(dateRange.end)
+        let filename = "migraine_health_data_\(startStr)_to_\(endStr).csv"
         let fileURL = tempDirectory.appendingPathComponent(filename)
         
+        // 如果旧文件存在，先删除
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+        
         try csvData.write(to: fileURL, options: .atomic)
+        
+        // 验证文件确实已写入
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            throw NSError(domain: "DataExport", code: -1, userInfo: [NSLocalizedDescriptionKey: "文件创建失败"])
+        }
         
         await MainActor.run {
             exportFileURL = fileURL
@@ -298,12 +311,24 @@ struct DataExportView: View {
             healthEvents: filteredHealthEvents
         )
         
-        // 创建临时文件
+        // 创建临时文件 - 使用 ASCII 安全的文件名避免分享扩展编码问题
         let tempDirectory = FileManager.default.temporaryDirectory
-        let filename = "偏头痛医疗报告_\(formatDate(dateRange.start))至\(formatDate(dateRange.end)).pdf"
+        let startStr = formatDate(dateRange.start)
+        let endStr = formatDate(dateRange.end)
+        let filename = "migraine_medical_report_\(startStr)_to_\(endStr).pdf"
         let fileURL = tempDirectory.appendingPathComponent(filename)
         
+        // 如果旧文件存在，先删除
+        if FileManager.default.fileExists(atPath: fileURL.path) {
+            try FileManager.default.removeItem(at: fileURL)
+        }
+        
         try pdfData.write(to: fileURL)
+        
+        // 验证文件确实已写入
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            throw NSError(domain: "DataExport", code: -1, userInfo: [NSLocalizedDescriptionKey: "文件创建失败"])
+        }
         
         await MainActor.run {
             exportFileURL = fileURL
@@ -315,6 +340,15 @@ struct DataExportView: View {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.locale = Locale(identifier: "zh_CN")
         return formatter.string(from: date)
+    }
+    
+    /// 清理导出状态，删除临时文件
+    private func cleanupExportState() {
+        if let fileURL = exportFileURL {
+            try? FileManager.default.removeItem(at: fileURL)
+        }
+        exportFileURL = nil
+        exportData = nil
     }
 }
 

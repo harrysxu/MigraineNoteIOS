@@ -16,6 +16,14 @@ class CalendarViewModel {
     var healthEventsByDate: [Date: [HealthEvent]] = [:]
     var monthlyStats: MonthlyStatistics?
     
+    // MARK: - 图例过滤状态（默认全部选中）
+    var showMildPain: Bool = true       // 轻度疼痛 (1-3)
+    var showModeratePain: Bool = true   // 中度疼痛 (4-6)
+    var showSeverePain: Bool = true     // 重度疼痛 (7-10)
+    var showMedication: Bool = true     // 日常用药
+    var showTCMTreatment: Bool = true   // 中医治疗
+    var showSurgery: Bool = true        // 手术
+    
     private let modelContext: ModelContext
     private let calendar = Calendar.current
     
@@ -121,26 +129,9 @@ class CalendarViewModel {
             return
         }
         
-        // 查询该月份的所有发作记录
-        let attackDescriptor = FetchDescriptor<AttackRecord>(
-            predicate: #Predicate { attack in
-                attack.startTime >= monthStart && attack.startTime < monthEndExclusive
-            }
-        )
-        
-        guard let attacks = try? modelContext.fetch(attackDescriptor) else {
-            monthlyStats = nil
-            return
-        }
-        
-        // 查询该月份的所有健康事件
-        let healthEventDescriptor = FetchDescriptor<HealthEvent>(
-            predicate: #Predicate { event in
-                event.eventDate >= monthStart && event.eventDate < monthEndExclusive
-            }
-        )
-        
-        let healthEvents = (try? modelContext.fetch(healthEventDescriptor)) ?? []
+        // 复用已加载的数据，避免重复 CoreData 查询
+        let attacks = attacksByDate.values.flatMap { $0 }
+        let healthEvents = healthEventsByDate.values.flatMap { $0 }
         
         // 计算基本统计数据
         let attackDays = Set(attacks.map { calendar.startOfDay(for: $0.startTime) }).count
@@ -246,6 +237,23 @@ class CalendarViewModel {
         return attacks.map(\.painIntensity).max()
     }
     
+    /// 获取指定日期经过图例过滤后的疼痛强度（用于日历指示器显示）
+    func getFilteredPainIntensity(for date: Date) -> Int? {
+        let attacks = getAttacks(for: date)
+        let filteredAttacks = attacks.filter { isPainIntensityVisible($0.painIntensity) }
+        return filteredAttacks.map(\.painIntensity).max()
+    }
+    
+    /// 判断疼痛强度是否应该显示（根据图例过滤状态）
+    func isPainIntensityVisible(_ intensity: Int) -> Bool {
+        switch intensity {
+        case 1...3: return showMildPain
+        case 4...6: return showModeratePain
+        case 7...10: return showSeverePain
+        default: return true
+        }
+    }
+    
     /// 获取指定日期的健康事件
     func getHealthEvents(for date: Date) -> [HealthEvent] {
         let day = calendar.startOfDay(for: date)
@@ -256,6 +264,21 @@ class CalendarViewModel {
     func getHealthEventTypes(for date: Date) -> Set<HealthEventType> {
         let events = getHealthEvents(for: date)
         return Set(events.map { $0.eventType })
+    }
+    
+    /// 获取指定日期经过图例过滤后的健康事件类型集合
+    func getFilteredHealthEventTypes(for date: Date) -> Set<HealthEventType> {
+        let allTypes = getHealthEventTypes(for: date)
+        return allTypes.filter { isHealthEventTypeVisible($0) }
+    }
+    
+    /// 判断健康事件类型是否应该显示（根据图例过滤状态）
+    func isHealthEventTypeVisible(_ eventType: HealthEventType) -> Bool {
+        switch eventType {
+        case .medication: return showMedication
+        case .tcmTreatment: return showTCMTreatment
+        case .surgery: return showSurgery
+        }
     }
     
     /// 获取月份标题（如"2026年2月"）

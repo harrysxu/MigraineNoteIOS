@@ -7,13 +7,14 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
+import Combine
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var viewModel: HomeViewModel?
     @State private var weatherManager = WeatherManager()
     @State private var showRecordingView = false
-    @State private var selectedTab: Int?
     @State private var selectedAttackForDetail: AttackRecord?
     @State private var selectedAttackForEdit: AttackRecord?
     @State private var selectedHealthEventForDetail: HealthEvent?
@@ -24,7 +25,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
                 ScrollView {
-                    VStack(spacing: 20) {
+                    LazyVStack(spacing: 20) {
                         if let vm = viewModel {
                             // 动态问候 - 左对齐
                             DynamicGreeting()
@@ -87,13 +88,18 @@ struct HomeView: View {
                                     weather: vm.currentWeather,
                                     error: vm.weatherError,
                                     isRefreshing: vm.isRefreshingWeather,
+                                    isLocationDenied: vm.isLocationDenied,
                                     onRefresh: {
                                         vm.refreshWeather()
                                     }
                                 )
                                     .fadeIn(delay: 0.4)
                                 
-                                MonthlyOverviewCard(modelContext: modelContext, selectedTab: $selectedTab)
+                                MonthlyOverviewCard(
+                                    attackDays: vm.monthlyAttackDays,
+                                    averageIntensity: vm.monthlyAverageIntensity,
+                                    medicationStats: vm.monthlyMedicationStats
+                                )
                                     .fadeIn(delay: 0.5)
                             }
                             .padding(.horizontal, 20)
@@ -233,6 +239,24 @@ struct HomeView: View {
                 if viewModel == nil {
                     viewModel = HomeViewModel(modelContext: modelContext, weatherManager: weatherManager)
                 }
+            }
+            .onChange(of: weatherManager.authorizationVersion) {
+                viewModel?.refreshWeather()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .allDataCleared)) { _ in
+                // 清空所有选中状态，避免访问已删除的对象
+                selectedAttackForDetail = nil
+                selectedAttackForEdit = nil
+                selectedHealthEventForDetail = nil
+                // 刷新数据
+                viewModel?.refreshData()
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)
+                    .debounce(for: .seconds(2), scheduler: DispatchQueue.main)
+            ) { _ in
+                // iCloud 远程数据同步完成后，刷新首页数据（增大防抖时间避免频繁刷新）
+                viewModel?.refreshData()
             }
     }
     
@@ -491,6 +515,7 @@ struct WeatherInsightCard: View {
     let weather: WeatherSnapshot?
     let error: String?
     var isRefreshing: Bool = false
+    var isLocationDenied: Bool = false
     var onRefresh: (() -> Void)?
     
     var body: some View {
@@ -580,14 +605,56 @@ struct WeatherInsightCard: View {
                         }
                     }
                 }
+            } else if isLocationDenied {
+                // 定位权限被拒绝，提示用户开启
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "location.slash.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color.statusWarning)
+                            .frame(width: 48, height: 48)
+                            .background(Color.statusWarning.opacity(0.15))
+                            .clipShape(Circle())
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("无法获取位置")
+                                .font(.headline)
+                                .foregroundStyle(Color.textPrimary)
+                            Text("需要定位权限以获取天气数据")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    
+                    // 开启定位按钮
+                    Button(action: {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .font(.body)
+                            Text("前往设置开启定位")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.accentPrimary)
+                        .cornerRadius(10)
+                    }
+                }
             } else if let error = error {
                 // 错误状态 - 显示友好的提示信息
                 HStack(spacing: 16) {
-                    Image(systemName: "location.slash.fill")
+                    Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 32))
-                        .foregroundStyle(Color.statusInfo)
+                        .foregroundStyle(Color.statusWarning)
                         .frame(width: 48, height: 48)
-                        .background(Color.statusInfo.opacity(0.15))
+                        .background(Color.statusWarning.opacity(0.15))
                         .clipShape(Circle())
                     
                     VStack(alignment: .leading, spacing: 6) {
@@ -624,7 +691,7 @@ struct WeatherInsightCard: View {
                         Text("正在获取天气数据...")
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
-                        Text("需要位置权限")
+                        Text("请稍候")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -729,13 +796,14 @@ struct WeatherRiskCardPlaceholder: View {
 // MARK: - 月度概况卡片
 
 struct MonthlyOverviewCard: View {
-    let modelContext: ModelContext
-    @Binding var selectedTab: Int?
-    
-    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
-    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
+    // 从 HomeViewModel 接收预计算的数据，不再独立 @Query 全量加载
+    let attackDays: Int
+    let averageIntensity: Double
+    let medicationStats: DetailedMedicationStatistics?
     
     var body: some View {
+        let stats = medicationStats ?? DetailedMedicationStatistics.empty
+        
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 16) {
                 // 标题行
@@ -783,10 +851,10 @@ struct MonthlyOverviewCard: View {
                     // 第一行：发作统计
                     HStack(spacing: 12) {
                         CompactStatCard(
-                            value: "\(monthlyAttackDays)",
+                            value: "\(attackDays)",
                             label: "发作天数",
                             icon: "exclamationmark.circle.fill",
-                            color: monthlyAttackDays >= 15 ? .statusError : .accentPrimary
+                            color: attackDays >= 15 ? .statusError : .accentPrimary
                         )
                         
                         CompactStatCard(
@@ -800,32 +868,32 @@ struct MonthlyOverviewCard: View {
                     // 第二行：急性用药（始终显示）
                     HStack(spacing: 12) {
                         CompactStatCard(
-                            value: "\(detailedMedicationStats.acuteMedicationCount)",
+                            value: "\(stats.acuteMedicationCount)",
                             label: "急性用药次数",
                             icon: "pills.fill",
-                            color: detailedMedicationStats.acuteMedicationCount >= 10 ? .statusWarning : .accentPrimary
+                            color: stats.acuteMedicationCount >= 10 ? .statusWarning : .accentPrimary
                         )
                         
                         CompactStatCard(
-                            value: "\(detailedMedicationStats.acuteMedicationDays)",
+                            value: "\(stats.acuteMedicationDays)",
                             label: "急性用药天数",
                             icon: "calendar.badge.clock",
-                            color: detailedMedicationStats.acuteMedicationDays >= 10 ? .statusWarning : .accentPrimary
+                            color: stats.acuteMedicationDays >= 10 ? .statusWarning : .accentPrimary
                         )
                     }
                     
                     // 第三行：预防性用药（有数据时显示）
-                    if detailedMedicationStats.hasPreventiveMedication {
+                    if stats.hasPreventiveMedication {
                         HStack(spacing: 12) {
                             CompactStatCard(
-                                value: "\(detailedMedicationStats.preventiveMedicationCount)",
+                                value: "\(stats.preventiveMedicationCount)",
                                 label: "预防性用药次数",
                                 icon: "shield.fill",
                                 color: Color.statusSuccess
                             )
                             
                             CompactStatCard(
-                                value: "\(detailedMedicationStats.preventiveMedicationDays)",
+                                value: "\(stats.preventiveMedicationDays)",
                                 label: "预防性用药天数",
                                 icon: "calendar.badge.plus",
                                 color: Color.statusSuccess
@@ -834,20 +902,20 @@ struct MonthlyOverviewCard: View {
                     }
                     
                     // 第四行：中医治疗和手术（有数据时显示）
-                    if detailedMedicationStats.hasTCMTreatment || detailedMedicationStats.hasSurgery {
+                    if stats.hasTCMTreatment || stats.hasSurgery {
                         HStack(spacing: 12) {
-                            if detailedMedicationStats.hasTCMTreatment {
+                            if stats.hasTCMTreatment {
                                 CompactStatCard(
-                                    value: "\(detailedMedicationStats.tcmTreatmentCount)",
+                                    value: "\(stats.tcmTreatmentCount)",
                                     label: "中医治疗次数",
                                     icon: "leaf.circle.fill",
                                     color: Color.statusSuccess
                                 )
                             }
                             
-                            if detailedMedicationStats.hasSurgery {
+                            if stats.hasSurgery {
                                 CompactStatCard(
-                                    value: "\(detailedMedicationStats.surgeryCount)",
+                                    value: "\(stats.surgeryCount)",
                                     label: "手术次数",
                                     icon: "cross.case.circle.fill",
                                     color: Color.statusInfo
@@ -855,10 +923,10 @@ struct MonthlyOverviewCard: View {
                             }
                             
                             // 如果只有一个统计项，添加占位符保持对齐
-                            if detailedMedicationStats.hasTCMTreatment && !detailedMedicationStats.hasSurgery {
+                            if stats.hasTCMTreatment && !stats.hasSurgery {
                                 Spacer()
                                     .frame(maxWidth: .infinity)
-                            } else if !detailedMedicationStats.hasTCMTreatment && detailedMedicationStats.hasSurgery {
+                            } else if !stats.hasTCMTreatment && stats.hasSurgery {
                                 Spacer()
                                     .frame(maxWidth: .infinity)
                             }
@@ -867,68 +935,6 @@ struct MonthlyOverviewCard: View {
                 }
             }
         }
-    }
-    
-    // MARK: - 计算属性
-    
-    /// 当前月份的日期范围（与其他模块保持一致）
-    private var currentMonthRange: (start: Date, end: Date) {
-        let calendar = Calendar.current
-        let now = Date()
-        let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
-        let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
-        let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
-        return (startOfMonth, endOfMonth)
-    }
-    
-    private var monthlyAttacks: [AttackRecord] {
-        let range = currentMonthRange
-        return attacks.filter { $0.startTime >= range.start && $0.startTime <= range.end }
-    }
-    
-    private var monthlyHealthEvents: [HealthEvent] {
-        let range = currentMonthRange
-        return healthEvents.filter { $0.eventDate >= range.start && $0.eventDate <= range.end }
-    }
-    
-    private var detailedMedicationStats: DetailedMedicationStatistics {
-        let range = currentMonthRange
-        return DetailedMedicationStatistics.calculate(
-            attacks: monthlyAttacks,
-            healthEvents: monthlyHealthEvents,
-            dateRange: range
-        )
-    }
-    
-    private var monthlyAttackDays: Int {
-        let calendar = Calendar.current
-        let uniqueDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
-        return uniqueDays.count
-    }
-    
-    private var monthlyAttackCount: Int {
-        monthlyAttacks.count
-    }
-    
-    private var averageIntensity: Double {
-        guard !monthlyAttacks.isEmpty else { return 0 }
-        let total = monthlyAttacks.reduce(0) { $0 + $1.painIntensity }
-        return Double(total) / Double(monthlyAttacks.count)
-    }
-    
-    private func getUniqueFreePainDays() -> Int {
-        let calendar = Calendar.current
-        let now = Date()
-        let range = currentMonthRange
-        
-        // 获取所有发作的天数
-        let attackDays = Set(monthlyAttacks.map { calendar.startOfDay(for: $0.startTime) })
-        
-        // 计算本月已过的天数
-        let currentDay = calendar.component(.day, from: now)
-        
-        // 无发作天数 = 已过天数 - 发作天数
-        return currentDay - attackDays.count
     }
 }
 

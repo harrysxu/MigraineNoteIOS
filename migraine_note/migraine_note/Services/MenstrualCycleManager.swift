@@ -84,42 +84,40 @@ class MenstrualCycleManager {
         
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         
-        return await withCheckedContinuation { continuation in
+        let periods: [MenstrualPeriod] = await withCheckedContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: menstrualFlowType,
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: [sortDescriptor]
             ) { [weak self] _, samples, error in
-                guard let self = self else {
-                    continuation.resume()
-                    return
-                }
-                
                 if let error = error {
-                    Task { @MainActor in
-                        self.errorMessage = error.localizedDescription
+                    if let self = self {
+                        Task { @MainActor in
+                            self.errorMessage = error.localizedDescription
+                        }
                     }
-                    continuation.resume()
+                    continuation.resume(returning: [])
                     return
                 }
                 
-                guard let categorySamples = samples as? [HKCategorySample] else {
-                    continuation.resume()
+                guard let self = self,
+                      let categorySamples = samples as? [HKCategorySample] else {
+                    continuation.resume(returning: [])
                     return
                 }
                 
                 // 将样本转换为经期数据
                 let periods = self.groupSamplesIntoPeriods(categorySamples)
-                
-                Task { @MainActor in
-                    self.menstrualData = periods
-                }
-                
-                continuation.resume()
+                continuation.resume(returning: periods)
             }
             
             healthStore.execute(query)
+        }
+        
+        // 确保在 MainActor 上更新数据，且等待完成后再返回
+        await MainActor.run {
+            self.menstrualData = periods
         }
     }
     
@@ -295,10 +293,7 @@ class MenstrualCycleManager {
             cyclePhaseDistribution: distribution
         )
         
-        Task { @MainActor in
-            self.cycleAnalysis = analysis
-        }
-        
+        // 不再使用 fire-and-forget Task，由调用方在 MainActor 上设置 cycleAnalysis
         return analysis
     }
 }

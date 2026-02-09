@@ -19,8 +19,23 @@ struct AttackListView: View {
     @State private var selectedAttack: AttackRecord?
     @State private var selectedHealthEvent: HealthEvent?
     
-    // 合并后的时间轴数据
-    private var timelineItems: [TimelineItemType] {
+    // 缓存的时间轴数据，避免每次渲染重复计算
+    @State private var cachedTimelineItems: [TimelineItemType] = []
+    // 搜索防抖任务
+    @State private var searchDebounceTask: Task<Void, Never>?
+    
+    /// 带防抖的搜索更新（避免每次按键都触发 N+1 关系查询）
+    private func debouncedUpdateTimelineItems() {
+        searchDebounceTask?.cancel()
+        searchDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms 防抖
+            guard !Task.isCancelled else { return }
+            updateTimelineItems()
+        }
+    }
+    
+    /// 重新计算时间轴数据（仅在数据或筛选条件变化时调用）
+    private func updateTimelineItems() {
         var items: [TimelineItemType] = []
         
         // 添加偏头痛发作记录
@@ -48,7 +63,7 @@ struct AttackListView: View {
             }
         }
         
-        return items
+        cachedTimelineItems = items
     }
     
     var body: some View {
@@ -85,6 +100,30 @@ struct AttackListView: View {
             .sheet(item: $selectedHealthEvent) { event in
                 HealthEventDetailView(event: event)
             }
+            .onAppear {
+                updateTimelineItems()
+            }
+            .onChange(of: attacks.count) { _, _ in
+                updateTimelineItems()
+            }
+            .onChange(of: healthEvents.count) { _, _ in
+                updateTimelineItems()
+            }
+            .onChange(of: viewModel.sortOption) { _, _ in
+                updateTimelineItems()
+            }
+            .onChange(of: viewModel.filterOption) { _, _ in
+                updateTimelineItems()
+            }
+            .onChange(of: viewModel.recordTypeFilter) { _, _ in
+                updateTimelineItems()
+            }
+            .onChange(of: viewModel.searchText) { _, _ in
+                debouncedUpdateTimelineItems()
+            }
+            .onChange(of: viewModel.selectedDateRange) { _, _ in
+                updateTimelineItems()
+            }
         }
     }
     
@@ -113,7 +152,7 @@ struct AttackListView: View {
     private var timelineListContent: some View {
         ScrollView {
             LazyVStack(spacing: AppSpacing.medium) {
-                let items = timelineItems
+                let items = cachedTimelineItems
                 
                 if items.isEmpty {
                     noResultsView
@@ -369,30 +408,6 @@ struct FilterSheetView: View {
                     .pickerStyle(.inline)
                 }
                 
-                // 疼痛强度筛选
-                Section("疼痛强度") {
-                    if viewModel.selectedIntensityRange != nil {
-                        Button("清除筛选") {
-                            viewModel.selectedIntensityRange = nil
-                        }
-                    }
-                    
-                    HStack {
-                        ForEach(0...10, id: \.self) { intensity in
-                            Button {
-                                toggleIntensity(intensity)
-                            } label: {
-                                Text("\(intensity)")
-                                    .font(.caption)
-                                    .foregroundStyle(isIntensitySelected(intensity) ? .white : AppColors.textPrimary)
-                                    .frame(width: 30, height: 30)
-                                    .background(isIntensitySelected(intensity) ? Color.accentPrimary : AppColors.surfaceElevated)
-                                    .clipShape(Circle())
-                            }
-                        }
-                    }
-                }
-                
                 // 重置按钮
                 Section {
                     Button("重置所有筛选") {
@@ -440,28 +455,6 @@ struct FilterSheetView: View {
                 start: normalized.start,
                 end: normalized.end
             )
-        }
-    }
-    
-    private func isIntensitySelected(_ intensity: Int) -> Bool {
-        guard let range = viewModel.selectedIntensityRange else { return false }
-        return range.contains(intensity)
-    }
-    
-    private func toggleIntensity(_ intensity: Int) {
-        if let range = viewModel.selectedIntensityRange {
-            if range.lowerBound == intensity && range.upperBound == intensity {
-                // 取消选择
-                viewModel.selectedIntensityRange = nil
-            } else if intensity < range.lowerBound {
-                viewModel.selectedIntensityRange = intensity...range.upperBound
-            } else if intensity > range.upperBound {
-                viewModel.selectedIntensityRange = range.lowerBound...intensity
-            } else {
-                viewModel.selectedIntensityRange = intensity...intensity
-            }
-        } else {
-            viewModel.selectedIntensityRange = intensity...intensity
         }
     }
 }

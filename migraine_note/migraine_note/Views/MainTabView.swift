@@ -57,29 +57,11 @@ struct MainTabView: View {
         }
         .withGlobalToast()
         .animation(.easeInOut(duration: 0.3), value: hasCompletedOnboarding)
-        .onAppear {
-            setupNotificationObservers()
-        }
-    }
-    
-    // MARK: - Notification Observers
-    
-    private func setupNotificationObservers() {
-        // 监听切换到记录标签页的通知
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("SwitchToRecordListTab"),
-            object: nil,
-            queue: .main
-        ) { _ in
+        // 使用 .onReceive 替代 addObserver，自动管理生命周期，避免观察者泄漏
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToRecordListTab"))) { _ in
             selectedTab = 1
         }
-        
-        // 监听切换到数据标签页的通知
-        NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("SwitchToDataTab"),
-            object: nil,
-            queue: .main
-        ) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToDataTab"))) { _ in
             selectedTab = 2
         }
     }

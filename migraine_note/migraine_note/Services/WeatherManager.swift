@@ -18,6 +18,31 @@ class WeatherManager: NSObject {
     var isAuthorized = false
     var authorizationError: Error?
     
+    /// 跟踪授权状态变化的版本号（用于UI刷新）
+    var authorizationVersion: Int = 0
+    
+    /// 定位授权状态
+    var authorizationStatus: CLAuthorizationStatus {
+        return locationManager.authorizationStatus
+    }
+    
+    /// 是否需要请求定位权限
+    var needsLocationPermission: Bool {
+        let status = locationManager.authorizationStatus
+        return status == .notDetermined || status == .denied || status == .restricted
+    }
+    
+    /// 定位权限是否被拒绝或受限
+    var isLocationDenied: Bool {
+        let status = locationManager.authorizationStatus
+        return status == .denied || status == .restricted
+    }
+    
+    /// 定位权限是否尚未决定
+    var isLocationNotDetermined: Bool {
+        return locationManager.authorizationStatus == .notDetermined
+    }
+    
     // MARK: - 缓存
     
     /// 天气数据缓存
@@ -31,6 +56,11 @@ class WeatherManager: NSObject {
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+    }
+    
+    deinit {
+        locationManager.delegate = nil
+        locationManager.stopUpdatingLocation()
     }
     
     // MARK: - 位置权限
@@ -105,7 +135,6 @@ class WeatherManager: NSObject {
         if !forceRefresh, let cached = cachedWeather, let cacheTime = cacheTimestamp {
             let timeSinceCache = Date().timeIntervalSince(cacheTime)
             if timeSinceCache < cacheValidityDuration {
-                print("📦 使用缓存的天气数据 (缓存时间: \(Int(timeSinceCache))秒前)")
                 return cached
             }
         }
@@ -114,9 +143,6 @@ class WeatherManager: NSObject {
         guard let location = currentLocation else {
             throw WeatherError.locationNotAvailable
         }
-        
-        print("🌤️ 从 WeatherKit 获取新的天气数据")
-        print("📍 当前位置: \(location.coordinate.latitude), \(location.coordinate.longitude)")
         
         do {
             let weather = try await weatherService.weather(for: location)
@@ -134,13 +160,8 @@ class WeatherManager: NSObject {
             cachedWeather = snapshot
             cacheTimestamp = Date()
             
-            print("✅ WeatherKit 数据获取成功: \(snapshot.temperature)°C, \(snapshot.condition)")
             return snapshot
         } catch {
-            print("❌ WeatherKit 错误详情:")
-            print("   错误类型: \(type(of: error))")
-            print("   错误描述: \(error.localizedDescription)")
-            print("   完整错误: \(error)")
             throw error
         }
     }
@@ -149,7 +170,6 @@ class WeatherManager: NSObject {
     func clearCache() {
         cachedWeather = nil
         cacheTimestamp = nil
-        print("🗑️ 天气缓存已清除")
     }
     
     /// 检查缓存是否有效
@@ -235,6 +255,7 @@ class WeatherManager: NSObject {
     }
     
     /// 反向地理编码
+    /// - Returns: 城市名称，如果无法解析则返回空字符串
     private func reverseGeocode(_ location: CLLocation) async -> String {
         let geocoder = CLGeocoder()
         do {
@@ -244,9 +265,9 @@ class WeatherManager: NSObject {
             } else if let administrativeArea = placemarks.first?.administrativeArea {
                 return administrativeArea
             }
-            return "未知位置"
+            return ""
         } catch {
-            return "未知位置"
+            return ""
         }
     }
 }
@@ -263,6 +284,7 @@ extension WeatherManager: CLLocationManagerDelegate {
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationVersion += 1
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
             isAuthorized = true

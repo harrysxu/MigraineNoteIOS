@@ -38,6 +38,9 @@ struct LabelManagementView: View {
                 
                 InterventionLabelEditor()
                     .tag(LabelCategory.intervention)
+                
+                AuraLabelEditor()
+                    .tag(LabelCategory.aura)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
         }

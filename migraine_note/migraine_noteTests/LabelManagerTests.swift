@@ -64,7 +64,7 @@ final class LabelManagerTests: XCTestCase {
         LabelManager.shared.initializeDefaultLabelsIfNeeded(context: modelContext)
         
         let painQualities = LabelManager.fetchLabels(category: .painQuality, context: modelContext)
-        XCTAssertEqual(painQualities.count, 5, "应有5种疼痛性质")
+        XCTAssertEqual(painQualities.count, 8, "应有8种疼痛性质")
     }
     
     func testFetchLabels_BySubcategory() {
@@ -73,8 +73,8 @@ final class LabelManagerTests: XCTestCase {
         let western = LabelManager.fetchLabels(category: .symptom, subcategory: "western", context: modelContext)
         let tcm = LabelManager.fetchLabels(category: .symptom, subcategory: "tcm", context: modelContext)
         
-        XCTAssertEqual(western.count, 6, "应有6种西医症状")
-        XCTAssertEqual(tcm.count, 6, "应有6种中医症状")
+        XCTAssertEqual(western.count, 11, "应有11种西医症状")
+        XCTAssertEqual(tcm.count, 9, "应有9种中医症状")
     }
     
     func testFetchLabels_ExcludesHiddenByDefault() {
@@ -89,8 +89,8 @@ final class LabelManagerTests: XCTestCase {
         let visibleLabels = LabelManager.fetchLabels(category: .painQuality, context: modelContext)
         let allLabels = LabelManager.fetchLabels(category: .painQuality, includeHidden: true, context: modelContext)
         
-        XCTAssertEqual(visibleLabels.count, 4, "可见标签应少一个")
-        XCTAssertEqual(allLabels.count, 5, "包含隐藏的标签应有5个")
+        XCTAssertEqual(visibleLabels.count, 7, "可见标签应少一个")
+        XCTAssertEqual(allLabels.count, 8, "包含隐藏的标签应有8个")
     }
     
     // MARK: - 添加自定义标签测试

@@ -2,6 +2,7 @@ import Foundation
 import PDFKit
 import SwiftUI
 import SwiftData
+import Charts
 
 /// PDF医疗报告生成器
 /// 基于《中国偏头痛诊断与治疗指南2024版》
@@ -46,6 +47,11 @@ class MedicalReportGenerator {
         healthEvents: [HealthEvent] = []
     ) throws -> Data {
         
+        let dateRangeTuple = (dateRange.start, dateRange.end)
+        
+        // 预先渲染所有图表为图片
+        let chartImages = renderChartImages(attacks: attacks, dateRange: dateRangeTuple)
+        
         // 创建PDF渲染器
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
@@ -63,7 +69,7 @@ class MedicalReportGenerator {
         let data = renderer.pdfData { context in
             var currentY: CGFloat = marginTop
             
-            // 第一页：标题和患者信息
+            // === 第一页：标题、患者信息和统计摘要 ===
             context.beginPage()
             pageCount += 1
             currentY = drawTitle(context: context, y: currentY)
@@ -73,38 +79,86 @@ class MedicalReportGenerator {
             // 统计摘要
             currentY = drawStatisticsSummary(context: context, y: currentY, attacks: attacks, dateRange: dateRange)
             
+            // 持续时间统计
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+            currentY = drawDurationStatistics(context: context, y: currentY, dateRange: dateRangeTuple)
+            
             // MOH评估
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 150, pageCount: &pageCount)
             currentY = drawMOHAssessment(context: context, y: currentY, attacks: attacks, dateRange: dateRange)
             
-            // 如果当前页面空间不足，开始新页面
-            if currentY > pageHeight - 200 {
-                context.beginPage()
-                pageCount += 1
-                currentY = marginTop
+            // === 疼痛强度分布 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+            currentY = drawPainIntensityDistribution(context: context, y: currentY, dateRange: dateRangeTuple)
+            
+            // 疼痛强度分布图表
+            if let chartImage = chartImages["painIntensity"] {
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 180, pageCount: &pageCount)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: nil, height: 160)
             }
             
-            // 诱因分析
+            // === 疼痛部位统计 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 150, pageCount: &pageCount)
+            currentY = drawPainLocationFrequency(context: context, y: currentY, dateRange: dateRangeTuple)
+            
+            // === 疼痛性质统计 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+            currentY = drawPainQualityFrequency(context: context, y: currentY, dateRange: dateRangeTuple)
+            
+            // === 诱因分析 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 150, pageCount: &pageCount)
             currentY = drawTriggerAnalysis(context: context, y: currentY, attacks: attacks)
             
-            // 详细发作记录表格
-            if currentY > pageHeight - 200 {
-                context.beginPage()
-                pageCount += 1
-                currentY = marginTop
-            } else {
-                context.beginPage()
-                pageCount += 1
-                currentY = marginTop
+            // === 伴随症状统计 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+            currentY = drawSymptomFrequency(context: context, y: currentY, dateRange: dateRangeTuple)
+            
+            // === 先兆统计 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+            currentY = drawAuraStatistics(context: context, y: currentY, dateRange: dateRangeTuple)
+            
+            // === 用药统计 ===
+            currentY = ensureSpace(context: context, currentY: currentY, needed: 180, pageCount: &pageCount)
+            currentY = drawMedicationUsage(context: context, y: currentY, dateRange: dateRangeTuple)
+            
+            // === 月度趋势图表 ===
+            if let chartImage = chartImages["monthlyTrend"] {
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 220, pageCount: &pageCount)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: "月度发作趋势", height: 180)
             }
+            
+            // === 昼夜节律图表 ===
+            if let chartImage = chartImages["circadian"] {
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 220, pageCount: &pageCount)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: "发作时间分布（24小时）", height: 180)
+            }
+            
+            // === 星期分布图表 ===
+            if let chartImage = chartImages["weekday"] {
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 220, pageCount: &pageCount)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: "星期发作分布", height: 180)
+            }
+            
+            // === 健康事件统计 ===
+            if !healthEvents.isEmpty {
+                // 用药依从性
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+                currentY = drawMedicationAdherence(context: context, y: currentY, dateRange: dateRangeTuple)
+                
+                // 中医治疗统计
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 120, pageCount: &pageCount)
+                currentY = drawTCMTreatmentStats(context: context, y: currentY, dateRange: dateRangeTuple)
+            }
+            
+            // === 详细发作记录表格 ===
+            context.beginPage()
+            pageCount += 1
+            currentY = marginTop
             currentY = drawDetailedRecordsTable(context: context, y: currentY, attacks: attacks)
             
-            // 健康事件记录
+            // === 健康事件记录 ===
             if !healthEvents.isEmpty {
-                if currentY > pageHeight - 200 {
-                    context.beginPage()
-                    pageCount += 1
-                    currentY = marginTop
-                }
+                currentY = ensureSpace(context: context, currentY: currentY, needed: 100, pageCount: &pageCount)
                 currentY = drawHealthEventsSection(context: context, y: currentY, healthEvents: healthEvents)
             }
             
@@ -117,7 +171,133 @@ class MedicalReportGenerator {
         return data
     }
     
+    // MARK: - 图表渲染
+    
+    /// 将所有图表渲染为 UIImage 字典
+    private func renderChartImages(attacks: [AttackRecord], dateRange: (Date, Date)) -> [String: UIImage] {
+        var images: [String: UIImage] = [:]
+        
+        let chartWidth: CGFloat = contentWidth
+        let chartHeight: CGFloat = 160
+        
+        // 1. 月度趋势图表
+        let monthlyData = getMonthlyTrendData(attacks: attacks, dateRange: dateRange)
+        if !monthlyData.isEmpty {
+            let monthlyChart = PDFMonthlyTrendChart(data: monthlyData)
+                .frame(width: chartWidth, height: chartHeight)
+            if let image = renderViewToImage(monthlyChart, size: CGSize(width: chartWidth, height: chartHeight)) {
+                images["monthlyTrend"] = image
+            }
+        }
+        
+        // 2. 昼夜节律图表
+        let circadianData = analyticsEngine.analyzeCircadianPattern(in: dateRange)
+        if !circadianData.isEmpty && circadianData.contains(where: { $0.count > 0 }) {
+            let circadianChart = PDFCircadianChart(data: circadianData)
+                .frame(width: chartWidth, height: chartHeight)
+            if let image = renderViewToImage(circadianChart, size: CGSize(width: chartWidth, height: chartHeight)) {
+                images["circadian"] = image
+            }
+        }
+        
+        // 3. 疼痛强度分布图表
+        let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: dateRange)
+        if intensityDist.total > 0 {
+            let intensityChart = PDFPainIntensityChart(distribution: intensityDist)
+                .frame(width: chartWidth, height: chartHeight)
+            if let image = renderViewToImage(intensityChart, size: CGSize(width: chartWidth, height: chartHeight)) {
+                images["painIntensity"] = image
+            }
+        }
+        
+        // 4. 星期分布图表
+        let weekdayData = analyticsEngine.analyzeWeekdayDistribution(in: dateRange)
+        if !weekdayData.isEmpty && weekdayData.contains(where: { $0.count > 0 }) {
+            let weekdayChart = PDFWeekdayChart(data: weekdayData)
+                .frame(width: chartWidth, height: chartHeight)
+            if let image = renderViewToImage(weekdayChart, size: CGSize(width: chartWidth, height: chartHeight)) {
+                images["weekday"] = image
+            }
+        }
+        
+        return images
+    }
+    
+    /// 使用 ImageRenderer 将 SwiftUI View 渲染为 UIImage
+    private func renderViewToImage<V: View>(_ view: V, size: CGSize) -> UIImage? {
+        let hostView = view
+            .background(Color.white)
+            .environment(\.colorScheme, .light)
+        
+        let renderer = ImageRenderer(content: hostView)
+        renderer.scale = 2.0 // 高清渲染
+        renderer.proposedSize = .init(width: size.width, height: size.height)
+        
+        return renderer.uiImage
+    }
+    
+    /// 获取月度趋势数据
+    private func getMonthlyTrendData(attacks: [AttackRecord], dateRange: (Date, Date)) -> [MonthlyTrendItem] {
+        let calendar = Calendar.current
+        
+        // 根据日期范围决定展示多少个月
+        let months = calendar.dateComponents([.month], from: dateRange.0, to: dateRange.1).month ?? 1
+        let monthCount = max(min(months + 1, 12), 1)
+        
+        var result: [MonthlyTrendItem] = []
+        
+        for i in (0..<monthCount).reversed() {
+            guard let monthDate = calendar.date(byAdding: .month, value: -i, to: dateRange.1) else { continue }
+            let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: monthDate))!
+            let endOfMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+            
+            let monthAttacks = attacks.filter { $0.startTime >= startOfMonth && $0.startTime < endOfMonth }
+            let attackDays = Set(monthAttacks.map { calendar.startOfDay(for: $0.startTime) }).count
+            
+            let formatter = DateFormatter()
+            formatter.dateFormat = "M月"
+            formatter.locale = Locale(identifier: "zh_CN")
+            let monthName = formatter.string(from: monthDate)
+            
+            result.append(MonthlyTrendItem(monthName: monthName, attackDays: attackDays))
+        }
+        
+        return result
+    }
+    
     // MARK: - 绘制方法
+    
+    /// 确保页面有足够空间，否则换页
+    private func ensureSpace(context: UIGraphicsPDFRendererContext, currentY: CGFloat, needed: CGFloat, pageCount: inout Int) -> CGFloat {
+        if currentY + needed > pageHeight - marginBottom {
+            context.beginPage()
+            pageCount += 1
+            return marginTop
+        }
+        return currentY
+    }
+    
+    /// 绘制图表图片到 PDF
+    private func drawChartImage(context: UIGraphicsPDFRendererContext, y: CGFloat, image: UIImage, title: String?, height: CGFloat) -> CGFloat {
+        var currentY = y
+        
+        // 绘制标题
+        if let title = title {
+            currentY = drawSectionTitle(context: context, y: currentY, title: title)
+        }
+        
+        // 绘制图表背景框
+        let chartRect = CGRect(x: marginLeft, y: currentY, width: contentWidth, height: height)
+        context.cgContext.setStrokeColor(UIColor.separator.cgColor)
+        context.cgContext.setLineWidth(0.5)
+        context.cgContext.stroke(chartRect)
+        
+        // 绘制图片
+        image.draw(in: chartRect)
+        
+        currentY += height + 15
+        return currentY
+    }
     
     /// 绘制标题
     private func drawTitle(context: UIGraphicsPDFRendererContext, y: CGFloat) -> CGFloat {
@@ -225,6 +405,7 @@ class MedicalReportGenerator {
         let averageIntensity = attacks.isEmpty ? 0.0 : Double(attacks.map(\.painIntensity).reduce(0, +)) / Double(attacks.count)
         let totalDuration = attacks.compactMap { $0.duration }.reduce(0, +)
         let averageDuration: TimeInterval = attacks.isEmpty ? 0 : totalDuration / TimeInterval(attacks.count)
+        let totalMeds = attacks.reduce(0) { $0 + $1.medications.count }
         
         let infoFont = UIFont.systemFont(ofSize: 11)
         
@@ -232,6 +413,7 @@ class MedicalReportGenerator {
         currentY = drawInfoRow(context: context, y: currentY, label: "发作天数：", value: "\(attackDays)天", font: infoFont)
         currentY = drawInfoRow(context: context, y: currentY, label: "平均疼痛强度：", value: String(format: "%.1f/10", averageIntensity), font: infoFont)
         currentY = drawInfoRow(context: context, y: currentY, label: "平均持续时间：", value: formatDuration(averageDuration), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "总用药次数：", value: "\(totalMeds)次", font: infoFont)
         
         // 慢性偏头痛判断
         let daysInRange = Calendar.current.dateComponents([.day], from: dateRange.start, to: dateRange.end).day ?? 30
@@ -246,6 +428,23 @@ class MedicalReportGenerator {
             warningText.draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: warningAttrs)
             currentY += 20
         }
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制持续时间统计
+    private func drawDurationStatistics(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "持续时间统计")
+        
+        let durationStats = analyticsEngine.analyzeDurationStatistics(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        currentY = drawInfoRow(context: context, y: currentY, label: "平均持续时长：", value: String(format: "%.1f小时", durationStats.averageDurationHours), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "最长持续时长：", value: String(format: "%.1f小时", durationStats.longestDurationHours), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "最短持续时长：", value: String(format: "%.1f小时", durationStats.shortestDurationHours), font: infoFont)
         
         currentY += 15
         return currentY
@@ -344,11 +543,86 @@ class MedicalReportGenerator {
         return currentY
     }
     
+    /// 绘制疼痛强度分布
+    private func drawPainIntensityDistribution(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "疼痛强度分布")
+        
+        let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        if intensityDist.total > 0 {
+            currentY = drawInfoRow(context: context, y: currentY, label: "轻度 (1-3)：", value: "\(intensityDist.mild)次 (\(String(format: "%.1f%%", intensityDist.mildPercentage)))", font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: "中度 (4-6)：", value: "\(intensityDist.moderate)次 (\(String(format: "%.1f%%", intensityDist.moderatePercentage)))", font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: "重度 (7-10)：", value: "\(intensityDist.severe)次 (\(String(format: "%.1f%%", intensityDist.severePercentage)))", font: infoFont)
+        } else {
+            currentY = drawNoDataNote(context: context, y: currentY)
+        }
+        
+        currentY += 10
+        return currentY
+    }
+    
+    /// 绘制疼痛部位统计
+    private func drawPainLocationFrequency(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "疼痛部位统计 (Top 5)")
+        
+        let locationFreq = analyticsEngine.analyzePainLocationFrequency(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        if locationFreq.isEmpty {
+            currentY = drawNoDataNote(context: context, y: currentY)
+        } else {
+            for location in locationFreq.prefix(5) {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "\(location.locationName)：",
+                    value: "\(location.count)次 (\(String(format: "%.1f%%", location.percentage)))",
+                    font: infoFont
+                )
+            }
+        }
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制疼痛性质统计
+    private func drawPainQualityFrequency(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "疼痛性质统计")
+        
+        let qualityFreq = analyticsEngine.analyzePainQualityFrequency(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        if qualityFreq.isEmpty {
+            currentY = drawNoDataNote(context: context, y: currentY)
+        } else {
+            for quality in qualityFreq {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "\(quality.qualityName)：",
+                    value: "\(quality.count)次 (\(String(format: "%.1f%%", quality.percentage)))",
+                    font: infoFont
+                )
+            }
+        }
+        
+        currentY += 15
+        return currentY
+    }
+    
     /// 绘制诱因分析
     private func drawTriggerAnalysis(context: UIGraphicsPDFRendererContext, y: CGFloat, attacks: [AttackRecord]) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "诱因分析")
+        currentY = drawSectionTitle(context: context, y: currentY, title: "诱因分析 (Top 10)")
         
         // 统计诱因频次
         var triggerCounts: [String: Int] = [:]
@@ -359,12 +633,7 @@ class MedicalReportGenerator {
         }
         
         if triggerCounts.isEmpty {
-            let noteAttrs: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: 11),
-                .foregroundColor: UIColor.secondaryLabel
-            ]
-            "暂无诱因数据".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: noteAttrs)
-            currentY += 20
+            currentY = drawNoDataNote(context: context, y: currentY)
         } else {
             // 排序并显示前10个
             let sortedTriggers = triggerCounts.sorted { $0.value > $1.value }.prefix(10)
@@ -380,6 +649,188 @@ class MedicalReportGenerator {
                     y: currentY,
                     label: "\(rankEmoji) \(trigger.key)：",
                     value: "\(trigger.value)次 (\(String(format: "%.1f", percentage))%)",
+                    font: infoFont
+                )
+            }
+        }
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制伴随症状统计
+    private func drawSymptomFrequency(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "伴随症状统计")
+        
+        let symptomFreq = analyticsEngine.analyzeSymptomFrequency(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        if symptomFreq.isEmpty {
+            currentY = drawNoDataNote(context: context, y: currentY)
+        } else {
+            for symptom in symptomFreq {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "\(symptom.symptomName)：",
+                    value: "\(symptom.count)次 (\(String(format: "%.1f%%", symptom.percentage)))",
+                    font: infoFont
+                )
+            }
+        }
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制先兆统计
+    private func drawAuraStatistics(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "先兆统计")
+        
+        let auraStats = analyticsEngine.analyzeAuraStatistics(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        currentY = drawInfoRow(context: context, y: currentY, label: "总发作次数：", value: "\(auraStats.totalAttacks)次", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "有先兆次数：", value: "\(auraStats.attacksWithAura)次", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "有先兆占比：", value: String(format: "%.1f%%", auraStats.auraPercentage), font: infoFont)
+        
+        if !auraStats.auraTypeFrequency.isEmpty {
+            currentY += 5
+            let subtitleFont = UIFont.systemFont(ofSize: 10, weight: .medium)
+            let subtitleAttrs: [NSAttributedString.Key: Any] = [
+                .font: subtitleFont,
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+            "先兆类型分布：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            currentY += 18
+            
+            for auraType in auraStats.auraTypeFrequency {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "  \(auraType.typeName)：",
+                    value: "\(auraType.count)次 (\(String(format: "%.1f%%", auraType.percentage)))",
+                    font: infoFont
+                )
+            }
+        }
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制用药统计
+    private func drawMedicationUsage(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "用药统计")
+        
+        let medicationStats = analyticsEngine.analyzeMedicationUsage(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        currentY = drawInfoRow(context: context, y: currentY, label: "总用药次数：", value: "\(medicationStats.totalMedicationUses)次", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "用药天数：", value: "\(medicationStats.medicationDays)天", font: infoFont)
+        
+        // 药物分类统计
+        if !medicationStats.categoryBreakdown.isEmpty {
+            currentY += 5
+            let subtitleFont = UIFont.systemFont(ofSize: 10, weight: .medium)
+            let subtitleAttrs: [NSAttributedString.Key: Any] = [
+                .font: subtitleFont,
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+            "药物分类统计：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            currentY += 18
+            
+            for category in medicationStats.categoryBreakdown {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "  \(category.categoryName)：",
+                    value: "\(category.count)次 (\(String(format: "%.1f%%", category.percentage)))",
+                    font: infoFont
+                )
+            }
+        }
+        
+        // Top 用药
+        if !medicationStats.topMedications.isEmpty {
+            currentY += 5
+            let subtitleFont = UIFont.systemFont(ofSize: 10, weight: .medium)
+            let subtitleAttrs: [NSAttributedString.Key: Any] = [
+                .font: subtitleFont,
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+            "常用药物排名：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            currentY += 18
+            
+            for (index, medication) in medicationStats.topMedications.prefix(5).enumerated() {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "  \(index + 1). \(medication.medicationName)：",
+                    value: "\(medication.count)次 (\(String(format: "%.1f%%", medication.percentage)))",
+                    font: infoFont
+                )
+            }
+        }
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制用药依从性统计
+    private func drawMedicationAdherence(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "用药依从性")
+        
+        let adherenceStats = analyticsEngine.analyzeMedicationAdherence(in: dateRange)
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        currentY = drawInfoRow(context: context, y: currentY, label: "统计天数：", value: "\(adherenceStats.totalDays)天", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "用药天数：", value: "\(adherenceStats.medicationDays)天", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "遗漏天数：", value: "\(adherenceStats.missedDays)天", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "依从率：", value: String(format: "%.1f%%", adherenceStats.adherenceRate), font: infoFont)
+        
+        currentY += 15
+        return currentY
+    }
+    
+    /// 绘制中医治疗统计
+    private func drawTCMTreatmentStats(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
+        var currentY = y
+        
+        let tcmStats = analyticsEngine.analyzeTCMTreatment(in: dateRange)
+        guard tcmStats.totalTreatments > 0 else { return currentY }
+        
+        currentY = drawSectionTitle(context: context, y: currentY, title: "中医治疗统计")
+        
+        let infoFont = UIFont.systemFont(ofSize: 11)
+        
+        currentY = drawInfoRow(context: context, y: currentY, label: "总治疗次数：", value: "\(tcmStats.totalTreatments)次", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: "平均治疗时长：", value: "\(tcmStats.averageDurationMinutes)分钟", font: infoFont)
+        
+        if !tcmStats.treatmentTypes.isEmpty {
+            currentY += 5
+            let subtitleFont = UIFont.systemFont(ofSize: 10, weight: .medium)
+            let subtitleAttrs: [NSAttributedString.Key: Any] = [
+                .font: subtitleFont,
+                .foregroundColor: UIColor.secondaryLabel
+            ]
+            "治疗类型分布：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            currentY += 18
+            
+            for type in tcmStats.treatmentTypes {
+                currentY = drawInfoRow(
+                    context: context,
+                    y: currentY,
+                    label: "  \(type.typeName)：",
+                    value: "\(type.count)次 (\(String(format: "%.1f%%", type.percentage)))",
                     font: infoFont
                 )
             }
@@ -582,16 +1033,30 @@ class MedicalReportGenerator {
             context.cgContext.fill(cellRect)
         }
         
-        // 绘制文本
+        // 绘制文本（限制在单元格内）
         let textAttrs: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: UIColor.label
         ]
         
+        let textRect = CGRect(x: x + 2, y: y + 2, width: width - 4, height: height - 4)
         let textSize = text.size(withAttributes: textAttrs)
-        let textX = x + (width - textSize.width) / 2
+        
+        // 水平居中
+        let textX = x + max(2, (width - textSize.width) / 2)
         let textY = y + (height - textSize.height) / 2
-        text.draw(at: CGPoint(x: textX, y: textY), withAttributes: textAttrs)
+        
+        // 如果文字太长，使用截断绘制
+        if textSize.width > width - 4 {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineBreakMode = .byTruncatingTail
+            paragraphStyle.alignment = .center
+            var truncAttrs = textAttrs
+            truncAttrs[.paragraphStyle] = paragraphStyle
+            text.draw(in: textRect, withAttributes: truncAttrs)
+        } else {
+            text.draw(at: CGPoint(x: textX, y: textY), withAttributes: textAttrs)
+        }
     }
     
     /// 绘制页脚
@@ -659,6 +1124,16 @@ class MedicalReportGenerator {
         return y + 20
     }
     
+    /// 绘制无数据提示
+    private func drawNoDataNote(context: UIGraphicsPDFRendererContext, y: CGFloat) -> CGFloat {
+        let noteAttrs: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 11),
+            .foregroundColor: UIColor.secondaryLabel
+        ]
+        "暂无数据".draw(at: CGPoint(x: marginLeft, y: y), withAttributes: noteAttrs)
+        return y + 20
+    }
+    
     /// 格式化时长
     private func formatDuration(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
@@ -669,5 +1144,230 @@ class MedicalReportGenerator {
         } else {
             return "\(minutes)分钟"
         }
+    }
+}
+
+// MARK: - PDF图表数据模型
+
+struct MonthlyTrendItem: Identifiable {
+    let id = UUID()
+    let monthName: String
+    let attackDays: Int
+}
+
+// MARK: - PDF专用图表视图
+
+/// 月度趋势柱状图（用于PDF渲染）
+struct PDFMonthlyTrendChart: View {
+    let data: [MonthlyTrendItem]
+    
+    var body: some View {
+        Chart {
+            ForEach(data) { item in
+                BarMark(
+                    x: .value("月份", item.monthName),
+                    y: .value("发作天数", item.attackDays)
+                )
+                .foregroundStyle(
+                    item.attackDays >= 15 ? Color.red : Color.blue
+                )
+                .cornerRadius(4)
+                .annotation(position: .top) {
+                    Text("\(item.attackDays)")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .chartYAxisLabel("发作天数")
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisValueLabel {
+                    if let count = value.as(Int.self) {
+                        Text("\(count)")
+                            .font(.system(size: 9))
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .chartXAxis {
+            AxisMarks { value in
+                AxisValueLabel {
+                    if let name = value.as(String.self) {
+                        Text(name)
+                            .font(.system(size: 9))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+}
+
+/// 昼夜节律图表（用于PDF渲染）
+struct PDFCircadianChart: View {
+    let data: [CircadianData]
+    
+    var body: some View {
+        Chart {
+            ForEach(data) { item in
+                AreaMark(
+                    x: .value("小时", item.hour),
+                    yStart: .value("起点", 0),
+                    yEnd: .value("次数", item.count)
+                )
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.4), Color.blue.opacity(0.1)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .interpolationMethod(.catmullRom)
+                
+                LineMark(
+                    x: .value("小时", item.hour),
+                    y: .value("次数", item.count)
+                )
+                .foregroundStyle(Color.blue)
+                .lineStyle(StrokeStyle(lineWidth: 2))
+                .interpolationMethod(.catmullRom)
+            }
+        }
+        .chartXScale(domain: 0...23)
+        .chartXAxisLabel("时间（小时）")
+        .chartYAxisLabel("发作次数")
+        .chartXAxis {
+            AxisMarks(values: [0, 3, 6, 9, 12, 15, 18, 21]) { value in
+                AxisValueLabel {
+                    if let hour = value.as(Int.self) {
+                        Text("\(hour)时")
+                            .font(.system(size: 8))
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisValueLabel {
+                    if let count = value.as(Int.self) {
+                        Text("\(count)")
+                            .font(.system(size: 9))
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+}
+
+/// 疼痛强度分布图表（用于PDF渲染）
+struct PDFPainIntensityChart: View {
+    let distribution: PainIntensityDistribution
+    
+    private var chartData: [(name: String, count: Int, color: Color)] {
+        [
+            ("轻度(1-3)", distribution.mild, .green),
+            ("中度(4-6)", distribution.moderate, .orange),
+            ("重度(7-10)", distribution.severe, .red)
+        ]
+    }
+    
+    var body: some View {
+        Chart {
+            ForEach(chartData, id: \.name) { item in
+                BarMark(
+                    x: .value("级别", item.name),
+                    y: .value("次数", item.count)
+                )
+                .foregroundStyle(item.color)
+                .cornerRadius(4)
+                .annotation(position: .top) {
+                    if item.count > 0 {
+                        Text("\(item.count)次")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .chartYAxisLabel("发作次数")
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisValueLabel {
+                    if let count = value.as(Int.self) {
+                        Text("\(count)")
+                            .font(.system(size: 9))
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .chartXAxis {
+            AxisMarks { value in
+                AxisValueLabel {
+                    if let name = value.as(String.self) {
+                        Text(name)
+                            .font(.system(size: 9))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+    }
+}
+
+/// 星期分布图表（用于PDF渲染）
+struct PDFWeekdayChart: View {
+    let data: [WeekdayDistribution]
+    
+    var body: some View {
+        Chart {
+            ForEach(data) { item in
+                BarMark(
+                    x: .value("星期", item.weekdayName),
+                    y: .value("次数", item.count)
+                )
+                .foregroundStyle(Color.blue.gradient)
+                .cornerRadius(4)
+                .annotation(position: .top) {
+                    if item.count > 0 {
+                        Text("\(item.count)")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .chartYAxisLabel("发作次数")
+        .chartYAxis {
+            AxisMarks(position: .leading) { value in
+                AxisValueLabel {
+                    if let count = value.as(Int.self) {
+                        Text("\(count)")
+                            .font(.system(size: 9))
+                    }
+                }
+                AxisGridLine()
+            }
+        }
+        .chartXAxis {
+            AxisMarks { value in
+                AxisValueLabel {
+                    if let name = value.as(String.self) {
+                        Text(name)
+                            .font(.system(size: 9))
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
     }
 }

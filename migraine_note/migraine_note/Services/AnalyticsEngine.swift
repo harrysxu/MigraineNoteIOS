@@ -8,6 +8,234 @@
 import Foundation
 import SwiftData
 
+/// 批量分析结果容器 - 一次计算所有分析指标，避免重复 CoreData 查询
+struct BatchAnalyticsResult {
+    let durationStats: DurationStatistics
+    let triggerFrequency: [TriggerFrequencyData]
+    let circadianPattern: [CircadianData]
+    let painIntensityDistribution: PainIntensityDistribution
+    let painLocationFrequency: [PainLocationFrequency]
+    let painQualityFrequency: [PainQualityFrequency]
+    let symptomFrequency: [SymptomFrequency]
+    let auraStatistics: AuraStatistics
+    let acuteMedicationUsage: MedicationUsageStatistics
+    let healthEventStatistics: HealthEventStatistics
+    let tcmTreatmentStats: TCMTreatmentStats
+    
+    // MARK: - 缓存的汇总统计（避免在 View 中重复计算）
+    let totalAttacksCount: Int
+    let attackDaysCount: Int
+    let averagePainIntensity: Double
+    let detailedMedicationStats: DetailedMedicationStatistics
+    
+    /// 从预加载的数据中一次性计算所有分析结果
+    static func compute(attacks: [AttackRecord], healthEvents: [HealthEvent], dateRange: (Date, Date)) -> BatchAnalyticsResult {
+        let calendar = Calendar.current
+        
+        // --- Duration Stats ---
+        let completedAttacks = attacks.filter { $0.duration != nil }
+        let durations = completedAttacks.compactMap { $0.duration }
+        let durationStats: DurationStatistics
+        if durations.isEmpty {
+            durationStats = DurationStatistics(averageDuration: 0, longestDuration: 0, shortestDuration: 0)
+        } else {
+            durationStats = DurationStatistics(
+                averageDuration: durations.reduce(0, +) / Double(durations.count),
+                longestDuration: durations.max() ?? 0,
+                shortestDuration: durations.min() ?? 0
+            )
+        }
+        
+        // --- Trigger Frequency ---
+        var triggerCounts: [String: Int] = [:]
+        for attack in attacks {
+            for trigger in attack.triggers {
+                triggerCounts[trigger.specificType, default: 0] += 1
+            }
+        }
+        let totalTriggers = triggerCounts.values.reduce(0, +)
+        let triggerFrequency = triggerCounts
+            .map { TriggerFrequencyData(triggerName: $0.key, count: $0.value, percentage: totalTriggers > 0 ? Double($0.value) / Double(totalTriggers) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        
+        // --- Circadian Pattern ---
+        var hourDistribution: [Int: Int] = [:]
+        for attack in attacks {
+            let hour = calendar.component(.hour, from: attack.startTime)
+            hourDistribution[hour, default: 0] += 1
+        }
+        let circadianPattern = (0..<24).map { CircadianData(hour: $0, count: hourDistribution[$0] ?? 0) }
+        
+        // --- Pain Intensity Distribution ---
+        var mild = 0, moderate = 0, severe = 0
+        for attack in attacks {
+            switch attack.painIntensity {
+            case 0...3: mild += 1
+            case 4...6: moderate += 1
+            case 7...10: severe += 1
+            default: break
+            }
+        }
+        let painIntensityDist = PainIntensityDistribution(mild: mild, moderate: moderate, severe: severe)
+        
+        // --- Pain Location Frequency ---
+        var locationCounts: [String: Int] = [:]
+        for attack in attacks {
+            for location in attack.painLocation {
+                locationCounts[location, default: 0] += 1
+            }
+        }
+        let totalLocations = locationCounts.values.reduce(0, +)
+        let painLocationFrequency = locationCounts
+            .map { PainLocationFrequency(locationName: PainLocation(rawValue: $0.key)?.displayName ?? $0.key, count: $0.value, percentage: totalLocations > 0 ? Double($0.value) / Double(totalLocations) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        
+        // --- Pain Quality Frequency ---
+        var qualityCounts: [String: Int] = [:]
+        for attack in attacks {
+            for quality in attack.painQuality {
+                qualityCounts[quality, default: 0] += 1
+            }
+        }
+        let totalQualities = qualityCounts.values.reduce(0, +)
+        let painQualityFrequency = qualityCounts
+            .map { PainQualityFrequency(qualityName: $0.key, count: $0.value, percentage: totalQualities > 0 ? Double($0.value) / Double(totalQualities) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        
+        // --- Symptom Frequency ---
+        var symptomCounts: [String: Int] = [:]
+        for attack in attacks {
+            for symptom in attack.symptoms {
+                symptomCounts[symptom.name, default: 0] += 1
+            }
+        }
+        let totalAttacks = attacks.count
+        let symptomFrequency = symptomCounts
+            .map { SymptomFrequency(symptomName: $0.key, count: $0.value, percentage: totalAttacks > 0 ? Double($0.value) / Double(totalAttacks) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        
+        // --- Aura Statistics ---
+        let attacksWithAura = attacks.filter { $0.hasAura }.count
+        var auraTypeCounts: [String: Int] = [:]
+        for attack in attacks where attack.hasAura {
+            for auraType in attack.auraTypes {
+                auraTypeCounts[auraType, default: 0] += 1
+            }
+        }
+        let auraTypeFrequency = auraTypeCounts
+            .map { AuraTypeFrequency(typeName: $0.key, count: $0.value, percentage: attacksWithAura > 0 ? Double($0.value) / Double(attacksWithAura) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        let auraStatistics = AuraStatistics(totalAttacks: totalAttacks, attacksWithAura: attacksWithAura, auraTypeFrequency: auraTypeFrequency)
+        
+        // --- Acute Medication Usage (from attacks) ---
+        var acuteTotalUses = 0
+        var acuteMedDaysSet: Set<Date> = []
+        var acuteCategoryCounts: [String: Int] = [:]
+        var acuteMedNameCounts: [String: Int] = [:]
+        for attack in attacks {
+            if !attack.medications.isEmpty {
+                acuteMedDaysSet.insert(calendar.startOfDay(for: attack.startTime))
+            }
+            for medLog in attack.medications {
+                acuteTotalUses += 1
+                if let medication = medLog.medication {
+                    acuteCategoryCounts[medication.category.rawValue, default: 0] += 1
+                    acuteMedNameCounts[medication.name, default: 0] += 1
+                }
+            }
+        }
+        let acuteCategories = acuteCategoryCounts
+            .map { MedicationCategoryBreakdown(categoryName: $0.key, count: $0.value, percentage: acuteTotalUses > 0 ? Double($0.value) / Double(acuteTotalUses) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        let acuteTopMeds = acuteMedNameCounts
+            .map { TopMedication(medicationName: $0.key, count: $0.value, percentage: acuteTotalUses > 0 ? Double($0.value) / Double(acuteTotalUses) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        let acuteMedicationUsage = MedicationUsageStatistics(totalMedicationUses: acuteTotalUses, medicationDays: acuteMedDaysSet.count, categoryBreakdown: acuteCategories, topMedications: acuteTopMeds)
+        
+        // --- Health Event Statistics ---
+        let medicationEvents = healthEvents.filter { $0.eventType == .medication }
+        let dailyMedDaysSet = Set(medicationEvents.filter { !$0.medicationLogs.isEmpty }.map { calendar.startOfDay(for: $0.eventDate) })
+        let dailyMedicationCount = medicationEvents.reduce(0) { $0 + $1.medicationLogs.count }
+        var dailyMedCategoryCounts: [String: Int] = [:]
+        var dailyMedNameCounts: [String: Int] = [:]
+        for event in medicationEvents {
+            for log in event.medicationLogs {
+                if let medication = log.medication {
+                    dailyMedCategoryCounts[medication.category.rawValue, default: 0] += 1
+                    dailyMedNameCounts[medication.name, default: 0] += 1
+                } else if let name = log.medicationName {
+                    dailyMedNameCounts[name, default: 0] += 1
+                }
+            }
+        }
+        let dailyMedCategories = dailyMedCategoryCounts
+            .map { MedicationCategoryBreakdown(categoryName: $0.key, count: $0.value, percentage: dailyMedicationCount > 0 ? Double($0.value) / Double(dailyMedicationCount) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        let dailyTopMeds = dailyMedNameCounts
+            .map { TopMedication(medicationName: $0.key, count: $0.value, percentage: dailyMedicationCount > 0 ? Double($0.value) / Double(dailyMedicationCount) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        
+        let tcmEvents = healthEvents.filter { $0.eventType == .tcmTreatment }
+        let tcmCount = tcmEvents.count
+        var tcmTypeCounts: [String: Int] = [:]
+        var totalTcmDuration: TimeInterval = 0
+        for event in tcmEvents {
+            if let type = event.tcmTreatmentType { tcmTypeCounts[type, default: 0] += 1 }
+            if let duration = event.tcmDuration { totalTcmDuration += duration }
+        }
+        let tcmTypes = tcmTypeCounts
+            .map { TreatmentTypeFrequency(typeName: $0.key, count: $0.value, percentage: tcmCount > 0 ? Double($0.value) / Double(tcmCount) * 100 : 0) }
+            .sorted { $0.count > $1.count }
+        let avgTcmDuration = tcmCount > 0 ? totalTcmDuration / Double(tcmCount) : 0
+        
+        let surgeryEvents = healthEvents.filter { $0.eventType == .surgery }
+        let surgeryDetails = surgeryEvents.map { SurgeryDetail(name: $0.surgeryName ?? "手术记录", date: $0.eventDate, hospital: $0.hospitalName, doctor: $0.doctorName) }.sorted { $0.date > $1.date }
+        
+        let healthEventStats = HealthEventStatistics(
+            dailyMedicationDays: dailyMedDaysSet.count,
+            dailyMedicationCount: dailyMedicationCount,
+            dailyMedCategories: dailyMedCategories,
+            dailyTopMedications: dailyTopMeds,
+            tcmTreatmentCount: tcmCount,
+            tcmTreatmentTypes: tcmTypes,
+            averageTcmDurationMinutes: Int(avgTcmDuration / 60),
+            surgeryCount: surgeryEvents.count,
+            surgeryDetails: surgeryDetails
+        )
+        
+        let tcmTreatmentStats = TCMTreatmentStats(totalTreatments: tcmCount, treatmentTypes: tcmTypes, averageDuration: avgTcmDuration)
+        
+        // --- 汇总统计（一次计算，多处复用）---
+        let attackDaysCount = Set(attacks.map { calendar.startOfDay(for: $0.startTime) }).count
+        let averagePainIntensity: Double = totalAttacks > 0
+            ? Double(attacks.reduce(0) { $0 + $1.painIntensity }) / Double(totalAttacks)
+            : 0
+        let detailedMedStats = DetailedMedicationStatistics.calculate(
+            attacks: attacks,
+            healthEvents: healthEvents,
+            dateRange: dateRange
+        )
+        
+        return BatchAnalyticsResult(
+            durationStats: durationStats,
+            triggerFrequency: triggerFrequency,
+            circadianPattern: circadianPattern,
+            painIntensityDistribution: painIntensityDist,
+            painLocationFrequency: painLocationFrequency,
+            painQualityFrequency: painQualityFrequency,
+            symptomFrequency: symptomFrequency,
+            auraStatistics: auraStatistics,
+            acuteMedicationUsage: acuteMedicationUsage,
+            healthEventStatistics: healthEventStats,
+            tcmTreatmentStats: tcmTreatmentStats,
+            totalAttacksCount: totalAttacks,
+            attackDaysCount: attackDaysCount,
+            averagePainIntensity: averagePainIntensity,
+            detailedMedicationStats: detailedMedStats
+        )
+    }
+}
+
 class AnalyticsEngine {
     private let modelContext: ModelContext
     
@@ -148,7 +376,7 @@ class AnalyticsEngine {
         
         for attack in attacks {
             switch attack.painIntensity {
-            case 1...3:
+            case 0...3:
                 mild += 1
             case 4...6:
                 moderate += 1
@@ -538,6 +766,189 @@ class AnalyticsEngine {
         )
     }
     
+    // MARK: - 健康事件综合统计
+    
+    /// 分析健康事件综合统计（日常用药、中医治疗、手术）
+    func analyzeHealthEventStatistics(in dateRange: (Date, Date)) -> HealthEventStatistics {
+        let startDate = dateRange.0
+        let endDate = dateRange.1
+        let calendar = Calendar.current
+        
+        let descriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= startDate && event.eventDate <= endDate
+            }
+        )
+        
+        guard let healthEvents = try? modelContext.fetch(descriptor) else {
+            return HealthEventStatistics.empty
+        }
+        
+        // --- 日常用药统计 ---
+        let medicationEvents = healthEvents.filter { $0.eventType == .medication }
+        let dailyMedDaysSet = Set(
+            medicationEvents
+                .filter { !$0.medicationLogs.isEmpty }
+                .map { calendar.startOfDay(for: $0.eventDate) }
+        )
+        let dailyMedicationDays = dailyMedDaysSet.count
+        let dailyMedicationCount = medicationEvents.reduce(0) { $0 + $1.medicationLogs.count }
+        
+        // 日常用药药物分类统计
+        var dailyMedCategoryCounts: [String: Int] = [:]
+        var dailyMedNameCounts: [String: Int] = [:]
+        for event in medicationEvents {
+            for log in event.medicationLogs {
+                if let medication = log.medication {
+                    dailyMedCategoryCounts[medication.category.rawValue, default: 0] += 1
+                    dailyMedNameCounts[medication.name, default: 0] += 1
+                } else if let name = log.medicationName {
+                    dailyMedNameCounts[name, default: 0] += 1
+                }
+            }
+        }
+        
+        let dailyMedCategories = dailyMedCategoryCounts
+            .map { category, count in
+                MedicationCategoryBreakdown(
+                    categoryName: category,
+                    count: count,
+                    percentage: dailyMedicationCount > 0 ? Double(count) / Double(dailyMedicationCount) * 100 : 0
+                )
+            }
+            .sorted { $0.count > $1.count }
+        
+        let dailyTopMedications = dailyMedNameCounts
+            .map { name, count in
+                TopMedication(
+                    medicationName: name,
+                    count: count,
+                    percentage: dailyMedicationCount > 0 ? Double(count) / Double(dailyMedicationCount) * 100 : 0
+                )
+            }
+            .sorted { $0.count > $1.count }
+        
+        // --- 中医治疗统计 ---
+        let tcmEvents = healthEvents.filter { $0.eventType == .tcmTreatment }
+        let tcmTreatmentCount = tcmEvents.count
+        var tcmTypeCounts: [String: Int] = [:]
+        var totalTcmDuration: TimeInterval = 0
+        
+        for event in tcmEvents {
+            if let type = event.tcmTreatmentType {
+                tcmTypeCounts[type, default: 0] += 1
+            }
+            if let duration = event.tcmDuration {
+                totalTcmDuration += duration
+            }
+        }
+        
+        let tcmTreatmentTypes = tcmTypeCounts.map { type, count in
+            TreatmentTypeFrequency(
+                typeName: type,
+                count: count,
+                percentage: tcmTreatmentCount > 0 ? Double(count) / Double(tcmTreatmentCount) * 100 : 0
+            )
+        }.sorted { $0.count > $1.count }
+        
+        let avgTcmDuration = tcmTreatmentCount > 0 ? totalTcmDuration / Double(tcmTreatmentCount) : 0
+        
+        // --- 手术统计 ---
+        let surgeryEvents = healthEvents.filter { $0.eventType == .surgery }
+        let surgeryCount = surgeryEvents.count
+        let surgeryDetails = surgeryEvents.map { event in
+            SurgeryDetail(
+                name: event.surgeryName ?? "手术记录",
+                date: event.eventDate,
+                hospital: event.hospitalName,
+                doctor: event.doctorName
+            )
+        }.sorted { $0.date > $1.date }
+        
+        return HealthEventStatistics(
+            dailyMedicationDays: dailyMedicationDays,
+            dailyMedicationCount: dailyMedicationCount,
+            dailyMedCategories: dailyMedCategories,
+            dailyTopMedications: dailyTopMedications,
+            tcmTreatmentCount: tcmTreatmentCount,
+            tcmTreatmentTypes: tcmTreatmentTypes,
+            averageTcmDurationMinutes: Int(avgTcmDuration / 60),
+            surgeryCount: surgeryCount,
+            surgeryDetails: surgeryDetails
+        )
+    }
+    
+    // MARK: - 急性用药详细统计（来自发作记录）
+    
+    /// 分析急性用药统计（仅来自发作记录中的用药）
+    func analyzeAcuteMedicationUsage(in dateRange: (Date, Date)) -> MedicationUsageStatistics {
+        let startDate = dateRange.0
+        let endDate = dateRange.1
+        
+        let descriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= startDate && attack.startTime <= endDate
+            }
+        )
+        
+        guard let attacks = try? modelContext.fetch(descriptor) else {
+            return MedicationUsageStatistics(
+                totalMedicationUses: 0,
+                medicationDays: 0,
+                categoryBreakdown: [],
+                topMedications: []
+            )
+        }
+        
+        let calendar = Calendar.current
+        var totalUses = 0
+        var medicationDaysSet: Set<Date> = []
+        var categoryCounts: [String: Int] = [:]
+        var medicationCounts: [String: Int] = [:]
+        
+        for attack in attacks {
+            if !attack.medications.isEmpty {
+                medicationDaysSet.insert(calendar.startOfDay(for: attack.startTime))
+            }
+            
+            for medLog in attack.medications {
+                totalUses += 1
+                if let medication = medLog.medication {
+                    let category = medication.category.rawValue
+                    categoryCounts[category, default: 0] += 1
+                    medicationCounts[medication.name, default: 0] += 1
+                }
+            }
+        }
+        
+        let categoryBreakdown = categoryCounts
+            .map { category, count in
+                MedicationCategoryBreakdown(
+                    categoryName: category,
+                    count: count,
+                    percentage: totalUses > 0 ? Double(count) / Double(totalUses) * 100 : 0
+                )
+            }
+            .sorted { $0.count > $1.count }
+        
+        let topMedications = medicationCounts
+            .map { name, count in
+                TopMedication(
+                    medicationName: name,
+                    count: count,
+                    percentage: totalUses > 0 ? Double(count) / Double(totalUses) * 100 : 0
+                )
+            }
+            .sorted { $0.count > $1.count }
+        
+        return MedicationUsageStatistics(
+            totalMedicationUses: totalUses,
+            medicationDays: medicationDaysSet.count,
+            categoryBreakdown: categoryBreakdown,
+            topMedications: topMedications
+        )
+    }
+    
     /// 分析治疗与发作的关联（治疗开始前后的发作频率对比）
     func analyzeCorrelationBetweenTreatmentAndAttacks(
         treatmentType: HealthEventType,
@@ -868,4 +1279,49 @@ struct FrequencyResult: Identifiable {
     let name: String
     let count: Int
     let percentage: Double
+}
+
+// MARK: - 健康事件综合统计数据结构
+
+struct HealthEventStatistics {
+    let dailyMedicationDays: Int           // 日常用药天数
+    let dailyMedicationCount: Int          // 日常用药次数
+    let dailyMedCategories: [MedicationCategoryBreakdown]  // 日常用药分类
+    let dailyTopMedications: [TopMedication]               // 日常用药 Top 药物
+    let tcmTreatmentCount: Int             // 中医治疗次数
+    let tcmTreatmentTypes: [TreatmentTypeFrequency]        // 中医治疗类型分布
+    let averageTcmDurationMinutes: Int     // 平均治疗时长（分钟）
+    let surgeryCount: Int                  // 手术次数
+    let surgeryDetails: [SurgeryDetail]    // 手术详情列表
+    
+    var hasDailyMedication: Bool { dailyMedicationCount > 0 }
+    var hasTCMTreatment: Bool { tcmTreatmentCount > 0 }
+    var hasSurgery: Bool { surgeryCount > 0 }
+    var hasAnyEvent: Bool { hasDailyMedication || hasTCMTreatment || hasSurgery }
+    
+    var totalEvents: Int {
+        dailyMedicationCount + tcmTreatmentCount + surgeryCount
+    }
+    
+    static var empty: HealthEventStatistics {
+        HealthEventStatistics(
+            dailyMedicationDays: 0,
+            dailyMedicationCount: 0,
+            dailyMedCategories: [],
+            dailyTopMedications: [],
+            tcmTreatmentCount: 0,
+            tcmTreatmentTypes: [],
+            averageTcmDurationMinutes: 0,
+            surgeryCount: 0,
+            surgeryDetails: []
+        )
+    }
+}
+
+struct SurgeryDetail: Identifiable {
+    let id = UUID()
+    let name: String
+    let date: Date
+    let hospital: String?
+    let doctor: String?
 }

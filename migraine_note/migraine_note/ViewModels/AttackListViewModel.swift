@@ -23,9 +23,6 @@ class AttackListViewModel {
     /// 排序选项
     var sortOption: SortOption = .dateDescending
     
-    /// 选中的疼痛强度范围
-    var selectedIntensityRange: ClosedRange<Int>? = nil
-    
     /// 选中的日期范围
     var selectedDateRange: DateRange? = nil
     
@@ -68,7 +65,7 @@ class AttackListViewModel {
         }
     }
     
-    struct DateRange {
+    struct DateRange: Equatable {
         let start: Date
         let end: Date
     }
@@ -121,13 +118,6 @@ class AttackListViewModel {
                 }
                 
                 return symptomMatch || triggerMatch || medicationMatch
-            }
-        }
-        
-        // 应用疼痛强度筛选
-        if let intensityRange = selectedIntensityRange {
-            filtered = filtered.filter { attack in
-                intensityRange.contains(attack.painIntensity)
             }
         }
         
@@ -236,7 +226,6 @@ class AttackListViewModel {
         searchText = ""
         filterOption = .thisMonth
         sortOption = .dateDescending
-        selectedIntensityRange = nil
         selectedDateRange = nil
         recordTypeFilter = .all
     }
