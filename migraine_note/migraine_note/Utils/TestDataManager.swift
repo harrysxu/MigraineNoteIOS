@@ -233,6 +233,7 @@ class TestDataManager {
                 medicationLogs.append(log)
             }
             record.medicationsData = medicationLogs
+            record.medicationCount = medicationLogs.count
         }
         
         // 非药物干预（30%概率）

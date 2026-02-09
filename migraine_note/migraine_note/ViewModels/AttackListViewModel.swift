@@ -29,6 +29,24 @@ class AttackListViewModel {
     /// 记录类型筛选
     var recordTypeFilter: RecordTypeFilter = .all
     
+    /// 从数据库查询到的发作记录（已通过谓词过滤日期范围）
+    var attacks: [AttackRecord] = []
+    
+    /// 从数据库查询到的健康事件（已通过谓词过滤日期范围）
+    var healthEvents: [HealthEvent] = []
+    
+    /// 是否有任何数据（用于空状态判断）
+    var hasAnyData: Bool = false
+    
+    /// 缓存的时间轴数据
+    var cachedTimelineItems: [TimelineItemType] = []
+    
+    /// ModelContext 引用
+    private var modelContext: ModelContext?
+    
+    /// 防抖刷新任务
+    private var refreshTask: Task<Void, Never>?
+    
     // MARK: - Enums
     
     enum FilterOption: String, CaseIterable {
@@ -90,33 +108,141 @@ class AttackListViewModel {
         }
     }
     
-    // MARK: - Methods
+    // MARK: - 初始化
     
-    /// 获取筛选后的记录
-    func filteredAttacks(_ attacks: [AttackRecord]) -> [AttackRecord] {
+    /// 设置 ModelContext（在 View 的 onAppear 中调用）
+    func setup(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+    
+    // MARK: - 数据加载（使用 FetchDescriptor + 谓词，只查询需要的数据）
+    
+    /// 从数据库加载数据并更新时间轴（统一入口）
+    func loadData() {
+        loadAttacks()
+        loadHealthEvents()
+        checkHasAnyData()
+        updateTimelineItems()
+    }
+    
+    /// 带防抖的数据加载（用于搜索等频繁触发的场景）
+    func scheduleLoadData() {
+        refreshTask?.cancel()
+        refreshTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms 防抖
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                loadData()
+            }
+        }
+    }
+    
+    /// 使用 FetchDescriptor 从数据库加载发作记录（带日期谓词）
+    private func loadAttacks() {
+        guard let modelContext = modelContext else { return }
+        guard let range = getDateRangeForFilter() else {
+            attacks = []
+            return
+        }
+        
+        let startDate = range.start
+        let endDate = range.end
+        
+        // 构建带日期范围谓词的 FetchDescriptor
+        var descriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= startDate && attack.startTime <= endDate
+            },
+            sortBy: [SortDescriptor(\.startTime, order: .reverse)]
+        )
+        // 设置获取上限，避免加载过多数据
+        descriptor.fetchLimit = 200
+        
+        attacks = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    /// 使用 FetchDescriptor 从数据库加载健康事件（带日期谓词）
+    private func loadHealthEvents() {
+        guard let modelContext = modelContext else { return }
+        guard let range = getDateRangeForFilter() else {
+            healthEvents = []
+            return
+        }
+        
+        let startDate = range.start
+        let endDate = range.end
+        
+        var descriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= startDate && event.eventDate <= endDate
+            },
+            sortBy: [SortDescriptor(\.eventDate, order: .reverse)]
+        )
+        descriptor.fetchLimit = 200
+        
+        healthEvents = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    /// 检查是否有任何数据（用于空状态显示，只需检查是否存在记录）
+    private func checkHasAnyData() {
+        guard let modelContext = modelContext else { return }
+        var attackDesc = FetchDescriptor<AttackRecord>()
+        attackDesc.fetchLimit = 1
+        var eventDesc = FetchDescriptor<HealthEvent>()
+        eventDesc.fetchLimit = 1
+        let hasAttacks = ((try? modelContext.fetchCount(attackDesc)) ?? 0) > 0
+        let hasEvents = ((try? modelContext.fetchCount(eventDesc)) ?? 0) > 0
+        hasAnyData = hasAttacks || hasEvents
+    }
+    
+    // MARK: - 时间轴数据构建
+    
+    /// 重新计算时间轴数据（基于已加载的数据进行内存过滤和排序）
+    func updateTimelineItems() {
+        var items: [TimelineItemType] = []
+        
+        // 添加偏头痛发作记录（已经通过数据库谓词做了日期过滤，只需做搜索过滤）
+        let filteredAttacks = applySearchFilter(to: attacks)
+        if recordTypeFilter == .all || recordTypeFilter == .attacksOnly {
+            items.append(contentsOf: filteredAttacks.map { .attack($0) })
+        }
+        
+        // 添加健康事件
+        let filteredEvents = applySearchAndTypeFilter(to: healthEvents)
+        if recordTypeFilter != .attacksOnly {
+            items.append(contentsOf: filteredEvents.map { .healthEvent($0) })
+        }
+        
+        // 按日期排序
+        items.sort { item1, item2 in
+            switch sortOption {
+            case .dateDescending:
+                return item1.eventDate > item2.eventDate
+            case .dateAscending:
+                return item1.eventDate < item2.eventDate
+            case .intensityDescending, .durationDescending:
+                return item1.eventDate > item2.eventDate
+            }
+        }
+        
+        cachedTimelineItems = items
+    }
+    
+    /// 对已加载的发作记录做搜索过滤（不再做日期过滤，日期已在数据库层完成）
+    private func applySearchFilter(to attacks: [AttackRecord]) -> [AttackRecord] {
         var filtered = attacks
         
-        // 应用日期筛选
-        filtered = applyDateFilter(to: filtered)
-        
-        // 应用搜索
         if !searchText.isEmpty {
             filtered = filtered.filter { attack in
-                // 搜索症状
                 let symptomMatch = attack.symptoms.contains { symptom in
                     symptom.name.localizedCaseInsensitiveContains(searchText)
                 }
-                
-                // 搜索诱因
                 let triggerMatch = attack.triggers.contains { trigger in
                     trigger.name.localizedCaseInsensitiveContains(searchText)
                 }
-                
-                // 搜索用药
                 let medicationMatch = attack.medicationLogs.contains { log in
                     log.medication?.name.localizedCaseInsensitiveContains(searchText) ?? false
                 }
-                
                 return symptomMatch || triggerMatch || medicationMatch
             }
         }
@@ -127,14 +253,44 @@ class AttackListViewModel {
         return filtered
     }
     
+    /// 对已加载的健康事件做搜索和类型过滤
+    private func applySearchAndTypeFilter(to events: [HealthEvent]) -> [HealthEvent] {
+        var filtered = events
+        
+        // 应用搜索
+        if !searchText.isEmpty {
+            filtered = filtered.filter { event in
+                event.displayTitle.localizedCaseInsensitiveContains(searchText) ||
+                (event.notes?.localizedCaseInsensitiveContains(searchText) ?? false)
+            }
+        }
+        
+        // 应用记录类型筛选
+        switch recordTypeFilter {
+        case .all, .healthEventsOnly:
+            break
+        case .medicationOnly:
+            filtered = filtered.filter { $0.eventType == .medication }
+        case .tcmOnly:
+            filtered = filtered.filter { $0.eventType == .tcmTreatment }
+        case .surgeryOnly:
+            filtered = filtered.filter { $0.eventType == .surgery }
+        case .attacksOnly:
+            filtered = []
+        }
+        
+        return filtered
+    }
+    
+    // MARK: - 辅助方法
+    
     /// 获取当前筛选对应的日期范围（与图表 TimeRange 逻辑保持一致）
-    private func getDateRangeForFilter() -> (start: Date, end: Date)? {
+    func getDateRangeForFilter() -> (start: Date, end: Date)? {
         let calendar = Calendar.current
         let now = Date()
         
         switch filterOption {
         case .thisMonth:
-            // 本月：完整月份（与图表、日历统计一致）
             let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
             let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
             let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
@@ -152,7 +308,6 @@ class AttackListViewModel {
             if let dateRange = selectedDateRange {
                 return (dateRange.start, dateRange.end)
             }
-            // 自定义但未选择日期时，默认返回本月
             let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: now))!
             let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
             let endOfMonth = calendar.date(byAdding: .second, value: -1, to: startOfNextMonth)!
@@ -160,65 +315,18 @@ class AttackListViewModel {
         }
     }
     
-    /// 应用日期筛选
-    private func applyDateFilter(to attacks: [AttackRecord]) -> [AttackRecord] {
-        guard let range = getDateRangeForFilter() else { return attacks }
-        return attacks.filter { $0.startTime >= range.start && $0.startTime <= range.end }
-    }
-    
     /// 排序记录
     private func sortAttacks(_ attacks: [AttackRecord]) -> [AttackRecord] {
         switch sortOption {
         case .dateDescending:
             return attacks.sorted { $0.startTime > $1.startTime }
-            
         case .dateAscending:
             return attacks.sorted { $0.startTime < $1.startTime }
-            
         case .intensityDescending:
             return attacks.sorted { $0.painIntensity > $1.painIntensity }
-            
         case .durationDescending:
             return attacks.sorted { $0.durationOrElapsed > $1.durationOrElapsed }
         }
-    }
-    
-    /// 筛选健康事件
-    func filteredHealthEvents(_ events: [HealthEvent]) -> [HealthEvent] {
-        var filtered = events
-        
-        // 应用日期筛选
-        filtered = applyDateFilterToHealthEvents(to: filtered)
-        
-        // 应用搜索
-        if !searchText.isEmpty {
-            filtered = filtered.filter { event in
-                event.displayTitle.localizedCaseInsensitiveContains(searchText) ||
-                (event.notes?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
-        }
-        
-        // 应用记录类型筛选
-        switch recordTypeFilter {
-        case .all, .healthEventsOnly:
-            break // 显示所有健康事件
-        case .medicationOnly:
-            filtered = filtered.filter { $0.eventType == .medication }
-        case .tcmOnly:
-            filtered = filtered.filter { $0.eventType == .tcmTreatment }
-        case .surgeryOnly:
-            filtered = filtered.filter { $0.eventType == .surgery }
-        case .attacksOnly:
-            filtered = [] // 不显示健康事件
-        }
-        
-        return filtered
-    }
-    
-    /// 应用日期筛选到健康事件
-    private func applyDateFilterToHealthEvents(to events: [HealthEvent]) -> [HealthEvent] {
-        guard let range = getDateRangeForFilter() else { return events }
-        return events.filter { $0.eventDate >= range.start && $0.eventDate <= range.end }
     }
     
     /// 重置所有筛选

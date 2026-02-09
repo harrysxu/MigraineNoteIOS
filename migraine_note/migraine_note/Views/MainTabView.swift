@@ -8,6 +8,17 @@
 import SwiftUI
 import SwiftData
 
+/// 延迟初始化视图包装器，避免 TabView 在启动时创建所有子视图
+struct LazyView<Content: View>: View {
+    let build: () -> Content
+    init(_ build: @autoclosure @escaping () -> Content) {
+        self.build = build
+    }
+    var body: some View {
+        build()
+    }
+}
+
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selectedTab = 0
@@ -17,29 +28,29 @@ struct MainTabView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                // 首页
+                // 首页（默认 Tab，不需要懒加载）
                 HomeView()
                     .tabItem {
                         Label("首页", systemImage: selectedTab == 0 ? "house.fill" : "house")
                     }
                     .tag(0)
                 
-                // 记录列表
-                AttackListView()
+                // 记录列表（懒加载，切换到该 Tab 时才创建）
+                LazyView(AttackListView())
                     .tabItem {
                         Label("记录", systemImage: selectedTab == 1 ? "list.bullet.clipboard.fill" : "list.bullet.clipboard")
                     }
                     .tag(1)
                 
-                // 数据（统计+日历）
-                AnalyticsView(modelContext: modelContext)
+                // 数据（统计+日历）（懒加载）
+                LazyView(AnalyticsView(modelContext: modelContext))
                     .tabItem {
                         Label("数据", systemImage: selectedTab == 2 ? "chart.bar.fill" : "chart.bar")
                     }
                     .tag(2)
                 
-                // 我的（药箱+设置）
-                ProfileView()
+                // 我的（药箱+设置）（懒加载）
+                LazyView(ProfileView())
                     .tabItem {
                         Label("我的", systemImage: selectedTab == 3 ? "person.circle.fill" : "person.circle")
                     }

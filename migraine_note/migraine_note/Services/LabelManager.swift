@@ -10,143 +10,73 @@ import SwiftData
 
 /// 标签管理服务
 /// 负责初始化默认标签、管理自定义标签、提供标签查询功能
+///
+/// 同步策略：
+/// - 记录（AttackRecord）与标签（CustomLabelConfig）之间没有外键关系，记录只存储 displayName 字符串
+/// - CustomLabelConfig 纯粹是 UI 选项目录，覆盖/去重不影响任何已有记录
+/// - iCloud 同步采用"云端覆盖本地"策略：去重后仅补充缺失的默认标签
 @Observable
 class LabelManager {
     static let shared = LabelManager()
     
     private init() {}
     
-    // MARK: - 初始化默认标签
+    // MARK: - 默认标签定义（纯数据）
     
-    /// 检查并初始化默认标签
-    /// 按类别独立检查，确保新增类别的默认标签也能被正确初始化
-    func initializeDefaultLabelsIfNeeded(context: ModelContext) {
-        var hasChanges = false
+    /// 默认标签定义结构
+    private struct DefaultLabelDef {
+        let category: String
+        let labelKey: String
+        let displayName: String
+        let subcategory: String?
+        let sortOrder: Int
+        let metadata: String?
         
-        // 按类别逐一检查并初始化
-        if !hasDefaultLabels(forCategory: LabelCategory.symptom.rawValue, context: context) {
-            print("初始化症状默认标签...")
-            initializeSymptomLabels(context: context)
-            hasChanges = true
-        }
-        
-        if !hasDefaultLabels(forCategory: LabelCategory.trigger.rawValue, context: context) {
-            print("初始化诱因默认标签...")
-            initializeTriggerLabels(context: context)
-            hasChanges = true
-        }
-        
-        if !hasDefaultLabels(forCategory: "medication", context: context) {
-            print("初始化药物预设默认标签...")
-            initializeMedicationLabels(context: context)
-            hasChanges = true
-        }
-        
-        if !hasDefaultLabels(forCategory: LabelCategory.painQuality.rawValue, context: context) {
-            print("初始化疼痛性质默认标签...")
-            initializePainQualityLabels(context: context)
-            hasChanges = true
-        }
-        
-        if !hasDefaultLabels(forCategory: LabelCategory.intervention.rawValue, context: context) {
-            print("初始化非药物干预默认标签...")
-            initializeInterventionLabels(context: context)
-            hasChanges = true
-        }
-        
-        if !hasDefaultLabels(forCategory: LabelCategory.aura.rawValue, context: context) {
-            print("初始化先兆类型默认标签...")
-            initializeAuraLabels(context: context)
-            hasChanges = true
-        }
-        
-        if hasChanges {
-            try? context.save()
-            print("默认标签初始化完成")
-        } else {
-            print("所有类别的默认标签已存在，跳过初始化")
+        init(_ category: String, _ labelKey: String, _ displayName: String,
+             subcategory: String? = nil, sortOrder: Int = 0, metadata: String? = nil) {
+            self.category = category
+            self.labelKey = labelKey
+            self.displayName = displayName
+            self.subcategory = subcategory
+            self.sortOrder = sortOrder
+            self.metadata = metadata
         }
     }
     
-    /// 检查指定类别是否已存在默认标签
-    private func hasDefaultLabels(forCategory category: String, context: ModelContext) -> Bool {
-        let descriptor = FetchDescriptor<CustomLabelConfig>(
-            predicate: #Predicate<CustomLabelConfig> { label in
-                label.isDefault == true && label.category == category
-            }
-        )
-        
-        guard let existingLabels = try? context.fetch(descriptor) else {
-            return false
-        }
-        return !existingLabels.isEmpty
+    /// 生成药物 metadata JSON
+    private static func medMeta(dosage: Double, unit: String) -> String? {
+        struct M: Codable { let dosage: Double; let unit: String }
+        guard let data = try? JSONEncoder().encode(M(dosage: dosage, unit: unit)) else { return nil }
+        return String(data: data, encoding: .utf8)
     }
     
-    // MARK: - 初始化症状标签
-    
-    private func initializeSymptomLabels(context: ModelContext) {
-        var sortOrder = 0
+    /// 所有默认标签定义（静态数据，app 生命周期内只构建一次）
+    private static let allDefaultLabelDefinitions: [DefaultLabelDef] = {
+        var defs: [DefaultLabelDef] = []
         
-        // 西医症状
-        let westernSymptoms: [(key: String, name: String)] = [
-            ("nausea", "恶心"),
-            ("vomiting", "呕吐"),
-            ("photophobia", "畏光"),
-            ("phonophobia", "畏声"),
-            ("osmophobia", "气味敏感"),
-            ("allodynia", "头皮触痛"),
-            ("neckStiffness", "颈部僵硬"),
-            ("fatigue", "疲乏"),
-            ("blurredVision", "视物模糊"),
-            ("pallor", "面色苍白"),
-            ("nasalCongestion", "鼻塞/流涕")
+        // ── 症状：西医 ──
+        let westernSymptoms: [(String, String)] = [
+            ("nausea", "恶心"), ("vomiting", "呕吐"), ("photophobia", "畏光"),
+            ("phonophobia", "畏声"), ("osmophobia", "气味敏感"), ("allodynia", "头皮触痛"),
+            ("neckStiffness", "颈部僵硬"), ("fatigue", "疲乏"), ("blurredVision", "视物模糊"),
+            ("pallor", "面色苍白"), ("nasalCongestion", "鼻塞/流涕")
         ]
-        
-        for symptom in westernSymptoms {
-            let label = CustomLabelConfig(
-                category: LabelCategory.symptom.rawValue,
-                labelKey: symptom.key,
-                displayName: symptom.name,
-                isDefault: true,
-                subcategory: SymptomSubcategory.western.rawValue,
-                sortOrder: sortOrder
-            )
-            context.insert(label)
-            sortOrder += 1
+        for (i, s) in westernSymptoms.enumerated() {
+            defs.append(DefaultLabelDef("symptom", s.0, s.1, subcategory: "western", sortOrder: i))
         }
         
-        // 中医症状
-        let tcmSymptoms: [(key: String, name: String)] = [
-            ("bitterTaste", "口苦"),
-            ("facialFlushing", "面红目赤"),
-            ("coldExtremities", "手脚冰凉"),
-            ("heavyHeadedness", "头重如裹"),
-            ("dizziness", "眩晕"),
-            ("palpitation", "心悸"),
-            ("greasyTongue", "舌苔厚腻"),
-            ("hypochondriacPain", "胁痛"),
-            ("constipation", "大便干结")
+        // ── 症状：中医 ──
+        let tcmSymptoms: [(String, String)] = [
+            ("bitterTaste", "口苦"), ("facialFlushing", "面红目赤"), ("coldExtremities", "手脚冰凉"),
+            ("heavyHeadedness", "头重如裹"), ("dizziness", "眩晕"), ("palpitation", "心悸"),
+            ("greasyTongue", "舌苔厚腻"), ("hypochondriacPain", "胁痛"), ("constipation", "大便干结")
         ]
-        
-        sortOrder = 0
-        for symptom in tcmSymptoms {
-            let label = CustomLabelConfig(
-                category: LabelCategory.symptom.rawValue,
-                labelKey: symptom.key,
-                displayName: symptom.name,
-                isDefault: true,
-                subcategory: SymptomSubcategory.tcm.rawValue,
-                sortOrder: sortOrder
-            )
-            context.insert(label)
-            sortOrder += 1
+        for (i, s) in tcmSymptoms.enumerated() {
+            defs.append(DefaultLabelDef("symptom", s.0, s.1, subcategory: "tcm", sortOrder: i))
         }
-    }
-    
-    // MARK: - 初始化诱因标签
-    
-    private func initializeTriggerLabels(context: ModelContext) {
-        let triggerData: [(category: String, triggers: [String])] = [
+        
+        // ── 诱因（labelKey == displayName）──
+        let triggerData: [(String, [String])] = [
             ("饮食", [
                 "味精(MSG)", "巧克力", "奶酪", "红酒", "咖啡因",
                 "老火汤/高汤", "腌制/腊肉", "冰饮/冷食", "辛辣食物", "柑橘类",
@@ -157,189 +87,178 @@ class LabelManager {
                 "气压骤降", "高温", "高湿度", "噪音",
                 "闪烁灯光", "香水/化学品气味"
             ]),
-            ("睡眠", [
-                "睡过头", "失眠/熬夜", "睡眠不足", "睡眠质量差"
-            ]),
-            ("压力", [
-                "工作压力", "情绪激动", "焦虑", "周末放松(Let-down)", "生气"
-            ]),
-            ("激素", [
-                "月经期", "排卵期", "怀孕", "更年期"
-            ]),
-            ("生活方式", [
-                "漏餐", "脱水", "运动过度", "长时间屏幕", "姿势不良",
-                "旅行/时差"
-            ]),
-            ("中医诱因", [
-                "遇风加重", "阴雨天", "情志不遂", "饮食不节", "劳累过度"
-            ])
+            ("睡眠", ["睡过头", "失眠/熬夜", "睡眠不足", "睡眠质量差"]),
+            ("压力", ["工作压力", "情绪激动", "焦虑", "周末放松(Let-down)", "生气"]),
+            ("激素", ["月经期", "排卵期", "怀孕", "更年期"]),
+            ("生活方式", ["漏餐", "脱水", "运动过度", "长时间屏幕", "姿势不良", "旅行/时差"]),
+            ("中医诱因", ["遇风加重", "阴雨天", "情志不遂", "饮食不节", "劳累过度"])
         ]
-        
-        for (category, triggers) in triggerData {
-            for (index, trigger) in triggers.enumerated() {
-                let label = CustomLabelConfig(
-                    category: LabelCategory.trigger.rawValue,
-                    labelKey: trigger, // 诱因使用显示名称作为 key
-                    displayName: trigger,
-                    isDefault: true,
-                    subcategory: category,
-                    sortOrder: index
-                )
-                context.insert(label)
+        for (cat, triggers) in triggerData {
+            for (i, t) in triggers.enumerated() {
+                defs.append(DefaultLabelDef("trigger", t, t, subcategory: cat, sortOrder: i))
             }
         }
-    }
-    
-    // MARK: - 初始化药物预设标签
-    
-    private func initializeMedicationLabels(context: ModelContext) {
-        let medicationData: [(category: String, medications: [(name: String, dosage: Double, unit: String)])] = [
+        
+        // ── 药物预设 ──
+        let medicationData: [(String, [(String, Double, String)])] = [
             ("非甾体抗炎药(NSAID)", [
-                ("布洛芬", 400.0, "mg"),
-                ("对乙酰氨基酚", 500.0, "mg"),
-                ("阿司匹林", 300.0, "mg"),
-                ("萘普生", 250.0, "mg"),
-                ("双氯芬酸", 50.0, "mg"),
-                ("吲哚美辛", 25.0, "mg")
+                ("布洛芬", 400.0, "mg"), ("对乙酰氨基酚", 500.0, "mg"),
+                ("阿司匹林", 300.0, "mg"), ("萘普生", 250.0, "mg"),
+                ("双氯芬酸", 50.0, "mg"), ("吲哚美辛", 25.0, "mg")
             ]),
             ("曲普坦类", [
-                ("佐米曲普坦", 2.5, "mg"),
-                ("利扎曲普坦", 10.0, "mg"),
-                ("舒马曲普坦", 50.0, "mg"),
-                ("依来曲普坦", 40.0, "mg"),
+                ("佐米曲普坦", 2.5, "mg"), ("利扎曲普坦", 10.0, "mg"),
+                ("舒马曲普坦", 50.0, "mg"), ("依来曲普坦", 40.0, "mg"),
                 ("那拉曲普坦", 2.5, "mg")
             ]),
             ("预防性药物", [
-                ("盐酸氟桂利嗪", 5.0, "mg"),
-                ("普萘洛尔", 40.0, "mg"),
-                ("阿米替林", 25.0, "mg"),
-                ("托吡酯", 50.0, "mg"),
+                ("盐酸氟桂利嗪", 5.0, "mg"), ("普萘洛尔", 40.0, "mg"),
+                ("阿米替林", 25.0, "mg"), ("托吡酯", 50.0, "mg"),
                 ("丙戊酸钠", 500.0, "mg")
             ]),
             ("中成药", [
-                ("正天丸", 6.0, "g"),
-                ("天麻头痛片", 4.0, "片"),
-                ("川芎茶调散", 6.0, "g"),
-                ("血府逐瘀胶囊", 3.0, "粒"),
-                ("养血清脑颗粒", 5.0, "g"),
-                ("天麻钩藤颗粒", 10.0, "g")
+                ("正天丸", 6.0, "g"), ("天麻头痛片", 4.0, "片"),
+                ("川芎茶调散", 6.0, "g"), ("血府逐瘀胶囊", 3.0, "粒"),
+                ("养血清脑颗粒", 5.0, "g"), ("天麻钩藤颗粒", 10.0, "g")
             ]),
-            ("麦角胺类", [
-                ("麦角胺咖啡因片", 1.0, "片")
-            ])
+            ("麦角胺类", [("麦角胺咖啡因片", 1.0, "片")])
         ]
-        
-        for (category, medications) in medicationData {
-            for (index, med) in medications.enumerated() {
-                // 创建一个可编码的结构体来存储药物剂量信息
-                struct MedicationMetadata: Codable {
-                    let dosage: Double
-                    let unit: String
-                }
-                
-                let metadataObj = MedicationMetadata(dosage: med.dosage, unit: med.unit)
-                let metadata = try? JSONEncoder().encode(metadataObj)
-                
-                let label = CustomLabelConfig(
-                    category: "medication",  // 直接使用字符串，因为LabelCategory.medication已被移除
-                    labelKey: med.name,
-                    displayName: med.name,
-                    isDefault: true,
-                    subcategory: category,
-                    sortOrder: index
-                )
-                label.metadata = metadata.flatMap { String(data: $0, encoding: .utf8) }
-                context.insert(label)
+        for (cat, meds) in medicationData {
+            for (i, m) in meds.enumerated() {
+                defs.append(DefaultLabelDef("medication", m.0, m.0, subcategory: cat, sortOrder: i, metadata: medMeta(dosage: m.1, unit: m.2)))
             }
         }
-    }
-    
-    // MARK: - 初始化疼痛性质标签
-    
-    private func initializePainQualityLabels(context: ModelContext) {
-        let painQualities: [(key: String, name: String)] = [
-            ("pulsating", "搏动性"),
-            ("pressing", "压迫感"),
-            ("stabbing", "刺痛"),
-            ("dull", "钝痛"),
-            ("distending", "胀痛"),
-            ("tightening", "紧缩感"),
-            ("burning", "灼烧感"),
-            ("tearing", "撕裂样")
-        ]
         
-        for (index, quality) in painQualities.enumerated() {
-            let label = CustomLabelConfig(
-                category: LabelCategory.painQuality.rawValue,
-                labelKey: quality.key,
-                displayName: quality.name,
-                isDefault: true,
-                subcategory: nil,
-                sortOrder: index
-            )
-            context.insert(label)
+        // ── 疼痛性质 ──
+        let painQualities: [(String, String)] = [
+            ("pulsating", "搏动性"), ("pressing", "压迫感"), ("stabbing", "刺痛"), ("dull", "钝痛"),
+            ("distending", "胀痛"), ("tightening", "紧缩感"), ("burning", "灼烧感"), ("tearing", "撕裂样")
+        ]
+        for (i, q) in painQualities.enumerated() {
+            defs.append(DefaultLabelDef("painQuality", q.0, q.1, sortOrder: i))
+        }
+        
+        // ── 非药物干预 ──
+        let interventions: [(String, String)] = [
+            ("sleep", "睡眠"), ("coldCompress", "冷敷"), ("hotCompress", "热敷"),
+            ("massage", "按摩"), ("acupuncture", "针灸"), ("darkRoom", "暗室休息"),
+            ("deepBreathing", "深呼吸"), ("meditation", "冥想"), ("yoga", "瑜伽"),
+            ("relaxationTraining", "放松训练"), ("biofeedback", "生物反馈"),
+            ("lightExercise", "散步/轻度运动"), ("acupressure", "按压穴位"),
+            ("cupping", "拔罐"), ("moxibustion", "艾灸")
+        ]
+        for (i, v) in interventions.enumerated() {
+            defs.append(DefaultLabelDef("intervention", v.0, v.1, sortOrder: i))
+        }
+        
+        // ── 先兆类型 ──
+        let auras: [(String, String)] = [
+            ("visual", "视觉闪光"), ("scotoma", "视野暗点"), ("numbness", "肢体麻木"),
+            ("speechDifficulty", "言语障碍"), ("zigzagLines", "闪光锯齿线"),
+            ("blurredVision", "视物模糊"), ("hemiparesis", "偏身无力"),
+            ("vertigo", "眩晕"), ("tinnitus", "耳鸣")
+        ]
+        for (i, a) in auras.enumerated() {
+            defs.append(DefaultLabelDef("aura", a.0, a.1, sortOrder: i))
+        }
+        
+        return defs
+    }()
+    
+    // MARK: - 初始化默认标签
+    
+    /// 按 labelKey 逐个检查并补充缺失的默认标签
+    /// iCloud 同步场景：云端已有的标签不会被重复创建，仅补充云端缺失的
+    func initializeDefaultLabelsIfNeeded(context: ModelContext) {
+        // 1. 一次性获取所有已存在标签的 (category_labelKey) 复合键
+        let existingKeys = fetchAllExistingLabelKeys(context: context)
+        
+        // 2. 遍历所有默认标签定义，仅插入不存在的
+        var insertedCount = 0
+        for def in Self.allDefaultLabelDefinitions {
+            let compositeKey = "\(def.category)_\(def.labelKey)"
+            if !existingKeys.contains(compositeKey) {
+                let label = CustomLabelConfig(
+                    category: def.category,
+                    labelKey: def.labelKey,
+                    displayName: def.displayName,
+                    isDefault: true,
+                    subcategory: def.subcategory,
+                    sortOrder: def.sortOrder
+                )
+                label.metadata = def.metadata
+                context.insert(label)
+                insertedCount += 1
+            }
+        }
+        
+        if insertedCount > 0 {
+            try? context.save()
+            print("🏷️ 补充了 \(insertedCount) 个缺失的默认标签")
+        } else {
+            print("🏷️ 所有默认标签已存在，无需补充")
         }
     }
     
-    // MARK: - 初始化非药物干预标签
-    
-    private func initializeInterventionLabels(context: ModelContext) {
-        let interventions: [(key: String, name: String)] = [
-            ("sleep", "睡眠"),
-            ("coldCompress", "冷敷"),
-            ("hotCompress", "热敷"),
-            ("massage", "按摩"),
-            ("acupuncture", "针灸"),
-            ("darkRoom", "暗室休息"),
-            ("deepBreathing", "深呼吸"),
-            ("meditation", "冥想"),
-            ("yoga", "瑜伽"),
-            ("relaxationTraining", "放松训练"),
-            ("biofeedback", "生物反馈"),
-            ("lightExercise", "散步/轻度运动"),
-            ("acupressure", "按压穴位"),
-            ("cupping", "拔罐"),
-            ("moxibustion", "艾灸")
-        ]
-        
-        for (index, intervention) in interventions.enumerated() {
-            let label = CustomLabelConfig(
-                category: LabelCategory.intervention.rawValue,
-                labelKey: intervention.key,
-                displayName: intervention.name,
-                isDefault: true,
-                subcategory: nil,
-                sortOrder: index
-            )
-            context.insert(label)
-        }
+    /// 获取所有已存在标签的 (category_labelKey) 复合键集合
+    private func fetchAllExistingLabelKeys(context: ModelContext) -> Set<String> {
+        let descriptor = FetchDescriptor<CustomLabelConfig>()
+        guard let labels = try? context.fetch(descriptor) else { return [] }
+        return Set(labels.map { "\($0.category)_\($0.labelKey)" })
     }
     
-    // MARK: - 初始化先兆类型标签
+    // MARK: - 首次同步后标签去重
     
-    private func initializeAuraLabels(context: ModelContext) {
-        let auras: [(key: String, name: String)] = [
-            ("visual", "视觉闪光"),
-            ("scotoma", "视野暗点"),
-            ("numbness", "肢体麻木"),
-            ("speechDifficulty", "言语障碍"),
-            ("zigzagLines", "闪光锯齿线"),
-            ("blurredVision", "视物模糊"),
-            ("hemiparesis", "偏身无力"),
-            ("vertigo", "眩晕"),
-            ("tinnitus", "耳鸣")
-        ]
+    /// 首次 iCloud 同步完成后，一次性去重所有标签
+    /// - 单次 fetch 全部标签，在内存中按 (category, labelKey) 分组
+    /// - 每组只保留 updatedAt 最新的一份，删除其余
+    /// - 全部处理完后仅执行一次 save（最小化 CloudKit export 触发）
+    /// - 此方法仅应在首次同步完成后（或 app 启动时同步已完成）调用一次
+    func deduplicateLabelsAfterInitialSync(context: ModelContext) {
+        // 1. 单次 fetch 获取所有标签
+        let descriptor = FetchDescriptor<CustomLabelConfig>()
+        guard let allLabels = try? context.fetch(descriptor) else {
+            print("🏷️ 去重：无法获取标签数据")
+            return
+        }
         
-        for (index, aura) in auras.enumerated() {
-            let label = CustomLabelConfig(
-                category: LabelCategory.aura.rawValue,
-                labelKey: aura.key,
-                displayName: aura.name,
-                isDefault: true,
-                subcategory: nil,
-                sortOrder: index
-            )
-            context.insert(label)
+        print("🏷️ 去重开始：数据库中共有 \(allLabels.count) 个标签")
+        
+        // 2. 在内存中按 (category, labelKey) 分组
+        var groups: [String: [CustomLabelConfig]] = [:]
+        for label in allLabels {
+            let compositeKey = "\(label.category)_\(label.labelKey)"
+            groups[compositeKey, default: []].append(label)
+        }
+        
+        // 3. 处理重复组：只保留 updatedAt 最新的一份，删除其余
+        var totalDeletedCount = 0
+        var deletedByCategory: [String: Int] = [:]
+        
+        for (_, labels) in groups {
+            guard labels.count > 1 else { continue }
+            
+            // 按 updatedAt 降序排列，保留最新的一份（通常是有用户定制的版本）
+            let sorted = labels.sorted { $0.updatedAt > $1.updatedAt }
+            let toDelete = sorted.dropFirst()
+            let category = sorted[0].category
+            
+            for label in toDelete {
+                context.delete(label)
+                totalDeletedCount += 1
+                deletedByCategory[category, default: 0] += 1
+            }
+        }
+        
+        // 4. 全部处理完后，仅执行一次 save（减少 CloudKit sync 触发）
+        if totalDeletedCount > 0 {
+            try? context.save()
+            for (category, count) in deletedByCategory.sorted(by: { $0.key < $1.key }) {
+                print("🏷️ 去重 [\(category)]：删除 \(count) 个重复标签")
+            }
+            print("🏷️ 去重完成：共删除 \(totalDeletedCount) 个重复标签，剩余 \(allLabels.count - totalDeletedCount) 个")
+        } else {
+            print("🏷️ 去重完成：无重复标签需要清理（共 \(groups.count) 个唯一标签）")
         }
     }
     

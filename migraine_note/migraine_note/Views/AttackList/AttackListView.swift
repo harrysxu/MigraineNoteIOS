@@ -11,60 +11,14 @@ import SwiftData
 
 struct AttackListView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
-    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
     
     @State private var viewModel = AttackListViewModel()
     @State private var showingFilterSheet = false
     @State private var selectedAttack: AttackRecord?
     @State private var selectedHealthEvent: HealthEvent?
     
-    // 缓存的时间轴数据，避免每次渲染重复计算
-    @State private var cachedTimelineItems: [TimelineItemType] = []
-    // 搜索防抖任务
-    @State private var searchDebounceTask: Task<Void, Never>?
-    
-    /// 带防抖的搜索更新（避免每次按键都触发 N+1 关系查询）
-    private func debouncedUpdateTimelineItems() {
-        searchDebounceTask?.cancel()
-        searchDebounceTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // 300ms 防抖
-            guard !Task.isCancelled else { return }
-            updateTimelineItems()
-        }
-    }
-    
-    /// 重新计算时间轴数据（仅在数据或筛选条件变化时调用）
-    private func updateTimelineItems() {
-        var items: [TimelineItemType] = []
-        
-        // 添加偏头痛发作记录
-        let filteredAttacks = viewModel.filteredAttacks(attacks)
-        if viewModel.recordTypeFilter == .all || viewModel.recordTypeFilter == .attacksOnly {
-            items.append(contentsOf: filteredAttacks.map { .attack($0) })
-        }
-        
-        // 添加健康事件
-        let filteredEvents = viewModel.filteredHealthEvents(healthEvents)
-        if viewModel.recordTypeFilter != .attacksOnly {
-            items.append(contentsOf: filteredEvents.map { .healthEvent($0) })
-        }
-        
-        // 按日期排序
-        items.sort { item1, item2 in
-            switch viewModel.sortOption {
-            case .dateDescending:
-                return item1.eventDate > item2.eventDate
-            case .dateAscending:
-                return item1.eventDate < item2.eventDate
-            case .intensityDescending, .durationDescending:
-                // 健康事件没有强度和持续时间，放在后面
-                return item1.eventDate > item2.eventDate
-            }
-        }
-        
-        cachedTimelineItems = items
-    }
+    /// 数据版本号，用于监听 CloudKit 远程变化触发刷新
+    @State private var dataVersion: Int = 0
     
     var body: some View {
         NavigationStack {
@@ -72,7 +26,7 @@ struct AttackListView: View {
                 // 背景色
                 AppColors.background.ignoresSafeArea()
                 
-                if attacks.isEmpty && healthEvents.isEmpty {
+                if !viewModel.hasAnyData {
                     emptyStateView
                 } else {
                     timelineListContent
@@ -101,28 +55,33 @@ struct AttackListView: View {
                 HealthEventDetailView(event: event)
             }
             .onAppear {
-                updateTimelineItems()
+                viewModel.setup(modelContext: modelContext)
+                viewModel.loadData()
             }
-            .onChange(of: attacks.count) { _, _ in
-                updateTimelineItems()
-            }
-            .onChange(of: healthEvents.count) { _, _ in
-                updateTimelineItems()
-            }
-            .onChange(of: viewModel.sortOption) { _, _ in
-                updateTimelineItems()
-            }
+            // 日期筛选条件变化 → 需要重新从数据库查询（防抖，避免 resetFilters 时多次触发）
             .onChange(of: viewModel.filterOption) { _, _ in
-                updateTimelineItems()
-            }
-            .onChange(of: viewModel.recordTypeFilter) { _, _ in
-                updateTimelineItems()
-            }
-            .onChange(of: viewModel.searchText) { _, _ in
-                debouncedUpdateTimelineItems()
+                viewModel.scheduleLoadData()
             }
             .onChange(of: viewModel.selectedDateRange) { _, _ in
-                updateTimelineItems()
+                viewModel.scheduleLoadData()
+            }
+            // 排序和类型筛选 → 数据已在内存中，只需重建时间轴
+            .onChange(of: viewModel.sortOption) { _, _ in
+                viewModel.updateTimelineItems()
+            }
+            .onChange(of: viewModel.recordTypeFilter) { _, _ in
+                viewModel.updateTimelineItems()
+            }
+            // 搜索 → 防抖后重建时间轴
+            .onChange(of: viewModel.searchText) { _, _ in
+                viewModel.scheduleLoadData()
+            }
+            // 监听远程数据变化（CloudKit 同步）→ 防抖后重新加载
+            .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+                dataVersion += 1
+            }
+            .onChange(of: dataVersion) { _, _ in
+                viewModel.scheduleLoadData()
             }
         }
     }
@@ -152,7 +111,7 @@ struct AttackListView: View {
     private var timelineListContent: some View {
         ScrollView {
             LazyVStack(spacing: AppSpacing.medium) {
-                let items = cachedTimelineItems
+                let items = viewModel.cachedTimelineItems
                 
                 if items.isEmpty {
                     noResultsView
@@ -308,11 +267,11 @@ struct AttackRowView: View {
                         .foregroundStyle(AppColors.textSecondary)
                     }
                     
-                    if !attack.medicationLogs.isEmpty {
+                    if attack.medicationCount > 0 {
                         HStack(spacing: 4) {
                             Image(systemName: "pills")
                                 .font(.caption2)
-                            Text("\(attack.medicationLogs.count)次用药")
+                            Text("\(attack.medicationCount)次用药")
                         }
                         .font(.caption)
                         .foregroundStyle(AppColors.textSecondary)

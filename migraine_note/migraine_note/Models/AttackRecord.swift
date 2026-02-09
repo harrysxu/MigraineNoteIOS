@@ -44,6 +44,9 @@ final class AttackRecord {
     // 非药物干预
     var nonPharmInterventionList: [String] = []
     
+    // 冗余计数字段（避免列表渲染时触发关系懒加载的 N+1 查询）
+    var medicationCount: Int = 0
+    
     // CloudKit 兼容：关系便捷访问（保持 API 一致）
     var symptoms: [Symptom] {
         get { symptomsData ?? [] }
@@ -55,7 +58,10 @@ final class AttackRecord {
     }
     var medications: [MedicationLog] {
         get { medicationsData ?? [] }
-        set { medicationsData = newValue }
+        set {
+            medicationsData = newValue
+            medicationCount = newValue.count
+        }
     }
     
     init(startTime: Date = Date()) {

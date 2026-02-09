@@ -188,9 +188,14 @@ struct LocationSettingsView: View {
 // MARK: - CloudKit同步设置
 
 struct CloudSyncSettingsView: View {
-    @State private var cloudKitManager = CloudKitManager()
+    /// 使用单例，避免多个实例重复注册通知观察者
+    private var cloudKitManager: CloudKitManager { CloudKitManager.shared }
     @State private var syncSettingsManager = SyncSettingsManager.shared
     @State private var showRestartAlert = false
+    @State private var showResetAlert = false
+    @State private var isResetting = false
+    @State private var resetResultMessage: String?
+    @State private var showResetResult = false
     
     var body: some View {
         List {
@@ -309,6 +314,30 @@ struct CloudSyncSettingsView: View {
                     }
                 }
             }
+            
+            // 高级操作：重置同步（仅在同步已启用时显示）
+            if SyncSettingsManager.isSyncCurrentlyEnabled() && cloudKitManager.isICloudAvailable {
+                Section {
+                    Button(role: .destructive) {
+                        showResetAlert = true
+                    } label: {
+                        HStack {
+                            if isResetting {
+                                ProgressView()
+                                    .padding(.trailing, 4)
+                            }
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                            Text("重置 iCloud 同步数据")
+                        }
+                    }
+                    .disabled(isResetting)
+                } header: {
+                    Text("高级")
+                } footer: {
+                    Text("如果同步长时间卡住或出现异常，可以重置云端数据。重置后本地数据会重新上传到 iCloud，不会丢失。")
+                        .font(.caption)
+                }
+            }
         }
         .navigationTitle("iCloud同步")
         .navigationBarTitleDisplayMode(.inline)
@@ -333,6 +362,22 @@ struct CloudSyncSettingsView: View {
             }
         } message: {
             Text("更改同步设置后需要重启应用才能生效。您可以稍后手动重启，或现在立即重启。")
+        }
+        .alert("确认重置同步数据？", isPresented: $showResetAlert) {
+            Button("取消", role: .cancel) { }
+            Button("重置并重启", role: .destructive) {
+                performCloudKitReset()
+            }
+        } message: {
+            Text("将删除 iCloud 中的同步数据并重新从本地上传。本地数据不会丢失。操作完成后需要重启应用。")
+        }
+        .alert("重置结果", isPresented: $showResetResult) {
+            Button("立即重启") {
+                exit(0)
+            }
+            Button("稍后", role: .cancel) { }
+        } message: {
+            Text(resetResultMessage ?? "")
         }
     }
     
@@ -377,6 +422,26 @@ struct CloudSyncSettingsView: View {
     private func openSystemSettings() {
         if let url = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(url)
+        }
+    }
+    
+    private func performCloudKitReset() {
+        isResetting = true
+        Task {
+            do {
+                try await cloudKitManager.resetCloudKitZone()
+                await MainActor.run {
+                    isResetting = false
+                    resetResultMessage = "iCloud 同步数据已重置。请重启应用以重新开始同步。"
+                    showResetResult = true
+                }
+            } catch {
+                await MainActor.run {
+                    isResetting = false
+                    resetResultMessage = "重置失败：\(error.localizedDescription)"
+                    showResetResult = true
+                }
+            }
         }
     }
 }

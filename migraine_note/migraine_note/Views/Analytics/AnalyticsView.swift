@@ -11,8 +11,6 @@ import Charts
 
 struct AnalyticsView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \AttackRecord.startTime, order: .reverse) private var attacks: [AttackRecord]
-    @Query(sort: \HealthEvent.eventDate, order: .reverse) private var healthEvents: [HealthEvent]
     
     @State private var selectedTimeRange: TimeRange = .thisMonth
     @State private var selectedView: DataViewType = .analytics
@@ -29,17 +27,58 @@ struct AnalyticsView: View {
     
     // 缓存批量分析结果，避免每次渲染重复计算
     @State private var cachedBatchAnalytics: BatchAnalyticsResult?
-    // 用于检测数据变化的标记
-    @State private var lastAnalyticsDataHash: Int = 0
     // 防抖用的刷新任务
     @State private var analyticsRefreshTask: Task<Void, Never>?
+    
+    // 使用 FetchDescriptor 从数据库按时间范围加载的数据
+    @State private var attacks: [AttackRecord] = []
+    @State private var healthEvents: [HealthEvent] = []
+    @State private var hasAnyData: Bool = false
+    
+    /// 数据版本号，用于监听 CloudKit 远程变化触发刷新
+    @State private var dataVersion: Int = 0
     
     init(modelContext: ModelContext) {
         _analyticsEngine = State(initialValue: AnalyticsEngine(modelContext: modelContext))
         _mohDetector = State(initialValue: MOHDetector(modelContext: modelContext))
     }
     
-    /// 带防抖的异步刷新批量分析缓存（多次快速调用只会执行最后一次）
+    // MARK: - 数据加载（使用 FetchDescriptor + 谓词）
+    
+    /// 从数据库加载当前时间范围的数据
+    private func loadFilteredData() {
+        let (start, end) = currentDateRange
+        
+        // 加载发作记录
+        let attackDescriptor = FetchDescriptor<AttackRecord>(
+            predicate: #Predicate { attack in
+                attack.startTime >= start && attack.startTime <= end
+            },
+            sortBy: [SortDescriptor(\.startTime, order: .reverse)]
+        )
+        attacks = (try? modelContext.fetch(attackDescriptor)) ?? []
+        
+        // 加载健康事件
+        let eventDescriptor = FetchDescriptor<HealthEvent>(
+            predicate: #Predicate { event in
+                event.eventDate >= start && event.eventDate <= end
+            },
+            sortBy: [SortDescriptor(\.eventDate, order: .reverse)]
+        )
+        healthEvents = (try? modelContext.fetch(eventDescriptor)) ?? []
+        
+        // 检查是否有任何数据
+        checkHasAnyData()
+    }
+    
+    /// 检查是否有任何数据（只查 1 条，用于空状态判断）
+    private func checkHasAnyData() {
+        var desc = FetchDescriptor<AttackRecord>()
+        desc.fetchLimit = 1
+        hasAnyData = ((try? modelContext.fetchCount(desc)) ?? 0) > 0
+    }
+    
+    /// 带防抖的异步刷新：加载数据 + 计算分析缓存
     private func scheduleRefreshBatchAnalytics() {
         analyticsRefreshTask?.cancel()
         analyticsRefreshTask = Task {
@@ -47,9 +86,10 @@ struct AnalyticsView: View {
             try? await Task.sleep(nanoseconds: 300_000_000)
             guard !Task.isCancelled else { return }
             
-            // 在主线程读取 SwiftData 数据（SwiftData 要求 ModelContext 在创建线程访问）
-            let filtered = filterAttacksInRange()
-            let filteredEvents = filterHealthEventsInRange()
+            // 在主线程加载数据（SwiftData 要求 ModelContext 在创建线程访问）
+            loadFilteredData()
+            let filtered = attacks
+            let filteredEvents = healthEvents
             let dateRange = currentDateRange
             
             // 将重量级计算放到后台线程
@@ -72,11 +112,10 @@ struct AnalyticsView: View {
     
     /// 立即刷新（用于 onAppear 等不需要防抖的场景）
     private func refreshBatchAnalytics() {
-        let filtered = filterAttacksInRange()
-        let filteredEvents = filterHealthEventsInRange()
+        loadFilteredData()
         cachedBatchAnalytics = BatchAnalyticsResult.compute(
-            attacks: filtered,
-            healthEvents: filteredEvents,
+            attacks: attacks,
+            healthEvents: healthEvents,
             dateRange: currentDateRange
         )
     }
@@ -109,7 +148,7 @@ struct AnalyticsView: View {
                 ZStack {
                     Color.backgroundPrimary.ignoresSafeArea()
                     
-                    if attacks.isEmpty {
+                    if !hasAnyData {
                         emptyStateView
                     } else {
                         switch selectedView {
@@ -202,13 +241,11 @@ struct AnalyticsView: View {
         .onChange(of: customEndDate) { _, _ in
             scheduleRefreshBatchAnalytics()
         }
-        .onChange(of: attacks.count) { oldCount, newCount in
-            guard oldCount != newCount else { return }
-            calendarViewModel?.loadData()
-            scheduleRefreshBatchAnalytics()
+        // 监听远程数据变化（CloudKit 同步）
+        .onReceive(NotificationCenter.default.publisher(for: .NSPersistentStoreRemoteChange)) { _ in
+            dataVersion += 1
         }
-        .onChange(of: healthEvents.count) { oldCount, newCount in
-            guard oldCount != newCount else { return }
+        .onChange(of: dataVersion) { _, _ in
             calendarViewModel?.loadData()
             scheduleRefreshBatchAnalytics()
         }
@@ -1308,16 +1345,14 @@ struct AnalyticsView: View {
     
     // MARK: - 从缓存读取预计算的统计数据（避免重复遍历）
     
-    /// 仅在 refreshBatchAnalytics() 中使用，其他地方统一从缓存读取
+    /// 返回已按时间范围从数据库加载的发作记录（数据已在 loadFilteredData 中用谓词过滤）
     private func filterAttacksInRange() -> [AttackRecord] {
-        let (start, end) = currentDateRange
-        return attacks.filter { $0.startTime >= start && $0.startTime <= end }
+        return attacks
     }
     
-    /// 仅在 refreshBatchAnalytics() 中使用，其他地方统一从缓存读取
+    /// 返回已按时间范围从数据库加载的健康事件（数据已在 loadFilteredData 中用谓词过滤）
     private func filterHealthEventsInRange() -> [HealthEvent] {
-        let (start, end) = currentDateRange
-        return healthEvents.filter { $0.eventDate >= start && $0.eventDate <= end }
+        return healthEvents
     }
     
     private func getDetailedMedicationStats() -> DetailedMedicationStatistics {
