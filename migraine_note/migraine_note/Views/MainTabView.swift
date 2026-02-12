@@ -42,8 +42,10 @@ struct MainTabView: View {
                     }
                     .tag(1)
                 
-                // 数据（统计+日历）（懒加载）
-                LazyView(AnalyticsView(modelContext: modelContext))
+                // 数据（统计+日历）- 高级功能
+                PremiumGateView(feature: .advancedAnalytics) {
+                    AnalyticsView(modelContext: modelContext)
+                }
                     .tabItem {
                         Label("数据", systemImage: selectedTab == 2 ? "chart.bar.fill" : "chart.bar")
                     }
@@ -74,41 +76,6 @@ struct MainTabView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("SwitchToDataTab"))) { _ in
             selectedTab = 2
-        }
-    }
-}
-
-// 占位视图
-struct AnalyticsPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.secondary)
-                Text("数据分析")
-                    .font(.title2)
-                Text("即将推出")
-                    .foregroundStyle(.secondary)
-            }
-            .navigationTitle("分析")
-        }
-    }
-}
-
-struct SettingsPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 20) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 60))
-                    .foregroundStyle(.secondary)
-                Text("设置")
-                    .font(.title2)
-                Text("即将推出")
-                    .foregroundStyle(.secondary)
-            }
-            .navigationTitle("设置")
         }
     }
 }

@@ -534,12 +534,14 @@ class CSVExporter {
     ///   - healthEvents: 健康事件
     ///   - analytics: 分析引擎
     ///   - dateRange: 日期范围
+    ///   - userProfile: 用户档案（可选）
     /// - Returns: CSV数据
     func exportCompleteHealthData(
         _ attacks: [AttackRecord],
         healthEvents: [HealthEvent],
         analytics: AnalyticsEngine,
-        dateRange: (Date, Date)
+        dateRange: (Date, Date),
+        userProfile: UserProfile? = nil
     ) -> Data {
         var csvString = ""
         
@@ -551,6 +553,55 @@ class CSVExporter {
         csvString += "统计时间范围: \(formatDate(dateRange.0)) 至 \(formatDate(dateRange.1))\n"
         csvString += "生成时间: \(formatDateTime(Date()))\n"
         csvString += "\n"
+        
+        // ===== 用户档案信息 =====
+        if let profile = userProfile {
+            csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            csvString += "【用户档案】\n"
+            csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            csvString += "\n"
+            csvString += "项目,内容\n"
+            
+            if let name = profile.name, !name.isEmpty {
+                csvString += "姓名,\(escapeCSV(name))\n"
+            }
+            if let age = profile.calculatedAge {
+                csvString += "年龄,\(age)岁\n"
+            }
+            if let gender = profile.gender {
+                csvString += "性别,\(gender.rawValue)\n"
+            }
+            if let birthDate = profile.birthDate {
+                csvString += "出生日期,\(formatDate(birthDate))\n"
+            }
+            if let bloodType = profile.bloodType {
+                csvString += "血型,\(bloodType.rawValue)\n"
+            }
+            if let height = profile.height {
+                csvString += "身高,\(String(format: "%.0f", height)) cm\n"
+            }
+            if let weight = profile.weight {
+                csvString += "体重,\(String(format: "%.1f", weight)) kg\n"
+            }
+            if let bmi = profile.bmi {
+                let desc = profile.bmiDescription ?? ""
+                csvString += "BMI,\(String(format: "%.1f", bmi)) (\(desc))\n"
+            }
+            if let onsetAge = profile.migraineOnsetAge {
+                csvString += "偏头痛首发年龄,\(onsetAge)岁\n"
+            }
+            if let migraineType = profile.migraineType {
+                csvString += "诊断类型,\(migraineType.rawValue)\n"
+            }
+            csvString += "家族偏头痛史,\(profile.familyHistory ? "有" : "无")\n"
+            if let allergies = profile.allergies, !allergies.isEmpty {
+                csvString += "药物过敏史,\(escapeCSV(allergies))\n"
+            }
+            if let notes = profile.medicalNotes, !notes.isEmpty {
+                csvString += "医疗备注,\(escapeCSV(notes))\n"
+            }
+            csvString += "\n"
+        }
         
         // ===== 第一部分：统计数据 =====
         csvString += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"

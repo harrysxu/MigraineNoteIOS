@@ -23,36 +23,82 @@ class LabelManager {
     
     // MARK: - 默认标签定义（纯数据）
     
-    /// 默认标签定义结构
-    private struct DefaultLabelDef {
-        let category: String
-        let labelKey: String
-        let displayName: String
-        let subcategory: String?
-        let sortOrder: Int
-        let metadata: String?
+    /// 检查并初始化默认标签
+    /// 逐条检查每个标签是否已存在（基于 category + labelKey + subcategory），
+    /// 只插入尚不存在的标签，避免 iCloud 同步时多设备重复创建
+    func initializeDefaultLabelsIfNeeded(context: ModelContext) {
+        // 一次性获取所有已存在的标签，构建查重集合
+        let existingKeys = fetchAllLabelKeys(context: context)
+        var insertedCount = 0
         
-        init(_ category: String, _ labelKey: String, _ displayName: String,
-             subcategory: String? = nil, sortOrder: Int = 0, metadata: String? = nil) {
-            self.category = category
-            self.labelKey = labelKey
-            self.displayName = displayName
-            self.subcategory = subcategory
-            self.sortOrder = sortOrder
-            self.metadata = metadata
+        insertedCount += initializeSymptomLabels(context: context, existingKeys: existingKeys)
+        insertedCount += initializeTriggerLabels(context: context, existingKeys: existingKeys)
+        insertedCount += initializeMedicationLabels(context: context, existingKeys: existingKeys)
+        insertedCount += initializePainQualityLabels(context: context, existingKeys: existingKeys)
+        insertedCount += initializeInterventionLabels(context: context, existingKeys: existingKeys)
+        insertedCount += initializeAuraLabels(context: context, existingKeys: existingKeys)
+        
+        if insertedCount > 0 {
+            try? context.save()
+            print("默认标签初始化完成，新增 \(insertedCount) 条标签")
+        } else {
+            print("所有默认标签已存在，跳过初始化")
         }
     }
     
-    /// 生成药物 metadata JSON
-    private static func medMeta(dosage: Double, unit: String) -> String? {
-        struct M: Codable { let dosage: Double; let unit: String }
-        guard let data = try? JSONEncoder().encode(M(dosage: dosage, unit: unit)) else { return nil }
-        return String(data: data, encoding: .utf8)
+    /// 一次性获取所有已存在标签的 (category, labelKey, subcategory) 集合
+    private func fetchAllLabelKeys(context: ModelContext) -> Set<String> {
+        let descriptor = FetchDescriptor<CustomLabelConfig>()
+        guard let allLabels = try? context.fetch(descriptor) else {
+            return []
+        }
+        var keys = Set<String>()
+        for label in allLabels {
+            keys.insert(Self.labelGroupKey(category: label.category, labelKey: label.labelKey, subcategory: label.subcategory))
+        }
+        return keys
     }
     
-    /// 所有默认标签定义（静态数据，app 生命周期内只构建一次）
-    private static let allDefaultLabelDefinitions: [DefaultLabelDef] = {
-        var defs: [DefaultLabelDef] = []
+    /// 生成标签的分组唯一键，用于查重
+    static func labelGroupKey(category: String, labelKey: String, subcategory: String?) -> String {
+        return "\(category)|\(labelKey)|\(subcategory ?? "")"
+    }
+    
+    /// 仅在标签不存在时插入，返回是否成功插入
+    private func insertIfNotExists(
+        context: ModelContext,
+        existingKeys: Set<String>,
+        category: String,
+        labelKey: String,
+        displayName: String,
+        isDefault: Bool = true,
+        subcategory: String?,
+        sortOrder: Int,
+        metadata: String? = nil
+    ) -> Bool {
+        let key = Self.labelGroupKey(category: category, labelKey: labelKey, subcategory: subcategory)
+        guard !existingKeys.contains(key) else {
+            return false
+        }
+        
+        let label = CustomLabelConfig(
+            category: category,
+            labelKey: labelKey,
+            displayName: displayName,
+            isDefault: isDefault,
+            subcategory: subcategory,
+            sortOrder: sortOrder
+        )
+        label.metadata = metadata
+        context.insert(label)
+        return true
+    }
+    
+    // MARK: - 初始化症状标签
+    
+    private func initializeSymptomLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
+        var insertedCount = 0
+        var sortOrder = 0
         
         // ── 症状：西医 ──
         let westernSymptoms: [(String, String)] = [
@@ -61,8 +107,18 @@ class LabelManager {
             ("neckStiffness", "颈部僵硬"), ("fatigue", "疲乏"), ("blurredVision", "视物模糊"),
             ("pallor", "面色苍白"), ("nasalCongestion", "鼻塞/流涕")
         ]
-        for (i, s) in westernSymptoms.enumerated() {
-            defs.append(DefaultLabelDef("symptom", s.0, s.1, subcategory: "western", sortOrder: i))
+        
+        for symptom in westernSymptoms {
+            if insertIfNotExists(
+                context: context, existingKeys: existingKeys,
+                category: LabelCategory.symptom.rawValue,
+                labelKey: symptom.key, displayName: symptom.name,
+                subcategory: SymptomSubcategory.western.rawValue,
+                sortOrder: sortOrder
+            ) {
+                insertedCount += 1
+            }
+            sortOrder += 1
         }
         
         // ── 症状：中医 ──
@@ -71,12 +127,29 @@ class LabelManager {
             ("heavyHeadedness", "头重如裹"), ("dizziness", "眩晕"), ("palpitation", "心悸"),
             ("greasyTongue", "舌苔厚腻"), ("hypochondriacPain", "胁痛"), ("constipation", "大便干结")
         ]
-        for (i, s) in tcmSymptoms.enumerated() {
-            defs.append(DefaultLabelDef("symptom", s.0, s.1, subcategory: "tcm", sortOrder: i))
+        
+        sortOrder = 0
+        for symptom in tcmSymptoms {
+            if insertIfNotExists(
+                context: context, existingKeys: existingKeys,
+                category: LabelCategory.symptom.rawValue,
+                labelKey: symptom.key, displayName: symptom.name,
+                subcategory: SymptomSubcategory.tcm.rawValue,
+                sortOrder: sortOrder
+            ) {
+                insertedCount += 1
+            }
+            sortOrder += 1
         }
         
-        // ── 诱因（labelKey == displayName）──
-        let triggerData: [(String, [String])] = [
+        return insertedCount
+    }
+    
+    // MARK: - 初始化诱因标签
+    
+    private func initializeTriggerLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
+        var insertedCount = 0
+        let triggerData: [(category: String, triggers: [String])] = [
             ("饮食", [
                 "味精(MSG)", "巧克力", "奶酪", "红酒", "咖啡因",
                 "老火汤/高汤", "腌制/腊肉", "冰饮/冷食", "辛辣食物", "柑橘类",
@@ -93,14 +166,29 @@ class LabelManager {
             ("生活方式", ["漏餐", "脱水", "运动过度", "长时间屏幕", "姿势不良", "旅行/时差"]),
             ("中医诱因", ["遇风加重", "阴雨天", "情志不遂", "饮食不节", "劳累过度"])
         ]
-        for (cat, triggers) in triggerData {
-            for (i, t) in triggers.enumerated() {
-                defs.append(DefaultLabelDef("trigger", t, t, subcategory: cat, sortOrder: i))
+        
+        for (category, triggers) in triggerData {
+            for (index, trigger) in triggers.enumerated() {
+                if insertIfNotExists(
+                    context: context, existingKeys: existingKeys,
+                    category: LabelCategory.trigger.rawValue,
+                    labelKey: trigger, displayName: trigger,
+                    subcategory: category,
+                    sortOrder: index
+                ) {
+                    insertedCount += 1
+                }
             }
         }
         
-        // ── 药物预设 ──
-        let medicationData: [(String, [(String, Double, String)])] = [
+        return insertedCount
+    }
+    
+    // MARK: - 初始化药物预设标签
+    
+    private func initializeMedicationLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
+        var insertedCount = 0
+        let medicationData: [(category: String, medications: [(name: String, dosage: Double, unit: String)])] = [
             ("非甾体抗炎药(NSAID)", [
                 ("布洛芬", 400.0, "mg"), ("对乙酰氨基酚", 500.0, "mg"),
                 ("阿司匹林", 300.0, "mg"), ("萘普生", 250.0, "mg"),
@@ -123,143 +211,175 @@ class LabelManager {
             ]),
             ("麦角胺类", [("麦角胺咖啡因片", 1.0, "片")])
         ]
-        for (cat, meds) in medicationData {
-            for (i, m) in meds.enumerated() {
-                defs.append(DefaultLabelDef("medication", m.0, m.0, subcategory: cat, sortOrder: i, metadata: medMeta(dosage: m.1, unit: m.2)))
+        
+        for (category, medications) in medicationData {
+            for (index, med) in medications.enumerated() {
+                // 创建一个可编码的结构体来存储药物剂量信息
+                struct MedicationMetadata: Codable {
+                    let dosage: Double
+                    let unit: String
+                }
+                
+                let metadataObj = MedicationMetadata(dosage: med.dosage, unit: med.unit)
+                let metadataData = try? JSONEncoder().encode(metadataObj)
+                let metadataString = metadataData.flatMap { String(data: $0, encoding: .utf8) }
+                
+                if insertIfNotExists(
+                    context: context, existingKeys: existingKeys,
+                    category: "medication",
+                    labelKey: med.name, displayName: med.name,
+                    subcategory: category,
+                    sortOrder: index,
+                    metadata: metadataString
+                ) {
+                    insertedCount += 1
+                }
             }
         }
         
-        // ── 疼痛性质 ──
-        let painQualities: [(String, String)] = [
-            ("pulsating", "搏动性"), ("pressing", "压迫感"), ("stabbing", "刺痛"), ("dull", "钝痛"),
-            ("distending", "胀痛"), ("tightening", "紧缩感"), ("burning", "灼烧感"), ("tearing", "撕裂样")
-        ]
-        for (i, q) in painQualities.enumerated() {
-            defs.append(DefaultLabelDef("painQuality", q.0, q.1, sortOrder: i))
-        }
-        
-        // ── 非药物干预 ──
-        let interventions: [(String, String)] = [
-            ("sleep", "睡眠"), ("coldCompress", "冷敷"), ("hotCompress", "热敷"),
-            ("massage", "按摩"), ("acupuncture", "针灸"), ("darkRoom", "暗室休息"),
-            ("deepBreathing", "深呼吸"), ("meditation", "冥想"), ("yoga", "瑜伽"),
-            ("relaxationTraining", "放松训练"), ("biofeedback", "生物反馈"),
-            ("lightExercise", "散步/轻度运动"), ("acupressure", "按压穴位"),
-            ("cupping", "拔罐"), ("moxibustion", "艾灸")
-        ]
-        for (i, v) in interventions.enumerated() {
-            defs.append(DefaultLabelDef("intervention", v.0, v.1, sortOrder: i))
-        }
-        
-        // ── 先兆类型 ──
-        let auras: [(String, String)] = [
-            ("visual", "视觉闪光"), ("scotoma", "视野暗点"), ("numbness", "肢体麻木"),
-            ("speechDifficulty", "言语障碍"), ("zigzagLines", "闪光锯齿线"),
-            ("blurredVision", "视物模糊"), ("hemiparesis", "偏身无力"),
-            ("vertigo", "眩晕"), ("tinnitus", "耳鸣")
-        ]
-        for (i, a) in auras.enumerated() {
-            defs.append(DefaultLabelDef("aura", a.0, a.1, sortOrder: i))
-        }
-        
-        return defs
-    }()
+        return insertedCount
+    }
     
-    // MARK: - 初始化默认标签
+    // MARK: - 初始化疼痛性质标签
     
-    /// 按 labelKey 逐个检查并补充缺失的默认标签
-    /// iCloud 同步场景：云端已有的标签不会被重复创建，仅补充云端缺失的
-    func initializeDefaultLabelsIfNeeded(context: ModelContext) {
-        // 1. 一次性获取所有已存在标签的 (category_labelKey) 复合键
-        let existingKeys = fetchAllExistingLabelKeys(context: context)
-        
-        // 2. 遍历所有默认标签定义，仅插入不存在的
+    private func initializePainQualityLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
         var insertedCount = 0
-        for def in Self.allDefaultLabelDefinitions {
-            let compositeKey = "\(def.category)_\(def.labelKey)"
-            if !existingKeys.contains(compositeKey) {
-                let label = CustomLabelConfig(
-                    category: def.category,
-                    labelKey: def.labelKey,
-                    displayName: def.displayName,
-                    isDefault: true,
-                    subcategory: def.subcategory,
-                    sortOrder: def.sortOrder
-                )
-                label.metadata = def.metadata
-                context.insert(label)
+        let painQualities: [(key: String, name: String)] = [
+            ("pulsating", "搏动性"),
+            ("pressing", "压迫感"),
+            ("stabbing", "刺痛"),
+            ("dull", "钝痛"),
+            ("distending", "胀痛"),
+            ("tightening", "紧缩感"),
+            ("burning", "灼烧感"),
+            ("tearing", "撕裂样")
+        ]
+        
+        for (index, quality) in painQualities.enumerated() {
+            if insertIfNotExists(
+                context: context, existingKeys: existingKeys,
+                category: LabelCategory.painQuality.rawValue,
+                labelKey: quality.key, displayName: quality.name,
+                subcategory: nil,
+                sortOrder: index
+            ) {
                 insertedCount += 1
             }
         }
         
-        if insertedCount > 0 {
-            try? context.save()
-            print("🏷️ 补充了 \(insertedCount) 个缺失的默认标签")
-        } else {
-            print("🏷️ 所有默认标签已存在，无需补充")
-        }
+        return insertedCount
     }
     
-    /// 获取所有已存在标签的 (category_labelKey) 复合键集合
-    private func fetchAllExistingLabelKeys(context: ModelContext) -> Set<String> {
-        let descriptor = FetchDescriptor<CustomLabelConfig>()
-        guard let labels = try? context.fetch(descriptor) else { return [] }
-        return Set(labels.map { "\($0.category)_\($0.labelKey)" })
+    // MARK: - 初始化非药物干预标签
+    
+    private func initializeInterventionLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
+        var insertedCount = 0
+        let interventions: [(key: String, name: String)] = [
+            ("sleep", "睡眠"),
+            ("coldCompress", "冷敷"),
+            ("hotCompress", "热敷"),
+            ("massage", "按摩"),
+            ("acupuncture", "针灸"),
+            ("darkRoom", "暗室休息"),
+            ("deepBreathing", "深呼吸"),
+            ("meditation", "冥想"),
+            ("yoga", "瑜伽"),
+            ("relaxationTraining", "放松训练"),
+            ("biofeedback", "生物反馈"),
+            ("lightExercise", "散步/轻度运动"),
+            ("acupressure", "按压穴位"),
+            ("cupping", "拔罐"),
+            ("moxibustion", "艾灸")
+        ]
+        
+        for (index, intervention) in interventions.enumerated() {
+            if insertIfNotExists(
+                context: context, existingKeys: existingKeys,
+                category: LabelCategory.intervention.rawValue,
+                labelKey: intervention.key, displayName: intervention.name,
+                subcategory: nil,
+                sortOrder: index
+            ) {
+                insertedCount += 1
+            }
+        }
+        
+        return insertedCount
     }
     
     // MARK: - 首次同步后标签去重
     
-    /// 首次 iCloud 同步完成后，一次性去重所有标签
-    /// - 单次 fetch 全部标签，在内存中按 (category, labelKey) 分组
-    /// - 每组只保留 updatedAt 最新的一份，删除其余
-    /// - 全部处理完后仅执行一次 save（最小化 CloudKit export 触发）
-    /// - 此方法仅应在首次同步完成后（或 app 启动时同步已完成）调用一次
-    func deduplicateLabelsAfterInitialSync(context: ModelContext) {
-        // 1. 单次 fetch 获取所有标签
-        let descriptor = FetchDescriptor<CustomLabelConfig>()
+    private func initializeAuraLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
+        var insertedCount = 0
+        let auras: [(key: String, name: String)] = [
+            ("visual", "视觉闪光"),
+            ("scotoma", "视野暗点"),
+            ("numbness", "肢体麻木"),
+            ("speechDifficulty", "言语障碍"),
+            ("zigzagLines", "闪光锯齿线"),
+            ("blurredVision", "视物模糊"),
+            ("hemiparesis", "偏身无力"),
+            ("vertigo", "眩晕"),
+            ("tinnitus", "耳鸣")
+        ]
+        
+        for (index, aura) in auras.enumerated() {
+            if insertIfNotExists(
+                context: context, existingKeys: existingKeys,
+                category: LabelCategory.aura.rawValue,
+                labelKey: aura.key, displayName: aura.name,
+                subcategory: nil,
+                sortOrder: index
+            ) {
+                insertedCount += 1
+            }
+        }
+        
+        return insertedCount
+    }
+    
+    // MARK: - 标签去重（iCloud 同步后）
+    
+    /// 去重标签：按 (category, labelKey, subcategory) 分组，保留最早创建的记录，删除重复项
+    /// 用于 iCloud 同步后多设备各自创建的默认标签导致的重复问题
+    /// - Returns: 被删除的重复标签数量
+    @discardableResult
+    static func deduplicateLabels(context: ModelContext) -> Int {
+        let descriptor = FetchDescriptor<CustomLabelConfig>(
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        
         guard let allLabels = try? context.fetch(descriptor) else {
-            print("🏷️ 去重：无法获取标签数据")
-            return
+            return 0
         }
         
-        print("🏷️ 去重开始：数据库中共有 \(allLabels.count) 个标签")
+        // 按 (category, labelKey, subcategory) 分组
+        // subcategory 为 nil 时使用空字符串作为 key 的一部分
+        var seen = Set<String>()
+        var duplicatesToDelete: [CustomLabelConfig] = []
         
-        // 2. 在内存中按 (category, labelKey) 分组
-        var groups: [String: [CustomLabelConfig]] = [:]
         for label in allLabels {
-            let compositeKey = "\(label.category)_\(label.labelKey)"
-            groups[compositeKey, default: []].append(label)
-        }
-        
-        // 3. 处理重复组：只保留 updatedAt 最新的一份，删除其余
-        var totalDeletedCount = 0
-        var deletedByCategory: [String: Int] = [:]
-        
-        for (_, labels) in groups {
-            guard labels.count > 1 else { continue }
+            let groupKey = "\(label.category)|\(label.labelKey)|\(label.subcategory ?? "")"
             
-            // 按 updatedAt 降序排列，保留最新的一份（通常是有用户定制的版本）
-            let sorted = labels.sorted { $0.updatedAt > $1.updatedAt }
-            let toDelete = sorted.dropFirst()
-            let category = sorted[0].category
-            
-            for label in toDelete {
-                context.delete(label)
-                totalDeletedCount += 1
-                deletedByCategory[category, default: 0] += 1
+            if seen.contains(groupKey) {
+                // 此标签是重复项（因为按 createdAt 升序排列，先遇到的是最早的）
+                duplicatesToDelete.append(label)
+            } else {
+                seen.insert(groupKey)
             }
         }
         
-        // 4. 全部处理完后，仅执行一次 save（减少 CloudKit sync 触发）
-        if totalDeletedCount > 0 {
+        // 删除重复项
+        for duplicate in duplicatesToDelete {
+            context.delete(duplicate)
+        }
+        
+        if !duplicatesToDelete.isEmpty {
             try? context.save()
-            for (category, count) in deletedByCategory.sorted(by: { $0.key < $1.key }) {
-                print("🏷️ 去重 [\(category)]：删除 \(count) 个重复标签")
-            }
-            print("🏷️ 去重完成：共删除 \(totalDeletedCount) 个重复标签，剩余 \(allLabels.count - totalDeletedCount) 个")
-        } else {
-            print("🏷️ 去重完成：无重复标签需要清理（共 \(groups.count) 个唯一标签）")
+            print("标签去重完成：删除了 \(duplicatesToDelete.count) 条重复标签")
         }
+        
+        return duplicatesToDelete.count
     }
     
     // MARK: - 查询标签

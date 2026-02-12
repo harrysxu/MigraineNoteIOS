@@ -10,5 +10,9 @@
 	<string>我们需要您的位置信息来记录当地天气状况，帮助分析环境诱因</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>我们需要读取您的经期数据，以分析月经周期与偏头痛发作的关联。</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>CFBundleDisplayName</key>
+	<string>偏头痛记录</string>
 </dict>
 </plist>

@@ -13,21 +13,29 @@ struct ProfileView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(ThemeManager.self) private var themeManager
     @Query private var medications: [Medication]
+    @Query private var profiles: [UserProfile]
     // 移除了 @Query 全量加载 attacks/healthEvents/medicationLogs
     // 改为按需查询当月数据，大幅降低内存占用
     
-    /// 使用单例，避免多个实例重复注册通知观察者
-    private var cloudKitManager: CloudKitManager { CloudKitManager.shared }
-    @State private var showClearDataFirstConfirm = false
-    @State private var showClearDataFinalConfirm = false
+    @State private var cloudKitManager = CloudKitManager()
+    @State private var premiumManager = PremiumManager.shared
+    @State private var showResetDataConfirm = false
     @State private var showClearDataSuccess = false
+    @State private var deleteConfirmText = ""
     @State private var isClearingData = false
     @State private var cachedMonthlyMedDays: Int = 0
+    @State private var showSubscription = false
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Spacing.lg) {
+                    // 我的信息入口
+                    userProfileCard
+                    
+                    // 订阅状态 / 升级入口
+                    premiumStatusCard
+                    
                     // 药箱快速入口
                     medicationSummaryCard
                     
@@ -45,26 +53,88 @@ struct ProfileView: View {
             cloudKitManager.checkICloudStatus()
             loadMonthlyMedicationDays()
         }
-        .alert("确认清空数据", isPresented: $showClearDataFirstConfirm) {
-            Button("取消", role: .cancel) { }
-            Button("继续", role: .destructive) {
-                showClearDataFinalConfirm = true
+        .alert("重置所有数据", isPresented: $showResetDataConfirm) {
+            TextField("请输入 delete 确认", text: $deleteConfirmText)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+            Button("取消", role: .cancel) {
+                deleteConfirmText = ""
+            }
+            Button("确认重置", role: .destructive) {
+                if deleteConfirmText.lowercased() == "delete" {
+                    performResetAllData()
+                }
+                deleteConfirmText = ""
             }
         } message: {
-            Text("此操作将删除所有发作记录、药物数据、健康事件、自定义标签和用户档案等全部信息。")
+            Text("此操作将删除所有发作记录、药物数据、健康事件和自定义标签，但会保留默认标签等初始化信息。\n\n请输入 delete 确认此操作。")
         }
-        .alert("⚠️ 最终确认", isPresented: $showClearDataFinalConfirm) {
-            Button("取消", role: .cancel) { }
-            Button("永久删除所有数据", role: .destructive) {
-                performClearAllData()
-            }
-        } message: {
-            Text("此操作不可撤销！删除后数据将无法恢复，包括已同步到 iCloud 的数据也会被删除。请确认您已了解此操作的后果。")
-        }
-        .alert("数据已清空", isPresented: $showClearDataSuccess) {
+        .alert("数据已重置", isPresented: $showClearDataSuccess) {
             Button("确定", role: .cancel) { }
         } message: {
-            Text("所有数据已被永久删除。")
+            Text("数据已重置，默认标签已恢复。")
+        }
+    }
+    
+    // MARK: - 订阅状态卡片
+    
+    private var premiumStatusCard: some View {
+        Button {
+            if !premiumManager.isPremium {
+                showSubscription = true
+            }
+        } label: {
+            EmotionalCard(style: premiumManager.isPremium ? .elevated : .default) {
+                HStack(spacing: 12) {
+                    Image(systemName: premiumManager.isPremium ? "crown.fill" : "crown")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            LinearGradient(
+                                colors: premiumManager.isPremium
+                                    ? [Color.orange, Color.yellow]
+                                    : [Color.gray, Color.gray.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(premiumManager.isPremium ? "高级版" : "升级高级版")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Color.textPrimary)
+                        
+                        Text(premiumManager.isPremium ? premiumManager.statusDescription : "解锁全部专业功能")
+                            .font(.caption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                    
+                    Spacer()
+                    
+                    if !premiumManager.isPremium {
+                        Text("Pro")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.orange, Color.yellow],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(20)
+                    }
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(isPresented: $showSubscription) {
+            SubscriptionView()
         }
     }
     
@@ -184,6 +254,57 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
+    // MARK: - 我的信息卡片
+    
+    private var userProfileCard: some View {
+        let profile = profiles.first
+        let subtitle: String = {
+            if let name = profile?.name, !name.isEmpty {
+                return name
+            }
+            return "点击填写个人信息"
+        }()
+        
+        return NavigationLink {
+            UserProfileEditView()
+        } label: {
+            EmotionalCard(style: .default) {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.text.rectangle.fill")
+                        .font(.title2)
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.accentPrimary, Color.accentPrimary.opacity(0.7)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(Circle())
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("我的信息")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(Color.textPrimary)
+                        
+                        Text(subtitle)
+                            .font(.caption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
     // MARK: - 设置功能区域
     
     private var settingsSections: some View {
@@ -250,12 +371,16 @@ struct ProfileView: View {
                     
                     NavigationLink {
                         CloudSyncSettingsView()
+                            .premiumGated(feature: .iCloudSync)
                     } label: {
-                        SettingRow(
-                            icon: "icloud.fill",
-                            iconColor: .cyan,
-                            title: "iCloud 同步"
-                        )
+                        HStack {
+                            SettingRow(
+                                icon: "icloud.fill",
+                                iconColor: .cyan,
+                                title: "iCloud 同步"
+                            )
+                            PremiumBadge()
+                        }
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
@@ -265,12 +390,16 @@ struct ProfileView: View {
                     
                     NavigationLink {
                         DataExportView()
+                            .premiumGated(feature: .dataExport)
                     } label: {
-                        SettingRow(
-                            icon: "square.and.arrow.up.fill",
-                            iconColor: .green,
-                            title: "数据导出"
-                        )
+                        HStack {
+                            SettingRow(
+                                icon: "square.and.arrow.up.fill",
+                                iconColor: .green,
+                                title: "数据导出"
+                            )
+                            PremiumBadge()
+                        }
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
@@ -279,7 +408,7 @@ struct ProfileView: View {
                         .padding(.leading, 44)
                     
                     Button {
-                        showClearDataFirstConfirm = true
+                        showResetDataConfirm = true
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: "trash.fill")
@@ -290,11 +419,11 @@ struct ProfileView: View {
                                 .clipShape(Circle())
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("清空所有数据")
+                                Text("重置所有数据")
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(Color.red)
                                 
-                                Text("删除后无法恢复")
+                                Text("恢复到初始状态")
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
                             }
@@ -325,12 +454,16 @@ struct ProfileView: View {
                     
                     NavigationLink {
                         LabelManagementView()
+                            .premiumGated(feature: .customLabels)
                     } label: {
-                        SettingRow(
-                            icon: "tag.fill",
-                            iconColor: .blue,
-                            title: "标签管理"
-                        )
+                        HStack {
+                            SettingRow(
+                                icon: "tag.fill",
+                                iconColor: .blue,
+                                title: "标签管理"
+                            )
+                            PremiumBadge()
+                        }
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
@@ -355,12 +488,16 @@ struct ProfileView: View {
                     
                     NavigationLink {
                         MedicationReminderView()
+                            .premiumGated(feature: .medicationReminder)
                     } label: {
-                        SettingRow(
-                            icon: "bell.badge.fill",
-                            iconColor: .orange,
-                            title: "用药提醒"
-                        )
+                        HStack {
+                            SettingRow(
+                                icon: "bell.badge.fill",
+                                iconColor: .orange,
+                                title: "用药提醒"
+                            )
+                            PremiumBadge()
+                        }
                         .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
@@ -390,34 +527,48 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
     
-    // MARK: - 清空数据
+    // MARK: - 重置数据
     
-    private func performClearAllData() {
+    private func performResetAllData() {
         isClearingData = true
         
         do {
-            // 使用批量删除，更可靠且高效
-            // 先删除子实体（避免级联问题）
+            // 1. 删除子实体（避免级联问题）
             try modelContext.delete(model: Symptom.self)
             try modelContext.delete(model: Trigger.self)
             try modelContext.delete(model: WeatherSnapshot.self)
             try modelContext.delete(model: MedicationLog.self)
             
-            // 再删除主实体
+            // 2. 删除主实体（记录类）
             try modelContext.delete(model: AttackRecord.self)
             try modelContext.delete(model: HealthEvent.self)
             try modelContext.delete(model: Medication.self)
-            try modelContext.delete(model: CustomLabelConfig.self)
             try modelContext.delete(model: UserProfile.self)
+            
+            // 3. 自定义标签：只删除非默认标签，默认标签恢复初始状态
+            let labelDescriptor = FetchDescriptor<CustomLabelConfig>()
+            let allLabels = try modelContext.fetch(labelDescriptor)
+            for label in allLabels {
+                if label.isDefault {
+                    // 恢复默认标签的初始状态
+                    label.isHidden = false
+                } else {
+                    // 删除用户自定义标签
+                    modelContext.delete(label)
+                }
+            }
             
             try modelContext.save()
             
-            // 通知其他页面刷新数据（如首页）
+            // 4. 确保默认标签完整（补全可能缺失的默认标签）
+            LabelManager.shared.initializeDefaultLabelsIfNeeded(context: modelContext)
+            
+            // 5. 通知其他页面刷新数据（如首页）
             NotificationCenter.default.post(name: .allDataCleared, object: nil)
             
             showClearDataSuccess = true
         } catch {
-            print("清空数据失败: \(error)")
+            print("重置数据失败: \(error)")
         }
         
         isClearingData = false

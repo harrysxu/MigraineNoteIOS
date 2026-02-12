@@ -382,6 +382,285 @@ struct MedicationPickerRow: View {
     }
 }
 
+// MARK: - 统一药物输入表单
+
+struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
+    @Environment(\.modelContext) private var modelContext
+    @Bindable var viewModel: ViewModel
+    @Binding var isPresented: Bool
+    
+    @Query(sort: \Medication.name) private var allMedications: [Medication]
+    
+    @State private var searchText: String = ""
+    @State private var selectedMedication: Medication?
+    @State private var dosage: String = ""
+    @State private var unit: String = "mg"
+    @State private var timeTaken: Date = Date()
+    @State private var showMedicationList: Bool = false
+    @State private var saveToMedicineBox: Bool = false
+    @State private var isSelectingFromCabinet: Bool = false
+    
+    private var filteredMedications: [Medication] {
+        if searchText.isEmpty {
+            return allMedications
+        }
+        return allMedications.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+    
+    private var medicationExists: Bool {
+        let trimmedName = searchText.trimmingCharacters(in: .whitespaces)
+        return allMedications.contains { $0.name.localizedCaseInsensitiveCompare(trimmedName) == .orderedSame }
+    }
+    
+    private var isManualInput: Bool {
+        selectedMedication == nil && !searchText.isEmpty
+    }
+    
+    private var shouldShowSyncOption: Bool {
+        isManualInput && !medicationExists
+    }
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("药物选择") {
+                    // 从药箱选择按钮（始终显示）
+                    if !allMedications.isEmpty {
+                        Button {
+                            showMedicationList = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "list.bullet.rectangle")
+                                    .foregroundStyle(Color.accentPrimary)
+                                Text("从药箱选择")
+                                    .foregroundStyle(Color.textPrimary)
+                                Spacer()
+                                if selectedMedication != nil {
+                                    Text(selectedMedication!.name)
+                                        .font(.subheadline)
+                                        .foregroundStyle(Color.textSecondary)
+                                } else {
+                                    Text("共\(allMedications.count)个药品")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.textTertiary)
+                                }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textTertiary)
+                            }
+                        }
+                    }
+                    
+                    // 或手动输入
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            TextField("或手动输入药物名称", text: $searchText)
+                                .textInputAutocapitalization(.never)
+                                .onChange(of: searchText) {
+                                    if isSelectingFromCabinet {
+                                        // 从药箱选择触发的文本变化，不清除已选药物
+                                        isSelectingFromCabinet = false
+                                    } else {
+                                        // 用户手动输入，清除已选择的药物
+                                        selectedMedication = nil
+                                    }
+                                }
+                            
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                    selectedMedication = nil
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(Color.textTertiary)
+                                }
+                            }
+                        }
+                        
+                        // 提示信息
+                        if medicationExists && isManualInput {
+                            Label("药箱中已有此药品，可点击上方【从药箱选择】", systemImage: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(Color.accentPrimary)
+                        }
+                    }
+                }
+                
+                Section("剂量信息") {
+                    HStack {
+                        TextField("剂量", text: $dosage)
+                            .keyboardType(.decimalPad)
+                        
+                        Picker("单位", selection: $unit) {
+                            Text("mg").tag("mg")
+                            Text("片").tag("片")
+                            Text("粒").tag("粒")
+                            Text("g").tag("g")
+                            Text("ml").tag("ml")
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    
+                    if let med = selectedMedication, med.standardDosage > 0 {
+                        Button("使用标准剂量 (\(String(format: "%.0f", med.standardDosage))\(med.unit))") {
+                            dosage = String(format: "%.0f", med.standardDosage)
+                            unit = med.unit
+                        }
+                        .font(.caption)
+                    }
+                }
+                
+                Section("服用时间") {
+                    DatePicker("时间", selection: $timeTaken, displayedComponents: [.date, .hourAndMinute])
+                }
+                
+                if shouldShowSyncOption {
+                    Section {
+                        Toggle("同步到药箱", isOn: $saveToMedicineBox)
+                        
+                        if saveToMedicineBox {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("将使用以下默认设置:", systemImage: "info.circle")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("• 药物类型: 其他")
+                                    Text("• 用药类型: 急需用药")
+                                    Text("• 标准剂量: 1")
+                                    Text("• 库存: 6")
+                                }
+                                .font(.caption)
+                                .foregroundStyle(Color.textTertiary)
+                            }
+                            .padding(.top, 4)
+                        }
+                    } header: {
+                        Text("药箱管理")
+                    } footer: {
+                        if saveToMedicineBox {
+                            Text("保存后可在药箱中修改详细信息")
+                        }
+                    }
+                }
+            }
+            .navigationTitle("添加用药记录")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        isPresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("添加") {
+                        addMedication()
+                    }
+                    .disabled(!canSubmit)
+                }
+            }
+            .sheet(isPresented: $showMedicationList) {
+                MedicationSelectionList(
+                    medications: searchText.isEmpty ? allMedications : filteredMedications,
+                    searchText: searchText,
+                    onSelect: { medication in
+                        selectedMedication = medication
+                        isSelectingFromCabinet = true
+                        searchText = medication.name
+                        dosage = String(format: "%.0f", medication.standardDosage > 0 ? medication.standardDosage : 1.0)
+                        unit = medication.unit
+                        showMedicationList = false
+                    }
+                )
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+    
+    private var canSubmit: Bool {
+        let hasValidInput = selectedMedication != nil || !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+        let hasValidDosage = !dosage.isEmpty && Double(dosage) != nil
+        return hasValidInput && hasValidDosage
+    }
+    
+    private func addMedication() {
+        guard let dosageValue = Double(dosage) else { return }
+        
+        var medication: Medication? = selectedMedication
+        let medicationName = searchText.trimmingCharacters(in: .whitespaces)
+        
+        // 如果是手动输入且需要同步到药箱
+        if shouldShowSyncOption && saveToMedicineBox {
+            medication = viewModel.syncMedicationToCabinet(
+                name: medicationName,
+                dosage: 1.0,  // 默认标准剂量为1
+                unit: unit
+            )
+        }
+        
+        // 添加到记录
+        viewModel.addMedication(
+            medication: medication,
+            customName: medication == nil ? medicationName : nil,
+            dosage: dosageValue,
+            unit: unit,
+            timeTaken: timeTaken
+        )
+        
+        isPresented = false
+    }
+}
+
+// MARK: - 药物选择列表
+
+struct MedicationSelectionList: View {
+    let medications: [Medication]
+    let searchText: String
+    let onSelect: (Medication) -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            List(medications) { medication in
+                Button {
+                    onSelect(medication)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(medication.name)
+                            .font(.body)
+                            .foregroundStyle(Color.textPrimary)
+                        
+                        HStack {
+                            Text(medication.category.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                            
+                            if medication.standardDosage > 0 {
+                                Text("•")
+                                    .foregroundStyle(Color.textTertiary)
+                                Text("\(String(format: "%.0f", medication.standardDosage))\(medication.unit)")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("选择药物")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
 #Preview {
     MedicationPickerSheet { medication, dosage, time in
         print("Selected: \(medication.name), \(dosage)\(medication.unit), \(time)")

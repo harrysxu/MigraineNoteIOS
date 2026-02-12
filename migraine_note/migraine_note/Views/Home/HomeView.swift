@@ -771,28 +771,6 @@ struct WeatherDetailItem: View {
     }
 }
 
-// MARK: - 天气卡片占位
-
-struct WeatherRiskCardPlaceholder: View {
-    var body: some View {
-        InfoCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "cloud.sun.fill")
-                        .foregroundStyle(Color.statusInfo)
-                    Text("环境提示")
-                        .font(.headline)
-                    Spacer()
-                }
-                
-                Text("天气数据将在集成WeatherKit后显示")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.textSecondary)
-            }
-        }
-    }
-}
-
 // MARK: - 月度概况卡片
 
 struct MonthlyOverviewCard: View {
@@ -1156,16 +1134,6 @@ struct CompactTimelineRow: View {
         case .surgery:
             return .statusInfo
         }
-    }
-}
-
-// MARK: - 紧凑记录行（保留用于兼容）
-
-struct CompactAttackRow: View {
-    let attack: AttackRecord
-    
-    var body: some View {
-        CompactTimelineRow(item: .attack(attack))
     }
 }
 
@@ -1817,10 +1785,10 @@ struct SimplifiedRecordingViewWrapper: View {
                 ForEach(Array(viewModel.selectedMedications.enumerated()), id: \.offset) { index, medInfo in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(medInfo.medication?.name ?? "未知药物")
+                            Text(medInfo.medication?.name ?? medInfo.customName ?? "未知药物")
                                 .font(.body.weight(.medium))
                                 .foregroundStyle(Color.textPrimary)
-                            Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.medication?.unit ?? "mg") - \(medInfo.timeTaken.shortTime())")
+                            Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.medication?.unit ?? medInfo.unit) - \(medInfo.timeTaken.shortTime())")
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
                         }

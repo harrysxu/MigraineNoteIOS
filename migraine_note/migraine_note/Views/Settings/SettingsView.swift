@@ -301,6 +301,46 @@ struct CloudSyncSettingsView: View {
                 .foregroundColor(.secondary)
             }
             
+            // 同步日志
+            if SyncSettingsManager.isSyncCurrentlyEnabled() {
+                Section {
+                    if cloudKitManager.syncLogs.isEmpty {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 8) {
+                                Image(systemName: "doc.text.magnifyingglass")
+                                    .font(.title2)
+                                    .foregroundStyle(.tertiary)
+                                Text("暂无同步记录")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.vertical, AppSpacing.medium)
+                            Spacer()
+                        }
+                    } else {
+                        ForEach(cloudKitManager.syncLogs) { entry in
+                            SyncLogRow(entry: entry)
+                        }
+                    }
+                } header: {
+                    HStack {
+                        Text("同步日志")
+                        Spacer()
+                        if !cloudKitManager.syncLogs.isEmpty {
+                            Button("清除") {
+                                withAnimation {
+                                    cloudKitManager.clearSyncLogs()
+                                }
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .textCase(nil)
+                        }
+                    }
+                }
+            }
+            
             // 操作按钮
             if !cloudKitManager.isICloudAvailable {
                 Section {
@@ -446,6 +486,58 @@ struct CloudSyncSettingsView: View {
     }
 }
 
+// MARK: - 同步日志行组件
+
+struct SyncLogRow: View {
+    let entry: SyncLogEntry
+    
+    var body: some View {
+        HStack(spacing: AppSpacing.small) {
+            Image(systemName: entry.type.icon)
+                .font(.body)
+                .foregroundStyle(entry.succeeded ? entry.type.color : .red)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(entry.type.displayText)
+                        .font(.subheadline.weight(.medium))
+                    
+                    if !entry.succeeded {
+                        Text("失败")
+                            .font(.caption2.weight(.medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(.red))
+                    }
+                }
+                
+                if let details = entry.details {
+                    Text(details)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+                
+                if let error = entry.errorMessage {
+                    Text(error)
+                        .font(.caption2)
+                        .foregroundColor(.red)
+                        .lineLimit(1)
+                }
+            }
+            
+            Spacer()
+            
+            Text(entry.timestamp, format: .dateTime.hour().minute().second())
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 2)
+    }
+}
+
 // MARK: - 功能设置
 
 struct FeatureSettingsView: View {
@@ -455,9 +547,11 @@ struct FeatureSettingsView: View {
         profiles.first
     }
     
+    @State private var premiumManager = PremiumManager.shared
     @State private var enableTCMFeatures = true
     @State private var enableWeatherTracking = true
     @State private var painScoreStyle: PainScoreStyle = .vas
+    @State private var showSubscription = false
     
     var body: some View {
         List {
@@ -475,17 +569,29 @@ struct FeatureSettingsView: View {
                     userProfile?.enableTCMFeatures = newValue
                 }
                 
-                Toggle(isOn: $enableWeatherTracking) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("天气追踪")
-                            .font(.body)
-                        Text("自动记录发作时的天气状况")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                Toggle(isOn: Binding(
+                    get: { enableWeatherTracking },
+                    set: { newValue in
+                        if newValue && !premiumManager.isPremium {
+                            showSubscription = true
+                        } else {
+                            enableWeatherTracking = newValue
+                            userProfile?.enableWeatherTracking = newValue
+                        }
                     }
-                }
-                .onChange(of: enableWeatherTracking) { _, newValue in
-                    userProfile?.enableWeatherTracking = newValue
+                )) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("天气追踪")
+                                .font(.body)
+                            Text("自动记录发作时的天气状况")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        if !premiumManager.isPremium {
+                            PremiumBadge()
+                        }
+                    }
                 }
             }
             
@@ -508,6 +614,9 @@ struct FeatureSettingsView: View {
                 enableTCMFeatures = profile.enableTCMFeatures
                 enableWeatherTracking = profile.enableWeatherTracking
             }
+        }
+        .sheet(isPresented: $showSubscription) {
+            SubscriptionView()
         }
     }
 }
@@ -615,15 +724,15 @@ struct AboutView: View {
             }
             
             Section {
-                Link(destination: URL(string: "https://github.com")!) {
+                Link(destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/support.html")!) {
                     Label("使用指南", systemImage: "book.fill")
                 }
                 
-                Link(destination: URL(string: "https://github.com")!) {
+                Link(destination: URL(string: "https://github.com/harrysxu/MigraineNoteIOS")!) {
                     Label("开源代码", systemImage: "chevron.left.forwardslash.chevron.right")
                 }
                 
-                Link(destination: URL(string: "mailto:support@example.com")!) {
+                Link(destination: URL(string: "mailto:ailehuoquan@163.com")!) {
                     Label("联系我们", systemImage: "envelope.fill")
                 }
             }

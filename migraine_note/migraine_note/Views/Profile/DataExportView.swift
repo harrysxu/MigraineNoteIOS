@@ -8,6 +8,56 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - 导出时间范围
+
+enum ExportTimeRange: String, CaseIterable, Identifiable {
+    case lastMonth = "last_month"
+    case last3Months = "last_3_months"
+    case last6Months = "last_6_months"
+    case lastYear = "last_year"
+    case custom = "custom"
+    
+    var id: String { rawValue }
+    
+    var displayName: String {
+        switch self {
+        case .lastMonth: return "近1个月"
+        case .last3Months: return "近3个月"
+        case .last6Months: return "近6个月"
+        case .lastYear: return "近1年"
+        case .custom: return "自定义"
+        }
+    }
+    
+    func dateInterval(customStart: Date, customEnd: Date) -> DateInterval {
+        let now = Date()
+        let calendar = Calendar.current
+        
+        let startDate: Date
+        let endDate: Date
+        
+        switch self {
+        case .lastMonth:
+            startDate = calendar.date(byAdding: .month, value: -1, to: now)!
+            endDate = now
+        case .last3Months:
+            startDate = calendar.date(byAdding: .month, value: -3, to: now)!
+            endDate = now
+        case .last6Months:
+            startDate = calendar.date(byAdding: .month, value: -6, to: now)!
+            endDate = now
+        case .lastYear:
+            startDate = calendar.date(byAdding: .year, value: -1, to: now)!
+            endDate = now
+        case .custom:
+            let normalized = Date.normalizedDateRange(start: customStart, end: customEnd)
+            return DateInterval(start: normalized.start, end: normalized.end)
+        }
+        
+        return DateInterval(start: startDate, end: endDate)
+    }
+}
+
 /// 数据导出视图 - 统一的数据和记录导出功能
 struct DataExportView: View {
     @Environment(\.modelContext) private var modelContext
@@ -269,12 +319,13 @@ struct DataExportView: View {
         let exporter = CSVExporter()
         let analytics = AnalyticsEngine(modelContext: modelContext)
         
-        // 导出完整健康数据（包括发作记录和健康事件）
+        // 导出完整健康数据（包括发作记录、健康事件和用户档案）
         let csvData = exporter.exportCompleteHealthData(
             filteredAttacks,
             healthEvents: filteredHealthEvents,
             analytics: analytics,
-            dateRange: (dateRange.start, dateRange.end)
+            dateRange: (dateRange.start, dateRange.end),
+            userProfile: userProfile
         )
         
         // 创建临时文件 - 使用 ASCII 安全的文件名避免分享扩展编码问题
@@ -400,6 +451,23 @@ private struct DataPreviewRow: View {
                 .foregroundStyle(Color.textPrimary)
         }
     }
+}
+
+// MARK: - Share Sheet
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    var onComplete: (() -> Void)?
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, _, _, _ in
+            onComplete?()
+        }
+        return controller
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - Preview

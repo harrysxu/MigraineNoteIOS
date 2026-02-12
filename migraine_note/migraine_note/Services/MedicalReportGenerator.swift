@@ -351,8 +351,16 @@ class MedicalReportGenerator {
         let infoFont = UIFont.systemFont(ofSize: 11)
         
         if let profile = profile {
+            // 基本信息
             currentY = drawInfoRow(context: context, y: currentY, label: "姓名：", value: profile.name?.isEmpty == false ? profile.name! : "未填写", font: infoFont)
-            currentY = drawInfoRow(context: context, y: currentY, label: "年龄：", value: profile.age != nil ? "\(profile.age!)岁" : "未填写", font: infoFont)
+            
+            let ageText: String
+            if let age = profile.calculatedAge {
+                ageText = "\(age)岁"
+            } else {
+                ageText = "未填写"
+            }
+            currentY = drawInfoRow(context: context, y: currentY, label: "年龄：", value: ageText, font: infoFont)
             
             let genderText: String
             if let gender = profile.gender {
@@ -366,9 +374,53 @@ class MedicalReportGenerator {
             }
             currentY = drawInfoRow(context: context, y: currentY, label: "性别：", value: genderText, font: infoFont)
             
-            if let onsetAge = profile.migraineOnsetAge, let currentAge = profile.age {
-                let years = currentAge - onsetAge
-                currentY = drawInfoRow(context: context, y: currentY, label: "病史：", value: "\(years)年", font: infoFont)
+            // 血型
+            if let bloodType = profile.bloodType {
+                currentY = drawInfoRow(context: context, y: currentY, label: "血型：", value: bloodType.rawValue, font: infoFont)
+            }
+            
+            // 身高体重 / BMI
+            var bodyInfo: [String] = []
+            if let height = profile.height {
+                bodyInfo.append("身高 \(String(format: "%.0f", height))cm")
+            }
+            if let weight = profile.weight {
+                bodyInfo.append("体重 \(String(format: "%.1f", weight))kg")
+            }
+            if let bmi = profile.bmi, let desc = profile.bmiDescription {
+                bodyInfo.append("BMI \(String(format: "%.1f", bmi))(\(desc))")
+            }
+            if !bodyInfo.isEmpty {
+                currentY = drawInfoRow(context: context, y: currentY, label: "体格：", value: bodyInfo.joined(separator: "  "), font: infoFont)
+            }
+            
+            // 病史信息
+            if let onsetAge = profile.migraineOnsetAge {
+                let currentAge = profile.calculatedAge ?? profile.age
+                if let currentAge = currentAge {
+                    let years = currentAge - onsetAge
+                    currentY = drawInfoRow(context: context, y: currentY, label: "病史：", value: "\(max(0, years))年（\(onsetAge)岁首发）", font: infoFont)
+                } else {
+                    currentY = drawInfoRow(context: context, y: currentY, label: "首发年龄：", value: "\(onsetAge)岁", font: infoFont)
+                }
+            }
+            
+            if let migraineType = profile.migraineType {
+                currentY = drawInfoRow(context: context, y: currentY, label: "诊断类型：", value: migraineType.rawValue, font: infoFont)
+            }
+            
+            if profile.familyHistory {
+                currentY = drawInfoRow(context: context, y: currentY, label: "家族史：", value: "有偏头痛家族史", font: infoFont)
+            }
+            
+            // 过敏史
+            if let allergies = profile.allergies, !allergies.isEmpty {
+                currentY = drawInfoRow(context: context, y: currentY, label: "药物过敏：", value: allergies, font: infoFont)
+            }
+            
+            // 医疗备注
+            if let notes = profile.medicalNotes, !notes.isEmpty {
+                currentY = drawInfoRow(context: context, y: currentY, label: "备注：", value: notes, font: infoFont)
             }
         } else {
             currentY = drawInfoRow(context: context, y: currentY, label: "患者信息：", value: "未填写", font: infoFont)

@@ -467,18 +467,71 @@ class TestDataManager {
         
         let profile = UserProfile()
         
-        let names = ["测试用户", "张三", "李四", "王五"]
+        // 基本信息
+        let names = ["测试用户", "张三", "李四", "王五", "赵小明", "刘芳"]
         profile.name = names.randomElement()
-        profile.age = Int.random(in: 20...60)
+        
+        // 出生日期（25-55岁）
+        let ageYears = Int.random(in: 25...55)
+        let calendar = Calendar.current
+        profile.birthDate = calendar.date(byAdding: .year, value: -ageYears, to: Date())
+        profile.age = ageYears
         
         let genders: [Gender] = [.male, .female, .other]
         profile.gender = genders.randomElement()
         
-        if let age = profile.age {
-            profile.migraineOnsetAge = max(5, age - Int.random(in: 2...20))
+        // 血型
+        let bloodTypes: [BloodType] = [.a, .b, .ab, .o]
+        profile.bloodType = bloodTypes.randomElement()
+        
+        // 身体信息
+        if profile.gender == .male {
+            profile.height = Double(Int.random(in: 165...185))
+            profile.weight = Double.random(in: 55...90)
+        } else if profile.gender == .female {
+            profile.height = Double(Int.random(in: 155...172))
+            profile.weight = Double.random(in: 45...70)
+        } else {
+            profile.height = Double(Int.random(in: 158...180))
+            profile.weight = Double.random(in: 48...80)
         }
+        // 四舍五入到一位小数
+        profile.weight = (profile.weight! * 10).rounded() / 10
+        
+        // 病史信息
+        profile.migraineOnsetAge = max(5, ageYears - Int.random(in: 2...20))
+        
+        let migraineTypes: [MigraineType] = [.withoutAura, .withAura, .chronic, .menstrual, .other]
+        profile.migraineType = migraineTypes.randomElement()
         
         profile.familyHistory = Double.random(in: 0...1) < 0.4
+        
+        // 药物过敏（30%概率有过敏史）
+        if Double.random(in: 0...1) < 0.3 {
+            let allergyOptions = [
+                "青霉素",
+                "磺胺类药物",
+                "阿司匹林",
+                "布洛芬过敏",
+                "头孢类抗生素",
+                "青霉素、磺胺类药物"
+            ]
+            profile.allergies = allergyOptions.randomElement()
+        }
+        
+        // 医疗备注（20%概率有备注）
+        if Double.random(in: 0...1) < 0.2 {
+            let noteOptions = [
+                "长期伏案工作，颈椎不好",
+                "月经期偏头痛加重",
+                "工作压力较大，睡眠质量差",
+                "有高血压病史，需注意用药",
+                "哺乳期，用药需谨慎"
+            ]
+            profile.medicalNotes = noteOptions.randomElement()
+        }
+        
+        // 偏好设置
         profile.enableTCMFeatures = true
         profile.enableWeatherTracking = true
         

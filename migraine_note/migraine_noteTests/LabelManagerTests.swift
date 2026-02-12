@@ -267,10 +267,209 @@ final class LabelManagerTests: XCTestCase {
         XCTAssertNotNil(LabelError.nameTooLong.errorDescription)
     }
     
+    // MARK: - 标签去重测试
+    
+    func testDeduplicateLabels_RemovesDuplicateDefaults() {
+        // 模拟两台设备各自创建了默认标签（iCloud同步后出现重复）
+        let label1 = CustomLabelConfig(
+            category: LabelCategory.painQuality.rawValue,
+            labelKey: "pulsating",
+            displayName: "搏动性",
+            isDefault: true,
+            subcategory: nil,
+            sortOrder: 0
+        )
+        label1.createdAt = Date(timeIntervalSinceNow: -100)
+        
+        let label2 = CustomLabelConfig(
+            category: LabelCategory.painQuality.rawValue,
+            labelKey: "pulsating",
+            displayName: "搏动性",
+            isDefault: true,
+            subcategory: nil,
+            sortOrder: 0
+        )
+        label2.createdAt = Date(timeIntervalSinceNow: -50)
+        
+        modelContext.insert(label1)
+        modelContext.insert(label2)
+        try? modelContext.save()
+        
+        // 去重前应有2条
+        XCTAssertEqual(countLabels(category: "painQuality", labelKey: "pulsating"), 2)
+        
+        let removedCount = LabelManager.deduplicateLabels(context: modelContext)
+        
+        // 去重后应只剩1条
+        XCTAssertEqual(removedCount, 1, "应删除1条重复标签")
+        XCTAssertEqual(countLabels(category: "painQuality", labelKey: "pulsating"), 1)
+    }
+    
+    func testDeduplicateLabels_KeepsEarliestCreated() {
+        // 创建两个重复标签，一早一晚
+        let earlyLabel = CustomLabelConfig(
+            category: LabelCategory.symptom.rawValue,
+            labelKey: "nausea",
+            displayName: "恶心",
+            isDefault: true,
+            subcategory: "western",
+            sortOrder: 0
+        )
+        earlyLabel.createdAt = Date(timeIntervalSinceNow: -200)
+        
+        let lateLabel = CustomLabelConfig(
+            category: LabelCategory.symptom.rawValue,
+            labelKey: "nausea",
+            displayName: "恶心",
+            isDefault: true,
+            subcategory: "western",
+            sortOrder: 0
+        )
+        lateLabel.createdAt = Date(timeIntervalSinceNow: -10)
+        
+        modelContext.insert(earlyLabel)
+        modelContext.insert(lateLabel)
+        try? modelContext.save()
+        
+        LabelManager.deduplicateLabels(context: modelContext)
+        
+        // 应保留最早创建的那条
+        let remaining = fetchLabels(category: "symptom", labelKey: "nausea")
+        XCTAssertEqual(remaining.count, 1)
+        XCTAssertEqual(remaining.first?.id, earlyLabel.id, "应保留最早创建的标签")
+    }
+    
+    func testDeduplicateLabels_NoDuplicates_ReturnsZero() {
+        // 初始化默认标签（无重复）
+        LabelManager.shared.initializeDefaultLabelsIfNeeded(context: modelContext)
+        
+        let removedCount = LabelManager.deduplicateLabels(context: modelContext)
+        XCTAssertEqual(removedCount, 0, "没有重复标签时不应删除任何记录")
+    }
+    
+    func testDeduplicateLabels_DifferentSubcategories_NotDuplicate() {
+        // 相同 category + labelKey 但不同 subcategory => 不算重复
+        let label1 = CustomLabelConfig(
+            category: LabelCategory.trigger.rawValue,
+            labelKey: "headache",
+            displayName: "头痛",
+            isDefault: true,
+            subcategory: "饮食",
+            sortOrder: 0
+        )
+        
+        let label2 = CustomLabelConfig(
+            category: LabelCategory.trigger.rawValue,
+            labelKey: "headache",
+            displayName: "头痛",
+            isDefault: true,
+            subcategory: "环境",
+            sortOrder: 0
+        )
+        
+        modelContext.insert(label1)
+        modelContext.insert(label2)
+        try? modelContext.save()
+        
+        let removedCount = LabelManager.deduplicateLabels(context: modelContext)
+        XCTAssertEqual(removedCount, 0, "不同subcategory的同名标签不算重复")
+    }
+    
+    func testDeduplicateLabels_TripleDuplicates() {
+        // 模拟3台设备各自创建了同一个标签
+        for i in 0..<3 {
+            let label = CustomLabelConfig(
+                category: LabelCategory.aura.rawValue,
+                labelKey: "visual",
+                displayName: "视觉闪光",
+                isDefault: true,
+                subcategory: nil,
+                sortOrder: 0
+            )
+            label.createdAt = Date(timeIntervalSinceNow: Double(-100 + i * 30))
+            modelContext.insert(label)
+        }
+        try? modelContext.save()
+        
+        let removedCount = LabelManager.deduplicateLabels(context: modelContext)
+        
+        XCTAssertEqual(removedCount, 2, "3条重复标签应删除2条")
+        XCTAssertEqual(countLabels(category: "aura", labelKey: "visual"), 1)
+    }
+    
+    func testDeduplicateLabels_CustomLabelDuplicates() {
+        // 模拟用户在两台设备同时创建了同名自定义标签
+        let label1 = CustomLabelConfig(
+            category: LabelCategory.symptom.rawValue,
+            labelKey: "自定义症状",
+            displayName: "自定义症状",
+            isDefault: false,
+            subcategory: "western",
+            sortOrder: 100
+        )
+        label1.createdAt = Date(timeIntervalSinceNow: -60)
+        
+        let label2 = CustomLabelConfig(
+            category: LabelCategory.symptom.rawValue,
+            labelKey: "自定义症状",
+            displayName: "自定义症状",
+            isDefault: false,
+            subcategory: "western",
+            sortOrder: 100
+        )
+        label2.createdAt = Date(timeIntervalSinceNow: -30)
+        
+        modelContext.insert(label1)
+        modelContext.insert(label2)
+        try? modelContext.save()
+        
+        let removedCount = LabelManager.deduplicateLabels(context: modelContext)
+        XCTAssertEqual(removedCount, 1, "自定义标签重复也应被去重")
+    }
+    
+    func testInitializeAfterSync_NoDuplicates() {
+        // 模拟场景：iCloud同步下来了默认标签，然后本地再次调用初始化
+        // 手动插入一些"从另一台设备同步过来的"默认标签
+        let syncedLabel = CustomLabelConfig(
+            category: LabelCategory.painQuality.rawValue,
+            labelKey: "pulsating",
+            displayName: "搏动性",
+            isDefault: true,
+            subcategory: nil,
+            sortOrder: 0
+        )
+        modelContext.insert(syncedLabel)
+        try? modelContext.save()
+        
+        // 再调用初始化 —— 不应创建重复的 pulsating
+        LabelManager.shared.initializeDefaultLabelsIfNeeded(context: modelContext)
+        
+        let count = countLabels(category: "painQuality", labelKey: "pulsating")
+        XCTAssertEqual(count, 1, "已有同步标签后初始化不应创建重复")
+    }
+    
     // MARK: - 辅助方法
     
     private func countAllLabels() -> Int {
         let descriptor = FetchDescriptor<CustomLabelConfig>()
         return (try? modelContext.fetch(descriptor).count) ?? 0
+    }
+    
+    private func countLabels(category: String, labelKey: String) -> Int {
+        let descriptor = FetchDescriptor<CustomLabelConfig>(
+            predicate: #Predicate<CustomLabelConfig> { label in
+                label.category == category && label.labelKey == labelKey
+            }
+        )
+        return (try? modelContext.fetch(descriptor).count) ?? 0
+    }
+    
+    private func fetchLabels(category: String, labelKey: String) -> [CustomLabelConfig] {
+        let descriptor = FetchDescriptor<CustomLabelConfig>(
+            predicate: #Predicate<CustomLabelConfig> { label in
+                label.category == category && label.labelKey == labelKey
+            }
+        )
+        return (try? modelContext.fetch(descriptor)) ?? []
     }
 }

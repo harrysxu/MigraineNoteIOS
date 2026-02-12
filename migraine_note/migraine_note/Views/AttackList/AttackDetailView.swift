@@ -503,7 +503,7 @@ struct MedicationLogRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(log.medication?.name ?? "未知药物")
+                Text(log.displayName)
                     .appFont(.body)
                     .foregroundStyle(AppColors.textPrimary)
                     .fontWeight(.medium)

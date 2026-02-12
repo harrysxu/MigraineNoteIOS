@@ -13,6 +13,7 @@ import SwiftData
 /// 测试数据填充和管理视图 - 仅在 Debug 模式下可用
 struct TestDataView: View {
     @Environment(\.modelContext) private var modelContext
+    @State private var premiumManager = PremiumManager.shared
     
     // 发作记录参数
     @State private var monthCount: Int = 6
@@ -55,6 +56,9 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: Spacing.lg) {
                 // 警告提示
                 warningCard
+                
+                // 高级版测试开关
+                premiumTestCard
                 
                 // 数据预览
                 statisticsCard
@@ -159,6 +163,82 @@ struct TestDataView: View {
                     Text("此功能仅在 Debug 模式下可用，生成的数据会保存到数据库中")
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
+                }
+            }
+        }
+    }
+    
+    /// 高级版测试卡片
+    private var premiumTestCard: some View {
+        EmotionalCard(style: .elevated) {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader(
+                    icon: "crown.fill",
+                    title: "高级版测试",
+                    color: .orange
+                )
+                
+                Toggle(isOn: Binding(
+                    get: { premiumManager.debugPremiumOverride ?? false },
+                    set: { newValue in
+                        premiumManager.debugPremiumOverride = newValue
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("模拟高级版")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(Color.textPrimary)
+                        Text("开启后可测试所有高级功能，无需实际购买")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                }
+                .tint(Color.orange)
+                
+                // 当前状态显示
+                HStack {
+                    Text("当前状态")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.textSecondary)
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Circle()
+                            .fill(premiumManager.isPremium ? Color.green : Color.gray)
+                            .frame(width: 8, height: 8)
+                        Text(premiumManager.isPremium ? "高级版" : "免费版")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(premiumManager.isPremium ? Color.green : Color.textSecondary)
+                    }
+                }
+                .padding(12)
+                .background(Color.backgroundPrimary)
+                .cornerRadius(10)
+                
+                // 覆盖状态说明
+                if premiumManager.debugPremiumOverride != nil {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.blue)
+                        Text("测试模式已激活，高级版状态由此开关控制")
+                            .font(.caption)
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                    .padding(10)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                    
+                    Button {
+                        premiumManager.debugPremiumOverride = nil
+                    } label: {
+                        Text("重置为真实状态")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(Color.blue)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(Color.blue.opacity(0.1))
+                            .cornerRadius(8)
+                    }
                 }
             }
         }

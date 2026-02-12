@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>技术支持 - 偏头痛记录</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #333;
+            line-height: 1.8;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 48px 24px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 16px; opacity: 0.85; }
+        .container {
+            max-width: 800px;
+            margin: -24px auto 48px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        }
+        h2 {
+            font-size: 20px;
+            color: #1a1a2e;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+        h2:first-of-type { margin-top: 0; }
+        p, li { font-size: 15px; color: #555; margin-bottom: 8px; }
+        ul { padding-left: 24px; margin-bottom: 16px; }
+        .faq-item {
+            background: #f8f8fc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+        .faq-item h3 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .faq-item h3::before {
+            content: "Q: ";
+            color: #667eea;
+            font-weight: bold;
+        }
+        .faq-item p { margin-bottom: 0; }
+        .contact-card {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            border: 1px solid #667eea40;
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            margin-top: 24px;
+        }
+        .contact-card h3 { font-size: 18px; color: #333; margin-bottom: 16px; }
+        .contact-card a {
+            display: inline-block;
+            padding: 12px 32px;
+            background: #667eea;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+        .contact-card a:hover { background: #5a6fd6; }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 16px 0;
+        }
+        .feature-card {
+            background: #f8f8fc;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .feature-card .icon { font-size: 32px; margin-bottom: 8px; }
+        .feature-card h4 { font-size: 15px; color: #333; margin-bottom: 4px; }
+        .feature-card p { font-size: 13px; color: #888; margin-bottom: 0; }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 13px;
+            color: #999;
+        }
+        a { color: #667eea; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .back-link { display: inline-block; margin-bottom: 24px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 技术支持</h1>
+        <p>偏头痛记录 - 帮助与常见问题</p>
+    </div>
+
+    <div class="container">
+        <a href="index.html" class="back-link">← 返回首页</a>
+
+        <h2>应用简介</h2>
+        <p>偏头痛记录是一款专为偏头痛患者设计的专业健康管理工具。基于国际头痛学会（IHS）ICHD-3 诊断标准和《中国偏头痛诊断与治疗指南2024版》开发，帮助您科学记录每次发作，发现诱因规律，与医生更好地沟通。</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">📝</div>
+                <h4>发作记录</h4>
+                <p>全面记录疼痛、症状、诱因与用药</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🌤️</div>
+                <h4>天气追踪</h4>
+                <p>自动关联天气数据分析诱因</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📊</div>
+                <h4>数据分析</h4>
+                <p>多维度图表揭示发作规律</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📄</div>
+                <h4>医疗报告</h4>
+                <p>一键生成 PDF 就诊报告</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">💊</div>
+                <h4>药箱管理</h4>
+                <p>药物库存与 MOH 风险预警</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">☁️</div>
+                <h4>iCloud 同步</h4>
+                <p>多设备数据自动同步</p>
+            </div>
+        </div>
+
+        <h2>常见问题</h2>
+
+        <div class="faq-item">
+            <h3>如何记录一次偏头痛发作？</h3>
+            <p>在首页点击"开始记录"按钮即可开始记录。您可以记录疼痛强度（0-10级）、疼痛部位、症状、诱因、用药情况等信息。发作结束后点击"结束发作"记录结束时间。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>如何导出数据给医生？</h3>
+            <p>进入"我的"页面，点击"数据导出"，选择时间范围和导出格式（CSV 或 PDF）。PDF 格式会生成符合医学标准的专业报告，方便就诊使用。此功能为高级版功能。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>iCloud 同步如何使用？</h3>
+            <p>进入"设置 → iCloud 同步"，开启同步开关即可。数据将自动同步到您的 iCloud 私有数据库，您的所有 Apple 设备都可以访问。开启后需要重启应用生效。注意：iCloud 同步为高级版功能。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>如何管理订阅？</h3>
+            <p>本应用提供月度订阅、年度订阅和终身买断三种高级版方案。您可以在"我的"页面查看当前订阅状态。如需取消订阅，请前往 iPhone"设置 → Apple ID → 订阅"中管理。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>天气功能需要什么权限？</h3>
+            <p>天气追踪功能需要"使用期间"的位置权限，用于获取您所在位置的天气数据。位置信息仅在本地使用，不会上传到任何服务器。您可以在"设置 → 位置服务"中管理权限。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>经期关联分析功能是什么？</h3>
+            <p>本应用可以读取 Apple 健康中的经期数据，分析月经周期与偏头痛发作的关联。月经性偏头痛是常见的偏头痛类型，了解周期规律有助于预防和治疗。此功能需要授权访问 HealthKit 经期数据。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>我的数据安全吗？</h3>
+            <p>非常安全。所有数据仅存储在您的设备和您个人的 iCloud 私有数据库中，开发者和任何第三方都无法访问。本应用不含广告和追踪代码。详情请查看我们的<a href="privacy-policy.html">隐私政策</a>。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>如何恢复已购买的高级版？</h3>
+            <p>进入"我的"页面，点击"高级版"卡片进入订阅页面，在底部点击"恢复购买"即可恢复之前的购买记录。请确保使用的是与之前购买时相同的 Apple ID。</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>如何删除所有数据？</h3>
+            <p>进入"我的"页面，找到"重置所有数据"选项，确认后将清除所有本地和 iCloud 中的数据。请注意此操作不可撤销。</p>
+        </div>
+
+        <h2>联系我们</h2>
+        <div class="contact-card">
+            <h3>还有其他问题？</h3>
+            <p style="margin-bottom: 16px; color: #666;">我们很乐意帮助您解决问题</p>
+            <a href="mailto:ailehuoquan@163.com">📧 发送邮件</a>
+            <p style="margin-top: 12px; font-size: 13px; color: #999;">ailehuoquan@163.com</p>
+        </div>
+
+        <h2>其他链接</h2>
+        <ul>
+            <li><a href="privacy-policy.html">隐私政策</a></li>
+            <li><a href="terms-of-service.html">服务条款</a></li>
+            <li><a href="https://github.com/harrysxu/MigraineNoteIOS">GitHub 开源仓库</a></li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        <p>© 2026 徐晓龙. All rights reserved.</p>
+    </div>
+</body>
+</html>
