@@ -90,7 +90,7 @@ struct WelcomePage: View {
             }
             
             VStack(spacing: 16) {
-                Text("欢迎使用偏头痛记录")
+                Text("欢迎使用头痛管家")
                     .font(.title.bold())
                     .foregroundStyle(Color.textPrimary)
                     .multilineTextAlignment(.center)

@@ -2,7 +2,7 @@
 
 ## 📋 概述
 
-本文档指导如何配置偏头痛记录App的iCloud + CloudKit同步功能，实现多设备无缝数据同步。
+本文档指导如何配置头痛管家App的iCloud + CloudKit同步功能，实现多设备无缝数据同步。
 
 ## 🎯 设计目标
 
@@ -277,7 +277,7 @@ CloudKit支持后台同步（需要配置）：
 
 SwiftData默认使用 **Last Write Wins** 策略：
 - 最后写入的数据覆盖之前的版本
-- 对于偏头痛记录App，这是合理的策略
+- 对于头痛管家App，这是合理的策略
 - 如需自定义冲突解决，需要监听 `NSPersistentCloudKitContainer` 事件
 
 ### 问题：同步延迟

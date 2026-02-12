@@ -300,7 +300,7 @@ struct AccessibilityPreferences {
         }
         .accessibilityButton(
             label: "开始记录按钮",
-            hint: "双击以开始新的偏头痛记录"
+            hint: "双击以开始新的头痛记录"
         )
         .minimumTouchTarget()
     }

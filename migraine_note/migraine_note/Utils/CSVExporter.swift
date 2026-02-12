@@ -107,7 +107,7 @@ class CSVExporter {
         csvString += "\u{FEFF}"
         
         // 标题
-        csvString += "偏头痛综合数据报告\n"
+        csvString += "头痛管家综合数据报告\n"
         csvString += "统计时间范围: \(formatDate(dateRange.0)) 至 \(formatDate(dateRange.1))\n"
         csvString += "生成时间: \(formatDateTime(Date()))\n"
         csvString += "\n"
@@ -303,7 +303,7 @@ class CSVExporter {
         csvString += "\u{FEFF}"
         
         // 标题
-        csvString += "偏头痛数据统计报告\n"
+        csvString += "头痛管家数据统计报告\n"
         csvString += "统计时间范围: \(formatDate(dateRange.0)) 至 \(formatDate(dateRange.1))\n"
         csvString += "生成时间: \(formatDateTime(Date()))\n"
         csvString += "\n"

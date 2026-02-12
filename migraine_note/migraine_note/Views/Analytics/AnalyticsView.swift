@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
 import Charts
 
 struct AnalyticsView: View {

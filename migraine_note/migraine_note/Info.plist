@@ -13,6 +13,6 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleDisplayName</key>
-	<string>偏头痛记录</string>
+	<string>头痛管家</string>
 </dict>
 </plist>

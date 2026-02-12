@@ -1,4 +1,4 @@
-# 偏头痛记录 App Store 提交内容
+# 头痛管家 App Store 提交内容
 
 > 生成日期：2026-02-12
 > 版本：1.0 (Build 1)
@@ -10,7 +10,7 @@
 
 | 字段 | 值 |
 |---|---|
-| **Name（名称）** | 偏头痛记录 |
+| **Name（名称）** | 头痛管家 |
 | **Subtitle（副标题）** | 科学管理头痛健康日志 |
 | **Primary Category（主分类）** | Health & Fitness（健康健美） |
 | **Secondary Category（副分类）** | Medical（医疗） |
@@ -38,7 +38,7 @@
 ### Description（描述，4000 字符以内）
 
 ```
-偏头痛记录是一款专为偏头痛患者设计的专业健康管理工具。基于国际头痛学会（IHS）ICHD-3 诊断标准和《中国偏头痛诊断与治疗指南2024版》开发，帮助您科学记录每次发作，发现诱因规律，与医生更好地沟通。
+头痛管家是一款专为偏头痛患者设计的专业健康管理工具。基于国际头痛学会（IHS）ICHD-3 诊断标准和《中国偏头痛诊断与治疗指南2024版》开发，帮助您科学记录每次发作，发现诱因规律，与医生更好地沟通。
 
 【核心功能】
 
@@ -105,14 +105,14 @@
 • 关注头痛与天气、月经周期等因素关联的用户
 • 希望科学管理用药的患者
 
-隐私政策：https://harrysxu.github.io/MigraineNoteIOS/privacy-policy.html
+隐私政策：https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html
 用户协议：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 ```
 
 ### Keywords（关键词，100 字符以内，逗号分隔）
 
 ```
-偏头痛,头痛,头痛日记,偏头痛记录,用药记录,天气头痛,头痛分析,医疗报告,健康记录,migraine
+偏头痛,头痛,头痛日记,头痛管家,用药记录,天气头痛,头痛分析,医疗报告,健康记录,migraine
 ```
 
 ### What's New（更新说明）
@@ -134,8 +134,8 @@
 
 | 字段 | 值 |
 |---|---|
-| **Support URL（技术支持 URL）** | https://harrysxu.github.io/MigraineNoteIOS/support.html |
-| **Marketing URL（营销 URL）** | https://harrysxu.github.io/MigraineNoteIOS/ |
+| **Support URL（技术支持 URL）** | https://harrysxu.github.io/MigraineNoteIOS/pages/support.html |
+| **Marketing URL（营销 URL）** | https://harrysxu.github.io/MigraineNoteIOS/pages/ |
 
 ### Copyright（版权）
 
@@ -149,7 +149,7 @@
 
 | 字段 | 值 |
 |---|---|
-| **Privacy Policy URL（隐私政策 URL）** | https://harrysxu.github.io/MigraineNoteIOS/privacy-policy.html |
+| **Privacy Policy URL（隐私政策 URL）** | https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html |
 
 ### Data Collection Declaration（数据收集声明）
 
@@ -212,7 +212,7 @@
 感谢审核团队的时间！以下是关于本应用的补充说明：
 
 【应用概述】
-偏头痛记录是一款偏头痛患者的健康管理工具。用户可以记录每次偏头痛发作的详细信息（时间、疼痛强度、症状、诱因、用药等），并通过数据分析功能发现发作规律。
+头痛管家是一款偏头痛患者的健康管理工具。用户可以记录每次偏头痛发作的详细信息（时间、疼痛强度、症状、诱因、用药等），并通过数据分析功能发现发作规律。
 
 【应用内购买说明】
 本应用采用 Freemium 模式，基础记录功能免费，高级功能需要订阅或买断：
@@ -239,7 +239,7 @@
 【法律链接位置】
 - App 描述末尾包含隐私政策和用户协议 URL
 - 订阅购买页面（SubscriptionView）底部包含"使用条款"和"隐私政策"链接
-- 隐私政策：https://harrysxu.github.io/MigraineNoteIOS/privacy-policy.html
+- 隐私政策：https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html
 - 使用条款：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 
 【数据存储】
@@ -267,9 +267,9 @@
 | **Product ID** | `com.migrainenote.pro.monthly` |
 | **Type** | 自动续订订阅（Auto-Renewable Subscription） |
 | **Price（价格等级）** | ¥3（Tier 对应 $0.99 USD） |
-| **Subscription Group** | Migraine Note Pro |
+| **Subscription Group** | Headache Butler Pro |
 | **Display Name（本地化显示名）** | 月度订阅 |
-| **Description（本地化描述）** | 按月订阅偏头痛记录高级版，解锁全部专业功能，包括数据分析、报告导出、iCloud 同步等。 |
+| **Description（本地化描述）** | 按月订阅头痛管家高级版，解锁全部专业功能，包括数据分析、报告导出、iCloud 同步等。 |
 
 ### 产品 2：年度订阅
 
@@ -279,9 +279,9 @@
 | **Product ID** | `com.migrainenote.pro.yearly` |
 | **Type** | 自动续订订阅（Auto-Renewable Subscription） |
 | **Price（价格等级）** | ¥8（Tier 对应 $1.99 USD） |
-| **Subscription Group** | Migraine Note Pro |
+| **Subscription Group** | Headache Butler Pro |
 | **Display Name（本地化显示名）** | 年度订阅 |
-| **Description（本地化描述）** | 按年订阅偏头痛记录高级版，最划算的选择，解锁全部专业功能。 |
+| **Description（本地化描述）** | 按年订阅头痛管家高级版，最划算的选择，解锁全部专业功能。 |
 
 ### 产品 3：终身买断
 
@@ -292,14 +292,14 @@
 | **Type** | 非消耗型（Non-Consumable） |
 | **Price（价格等级）** | ¥18（Tier 对应 $4.99 USD） |
 | **Display Name（本地化显示名）** | 终身高级版 |
-| **Description（本地化描述）** | 一次购买，永久使用偏头痛记录全部高级功能，无需再付费。 |
+| **Description（本地化描述）** | 一次购买，永久使用头痛管家全部高级功能，无需再付费。 |
 
 ### IAP 审核备注
 
 ```
 本应用使用 StoreKit 2 API 处理所有内购。
 
-订阅产品（月度和年度）为自动续订订阅，属于同一个订阅组 "Migraine Note Pro"。
+订阅产品（月度和年度）为自动续订订阅，属于同一个订阅组 "Headache Butler Pro"。
 终身买断为非消耗型产品。
 
 购买流程：用户进入"我的"页面 → 点击"高级版"卡片 → 进入 SubscriptionView → 选择方案 → 点击购买按钮 → Apple 支付流程。
@@ -352,9 +352,9 @@
 
 - [x] ✅ **Guideline 3.1.2**: App 描述末尾包含隐私政策和用户协议 URL
 - [x] ✅ **Guideline 3.1.2**: 购买页面（SubscriptionView）包含"使用条款"和"隐私政策"链接
-- [x] ✅ **隐私政策 URL** — https://harrysxu.github.io/MigraineNoteIOS/privacy-policy.html
-- [x] ✅ **技术支持 URL** — https://harrysxu.github.io/MigraineNoteIOS/support.html
-- [x] ✅ **CFBundleDisplayName** — 已设置为"偏头痛记录"
+- [x] ✅ **隐私政策 URL** — https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html
+- [x] ✅ **技术支持 URL** — https://harrysxu.github.io/MigraineNoteIOS/pages/support.html
+- [x] ✅ **CFBundleDisplayName** — 已设置为"头痛管家"
 - [x] ✅ **ITSAppUsesNonExemptEncryption** — 已设置为 NO
 - [x] ✅ **NSLocationWhenInUseUsageDescription** — 已设置且说明清晰
 - [x] ✅ **NSHealthShareUsageDescription** — 已设置且说明清晰
@@ -382,10 +382,10 @@
 
 | 用途 | URL | 状态 |
 |---|---|---|
-| 隐私政策 | https://harrysxu.github.io/MigraineNoteIOS/privacy-policy.html | ✅ 已创建 |
-| 服务条款 | https://harrysxu.github.io/MigraineNoteIOS/terms-of-service.html | ✅ 已创建 |
-| 技术支持 | https://harrysxu.github.io/MigraineNoteIOS/support.html | ✅ 已创建 |
-| 营销页面 | https://harrysxu.github.io/MigraineNoteIOS/ | ✅ 已创建 |
+| 隐私政策 | https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html | ✅ 已创建 |
+| 服务条款 | https://harrysxu.github.io/MigraineNoteIOS/pages/terms-of-service.html | ✅ 已创建 |
+| 技术支持 | https://harrysxu.github.io/MigraineNoteIOS/pages/support.html | ✅ 已创建 |
+| 营销页面 | https://harrysxu.github.io/MigraineNoteIOS/pages/ | ✅ 已创建 |
 | EULA | https://www.apple.com/legal/internet-services/itunes/dev/stdeula/ | ✅ Apple 标准 |
 | 开源代码 | https://github.com/harrysxu/MigraineNoteIOS | ✅ 已有 |
 | 联系邮箱 | ailehuoquan@163.com | ✅ 已配置 |

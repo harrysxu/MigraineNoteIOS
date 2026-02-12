@@ -595,7 +595,7 @@ struct AboutView: View {
                         .sensoryFeedback(.impact, trigger: logoTapCount)
                         #endif
                     
-                    Text("偏头痛记录")
+                    Text("头痛管家")
                         .font(.title2.bold())
                     
                     Text("版本 \(appVersion) (\(buildNumber))")
@@ -616,7 +616,7 @@ struct AboutView: View {
             }
             
             Section("应用介绍") {
-                Text("一款专业的偏头痛管理工具，基于国际头痛学会（IHS）ICHD-3诊断标准和《中国偏头痛诊断与治疗指南2024版》开发。")
+                Text("一款专业的头痛管理工具，基于国际头痛学会（IHS）ICHD-3诊断标准和《中国偏头痛诊断与治疗指南2024版》开发。")
                     .font(.body)
                     .foregroundColor(.secondary)
             }
@@ -660,7 +660,7 @@ struct AboutView: View {
             }
             
             Section {
-                Link(destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/support.html")!) {
+                Link(destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/pages/support.html")!) {
                     Label("使用指南", systemImage: "book.fill")
                 }
                 

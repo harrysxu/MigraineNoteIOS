@@ -319,7 +319,7 @@ struct SubscriptionView: View {
                         .font(.caption2)
                         .foregroundStyle(Color.textTertiary)
                     
-                    Link("隐私政策", destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/privacy-policy.html")!)
+                    Link("隐私政策", destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html")!)
                         .font(.caption2)
                 }
             }

@@ -135,9 +135,9 @@ final class CSVExporterTests: XCTestCase {
     // MARK: - generateFilename 测试
     
     func testGenerateFilename_WithPrefix() {
-        let filename = exporter.generateFilename(prefix: "偏头痛记录")
+        let filename = exporter.generateFilename(prefix: "头痛管家")
         
-        XCTAssertTrue(filename.hasPrefix("偏头痛记录_"))
+        XCTAssertTrue(filename.hasPrefix("头痛管家_"))
         XCTAssertTrue(filename.hasSuffix(".csv"))
     }
     

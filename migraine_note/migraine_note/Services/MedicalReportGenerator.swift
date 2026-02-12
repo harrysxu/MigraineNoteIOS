@@ -55,10 +55,10 @@ class MedicalReportGenerator {
         // 创建PDF渲染器
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
-            kCGPDFContextTitle as String: "偏头痛医疗报告",
-            kCGPDFContextAuthor as String: "偏头痛记录App",
+            kCGPDFContextTitle as String: "头痛医疗报告",
+            kCGPDFContextAuthor as String: "头痛管家App",
             kCGPDFContextSubject as String: "医疗数据分析报告",
-            kCGPDFContextCreator as String: "Migraine Note iOS App"
+            kCGPDFContextCreator as String: "头痛管家 iOS App"
         ]
         
         let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
@@ -305,7 +305,7 @@ class MedicalReportGenerator {
         
         // 主标题
         let titleFont = UIFont.systemFont(ofSize: 24, weight: .bold)
-        let titleText = "偏头痛医疗报告"
+        let titleText = "头痛医疗报告"
         let titleAttrs: [NSAttributedString.Key: Any] = [
             .font: titleFont,
             .foregroundColor: UIColor.label
@@ -318,7 +318,7 @@ class MedicalReportGenerator {
         
         // 副标题
         let subtitleFont = UIFont.systemFont(ofSize: 12, weight: .regular)
-        let subtitleText = "Migraine Medical Report"
+        let subtitleText = "Headache Medical Report"
         let subtitleAttrs: [NSAttributedString.Key: Any] = [
             .font: subtitleFont,
             .foregroundColor: UIColor.secondaryLabel

@@ -158,7 +158,7 @@ let infoFont = UIFont.systemFont(ofSize: 11)
 ### 必测场景（iOS 17.6+）
 
 - [ ] **数据持久化**
-  - [ ] 创建偏头痛记录
+  - [ ] 创建头痛记录
   - [ ] 编辑记录
   - [ ] 删除记录
   - [ ] iCloud 同步

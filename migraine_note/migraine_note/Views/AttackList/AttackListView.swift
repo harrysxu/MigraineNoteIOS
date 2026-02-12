@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import CoreData
 
 struct AttackListView: View {
     @Environment(\.modelContext) private var modelContext

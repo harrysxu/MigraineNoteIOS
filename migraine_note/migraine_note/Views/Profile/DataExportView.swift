@@ -332,7 +332,7 @@ struct DataExportView: View {
         let tempDirectory = FileManager.default.temporaryDirectory
         let startStr = formatDate(dateRange.start)
         let endStr = formatDate(dateRange.end)
-        let filename = "migraine_health_data_\(startStr)_to_\(endStr).csv"
+        let filename = "headache_butler_health_data_\(startStr)_to_\(endStr).csv"
         let fileURL = tempDirectory.appendingPathComponent(filename)
         
         // 如果旧文件存在，先删除
@@ -366,7 +366,7 @@ struct DataExportView: View {
         let tempDirectory = FileManager.default.temporaryDirectory
         let startStr = formatDate(dateRange.start)
         let endStr = formatDate(dateRange.end)
-        let filename = "migraine_medical_report_\(startStr)_to_\(endStr).pdf"
+        let filename = "headache_butler_medical_report_\(startStr)_to_\(endStr).pdf"
         let fileURL = tempDirectory.appendingPathComponent(filename)
         
         // 如果旧文件存在，先删除

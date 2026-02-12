@@ -352,7 +352,7 @@ extension View {
     EmptyStateView(
         icon: "doc.text",
         title: "暂无记录",
-        message: "点击\"开始记录\"按钮创建您的第一条偏头痛记录",
+        message: "点击\"开始记录\"按钮创建您的第一条头痛记录",
         actionTitle: "开始记录",
         action: {}
     )
