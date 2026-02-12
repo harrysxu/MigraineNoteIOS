@@ -532,13 +532,6 @@ class CloudKitManager {
     }
 }
 
-// MARK: - 通知名称
-
-extension Notification.Name {
-    /// CloudKit 首次同步完成通知（标签等依赖数据可以安全初始化）
-    static let cloudKitInitialSyncCompleted = Notification.Name("cloudKitInitialSyncCompleted")
-}
-
 // MARK: - 同步时间中文格式化
 
 extension Date {

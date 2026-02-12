@@ -17,7 +17,8 @@ struct ProfileView: View {
     // 移除了 @Query 全量加载 attacks/healthEvents/medicationLogs
     // 改为按需查询当月数据，大幅降低内存占用
     
-    @State private var cloudKitManager = CloudKitManager()
+    /// 使用单例，避免多个实例重复注册通知观察者
+    private var cloudKitManager: CloudKitManager { CloudKitManager.shared }
     @State private var premiumManager = PremiumManager.shared
     @State private var showResetDataConfirm = false
     @State private var showClearDataSuccess = false

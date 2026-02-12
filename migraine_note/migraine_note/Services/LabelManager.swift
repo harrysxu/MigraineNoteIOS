@@ -101,7 +101,7 @@ class LabelManager {
         var sortOrder = 0
         
         // ── 症状：西医 ──
-        let westernSymptoms: [(String, String)] = [
+        let westernSymptoms: [(key: String, name: String)] = [
             ("nausea", "恶心"), ("vomiting", "呕吐"), ("photophobia", "畏光"),
             ("phonophobia", "畏声"), ("osmophobia", "气味敏感"), ("allodynia", "头皮触痛"),
             ("neckStiffness", "颈部僵硬"), ("fatigue", "疲乏"), ("blurredVision", "视物模糊"),
@@ -122,7 +122,7 @@ class LabelManager {
         }
         
         // ── 症状：中医 ──
-        let tcmSymptoms: [(String, String)] = [
+        let tcmSymptoms: [(key: String, name: String)] = [
             ("bitterTaste", "口苦"), ("facialFlushing", "面红目赤"), ("coldExtremities", "手脚冰凉"),
             ("heavyHeadedness", "头重如裹"), ("dizziness", "眩晕"), ("palpitation", "心悸"),
             ("greasyTongue", "舌苔厚腻"), ("hypochondriacPain", "胁痛"), ("constipation", "大便干结")
@@ -307,7 +307,7 @@ class LabelManager {
         return insertedCount
     }
     
-    // MARK: - 首次同步后标签去重
+    // MARK: - 初始化先兆标签
     
     private func initializeAuraLabels(context: ModelContext, existingKeys: Set<String>) -> Int {
         var insertedCount = 0
