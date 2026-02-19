@@ -51,7 +51,7 @@ extension DetailedMedicationStatistics {
         dateRange: (start: Date, end: Date)
     ) -> DetailedMedicationStatistics {
         let calendar = Calendar.current
-        let (start, end) = dateRange
+        let (_, _) = dateRange  // 参数保留供将来使用
         
         // 1. 统计急性用药（仅来自发作记录）
         let acuteMedicationDaysSet = Set(

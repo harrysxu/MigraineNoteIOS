@@ -213,7 +213,9 @@ class StoreKitManager {
         return Task.detached {
             for await result in Transaction.updates {
                 do {
-                    let transaction = try self.checkVerified(result)
+                    let transaction = try await MainActor.run {
+                        try self.checkVerified(result)
+                    }
                     
                     await self.updatePurchaseStatus()
                     
@@ -227,6 +229,7 @@ class StoreKitManager {
     
     // MARK: - 验证交易
     
+    @MainActor
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         switch result {
         case .unverified:

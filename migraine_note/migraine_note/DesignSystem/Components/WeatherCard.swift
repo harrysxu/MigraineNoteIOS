@@ -152,6 +152,13 @@ struct WeatherCard: View {
                             }
                             .padding(.top, 4)
                         }
+                        
+                        // Apple Weather 归属信息
+                        if !weather.isManuallyEdited {
+                            Divider()
+                                .padding(.top, 8)
+                            WeatherAttribution(style: .compact)
+                        }
                     }
                     
                 } else if isLoading {

@@ -630,6 +630,10 @@ struct AboutView: View {
                 Label("iCloud跨设备同步", systemImage: "icloud.fill")
             }
             
+            Section("天气数据来源") {
+                WeatherAttribution(style: .full)
+            }
+            
             Section("技术栈") {
                 HStack {
                     Text("UI框架")

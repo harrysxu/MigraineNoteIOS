@@ -603,6 +603,12 @@ struct WeatherInsightCard: View {
                                 }
                             }
                         }
+                        
+                        // Apple Weather 归属信息
+                        if !weather.warnings.isEmpty {
+                            Divider()
+                        }
+                        WeatherAttribution(style: .compact)
                     }
                 }
             } else if isLocationDenied {

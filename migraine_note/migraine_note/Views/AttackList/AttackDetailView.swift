@@ -439,6 +439,13 @@ struct AttackDetailView: View {
                         }
                     }
                 }
+                
+                // Apple Weather 归属信息
+                if !weather.isManuallyEdited {
+                    Divider()
+                    WeatherAttribution(style: .compact)
+                        .padding(.top, 4)
+                }
             }
         }
     }
