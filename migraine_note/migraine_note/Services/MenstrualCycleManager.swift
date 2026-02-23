@@ -4,7 +4,7 @@
 //
 //  Created by AI Assistant on 2026/2/6.
 //
-//  经期/激素追踪 - 通过 HealthKit 读取经期数据
+//  经期/激素追踪 - 通过 Apple 健康 HealthKit API 读取经期数据
 //  分析偏头痛与月经周期的关联
 //
 
@@ -33,13 +33,13 @@ class MenstrualCycleManager {
     /// 请求 HealthKit 经期数据权限
     func requestAuthorization() async -> Bool {
         guard isAvailable else {
-            errorMessage = "此设备不支持 HealthKit"
+            errorMessage = "此设备不支持 Apple 健康（HealthKit）功能"
             return false
         }
         
         // 需要读取的数据类型
         guard let menstrualFlowType = HKCategoryType.categoryType(forIdentifier: .menstrualFlow) else {
-            errorMessage = "无法访问经期数据类型"
+            errorMessage = "无法访问 Apple 健康中的经期数据类型"
             return false
         }
         

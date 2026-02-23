@@ -51,7 +51,7 @@ enum PremiumFeature: String, CaseIterable {
         case .dataExport: return "CSV/PDF 数据导出，方便就诊使用"
         case .medicalReport: return "生成专业 A4 医疗报告 PDF"
         case .iCloudSync: return "多设备自动同步数据"
-        case .menstrualAnalysis: return "HealthKit 经期数据关联分析"
+        case .menstrualAnalysis: return "从 Apple 健康读取经期数据进行关联分析"
         case .customLabels: return "自定义症状、诱因、疼痛性质标签"
         case .medicationReminder: return "定时推送用药提醒通知"
         case .weatherTracking: return "自动记录发作时的天气状况"

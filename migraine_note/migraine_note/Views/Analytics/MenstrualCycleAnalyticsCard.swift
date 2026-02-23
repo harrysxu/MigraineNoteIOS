@@ -23,11 +23,16 @@ struct MenstrualCycleAnalyticsCard: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 // 标题
                 HStack(spacing: 8) {
-                    Image(systemName: "figure.wave")
+                    Image(systemName: "heart.circle.fill")
                         .foregroundStyle(Color.gentlePink)
-                    Text("经期关联分析")
-                        .font(.headline)
-                        .foregroundStyle(Color.textPrimary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("经期关联分析")
+                            .font(.headline)
+                            .foregroundStyle(Color.textPrimary)
+                        Text("来自 Apple 健康")
+                            .font(.caption2)
+                            .foregroundStyle(Color.textTertiary)
+                    }
                     
                     Spacer()
                     
@@ -112,43 +117,89 @@ struct MenstrualCycleAnalyticsCard: View {
     
     private var notAvailableView: some View {
         HStack(spacing: 12) {
-            Image(systemName: "exclamationmark.circle")
+            Image(systemName: "heart.slash.circle")
                 .foregroundStyle(Color.textTertiary)
-            Text("此设备不支持 HealthKit")
-                .font(.subheadline)
-                .foregroundStyle(Color.textSecondary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("此设备不支持 Apple 健康")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.textSecondary)
+                Text("需要 iOS 设备上的 HealthKit 功能")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
         }
     }
     
     private var unauthorizedView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("连接 Apple 健康数据")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.textPrimary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "heart.text.square.fill")
+                    .font(.title2)
+                    .foregroundStyle(Color.accentPrimary)
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("连接 Apple 健康数据")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.textPrimary)
+                    
+                    Text("使用 HealthKit 读取经期数据")
+                        .font(.caption2)
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
             
-            Text("授权后可自动读取经期数据，分析月经周期与偏头痛发作的关联。")
+            Text("授权后将从「健康」App 自动读取您的经期数据，分析月经周期与偏头痛发作的关联，帮助识别月经性偏头痛。")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
+                .lineSpacing(4)
+            
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.caption2)
+                    .foregroundStyle(Color.statusSuccess)
+                
+                Text("所有数据仅在本地分析，不会上传到任何服务器")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.statusSuccess.opacity(0.1))
+            .cornerRadius(8)
         }
     }
     
     private var noDataView: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "calendar.badge.exclamationmark")
-                .foregroundStyle(Color.textTertiary)
-            Text("未找到经期记录，请在「健康」App中记录经期数据")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "calendar.badge.exclamationmark")
+                    .foregroundStyle(Color.textTertiary)
+                Text("未找到经期记录")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textPrimary)
+            }
+            
+            Text("请在「健康」App 中记录经期数据。打开「健康」→「浏览」→「经期追踪」进行记录。")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
+                .lineSpacing(4)
         }
     }
     
     private var insufficientDataView: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "chart.bar.doc.horizontal")
-                .foregroundStyle(Color.textTertiary)
-            Text("经期数据不足，至少需要2个周期才能分析")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .foregroundStyle(Color.textTertiary)
+                Text("经期数据不足")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.textPrimary)
+            }
+            
+            Text("至少需要 2 个完整的月经周期才能进行关联分析。请在「健康」App 中继续记录经期数据。")
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
+                .lineSpacing(4)
         }
     }
     
