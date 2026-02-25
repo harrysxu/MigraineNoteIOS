@@ -34,14 +34,14 @@ struct InterventionLabelEditor: View {
                 .onMove(perform: moveLabels)
             } header: {
                 HStack {
-                    Text("非药物干预")
+                    Text(String(localized: "label.category.intervention"))
                     Spacer()
-                    Text("\(labels.count) 个")
+                    Text(String(format: String(localized: "editor.label.countFormat"), labels.count))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
             } footer: {
-                Text("长按拖动可调整顺序，默认标签只能隐藏不能删除")
+                Text(String(localized: "editor.footer.dragHint"))
                     .font(.caption)
             }
             
@@ -53,7 +53,7 @@ struct InterventionLabelEditor: View {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(Color.accentPrimary)
-                        Text("添加自定义干预方式")
+                        Text(String(localized: "editor.intervention.addButton"))
                             .foregroundStyle(Color.textPrimary)
                     }
                 }

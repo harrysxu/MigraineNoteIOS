@@ -23,9 +23,17 @@ struct MedicationPickerSheet: View {
     @State private var timeTaken: Date = Date()
     
     enum MedicationCategoryFilter: String, CaseIterable {
-        case all = "全部"
-        case acute = "急性用药"
-        case preventive = "预防性用药"
+        case all = "all"
+        case acute = "acute"
+        case preventive = "preventive"
+        
+        var localizedDisplayName: String {
+            switch self {
+            case .all: return String(localized: "medication.filter.all")
+            case .acute: return String(localized: "medication.filter.acute")
+            case .preventive: return String(localized: "medication.filter.preventive")
+            }
+        }
         
         var systemImage: String {
             switch self {
@@ -73,16 +81,16 @@ struct MedicationPickerSheet: View {
                     medicationListView
                 }
             }
-            .navigationTitle("选择药物")
+            .navigationTitle(String(localized: "medication.select"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: "搜索药物名称")
+            .searchable(text: $searchText, prompt: String(localized: "medication.searchPrompt"))
         }
     }
     
@@ -94,11 +102,11 @@ struct MedicationPickerSheet: View {
                 .font(.system(size: 80))
                 .foregroundStyle(Color.textSecondary.opacity(0.5))
             
-            Text("药箱是空的")
+            Text(String(localized: "medication.cabinetEmpty"))
                 .font(.title2.weight(.bold))
                 .foregroundStyle(Color.textPrimary)
             
-            Text("请先在药箱中添加常用药物")
+            Text(String(localized: "medication.addHint"))
                 .font(.body)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -122,7 +130,7 @@ struct MedicationPickerSheet: View {
                             HStack(spacing: 6) {
                                 Image(systemName: category.systemImage)
                                     .font(.caption)
-                                Text(category.rawValue)
+                                Text(category.localizedDisplayName)
                                     .font(.subheadline.weight(.medium))
                             }
                             .foregroundStyle(selectedCategory == category ? .white : Color.textPrimary)
@@ -169,11 +177,11 @@ struct MedicationPickerSheet: View {
                 .font(.system(size: 50))
                 .foregroundStyle(Color.textSecondary.opacity(0.5))
             
-            Text("未找到匹配的药物")
+            Text(String(localized: "medication.noResults"))
                 .font(.headline)
                 .foregroundStyle(Color.textPrimary)
             
-            Text("尝试调整搜索或筛选条件")
+            Text(String(localized: "medication.noResultsHint"))
                 .font(.body)
                 .foregroundStyle(Color.textSecondary)
         }
@@ -201,7 +209,7 @@ struct MedicationPickerSheet: View {
                             
                             Spacer()
                             
-                            Text(medication.isAcute ? "急性" : "预防")
+                            Text(medication.isAcute ? String(localized: "medication.type.acute") : String(localized: "medication.type.preventive"))
                                 .font(.caption)
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 10)
@@ -225,12 +233,12 @@ struct MedicationPickerSheet: View {
                         HStack {
                             Image(systemName: "pills.fill")
                                 .foregroundStyle(Color.accentPrimary)
-                            Text("剂量")
+                            Text(String(localized: "health.event.dosage"))
                                 .font(.headline)
                         }
                         
                         HStack(spacing: 12) {
-                            TextField("剂量", value: $dosage, format: .number)
+                            TextField(String(localized: "health.event.dosage"), value: $dosage, format: .number)
                                 .keyboardType(.decimalPad)
                                 .font(.title2.weight(.medium))
                                 .foregroundStyle(Color.textPrimary)
@@ -252,7 +260,7 @@ struct MedicationPickerSheet: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "wand.and.stars")
                                         .font(.caption)
-                                    Text("使用标准剂量：\(medication.standardDosage, specifier: "%.1f") \(medication.unit)")
+                                    Text(String(format: String(localized: "medication.standardDoseHint"), String(format: "%.1f", medication.standardDosage), medication.unit))
                                         .font(.subheadline)
                                 }
                                 .foregroundStyle(Color.accentPrimary)
@@ -272,12 +280,12 @@ struct MedicationPickerSheet: View {
                         HStack {
                             Image(systemName: "clock.fill")
                                 .foregroundStyle(Color.accentPrimary)
-                            Text("服用时间")
+                            Text(String(localized: "health.event.timeTaken"))
                                 .font(.headline)
                         }
                         
                         DatePicker(
-                            "时间",
+                            String(localized: "common.time"),
                             selection: $timeTaken,
                             displayedComponents: [.date, .hourAndMinute]
                         )
@@ -288,7 +296,7 @@ struct MedicationPickerSheet: View {
                 
                 // 确认按钮
                 PrimaryButton(
-                    title: "添加用药记录",
+                    title: String(localized: "medication.addRecord"),
                     action: {
                         onSelect(medication, dosage, timeTaken)
                         dismiss()
@@ -309,7 +317,7 @@ struct MedicationPickerSheet: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
-                        Text("返回")
+                        Text(String(localized: "common.back"))
                     }
                 }
             }
@@ -423,7 +431,7 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("药物选择") {
+                Section(String(localized: "medication.section.selection")) {
                     // 从药箱选择按钮（始终显示）
                     if !allMedications.isEmpty {
                         Button {
@@ -432,7 +440,7 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
                             HStack {
                                 Image(systemName: "list.bullet.rectangle")
                                     .foregroundStyle(Color.accentPrimary)
-                                Text("从药箱选择")
+                                Text(String(localized: "medication.selectFromCabinet"))
                                     .foregroundStyle(Color.textPrimary)
                                 Spacer()
                                 if selectedMedication != nil {
@@ -440,7 +448,7 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
                                         .font(.subheadline)
                                         .foregroundStyle(Color.textSecondary)
                                 } else {
-                                    Text("共\(allMedications.count)个药品")
+                                    Text(String(format: String(localized: "medication.totalItems"), allMedications.count))
                                         .font(.caption)
                                         .foregroundStyle(Color.textTertiary)
                                 }
@@ -454,7 +462,7 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
                     // 或手动输入
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            TextField("或手动输入药物名称", text: $searchText)
+                            TextField(String(localized: "medication.manualInputPlaceholder"), text: $searchText)
                                 .textInputAutocapitalization(.never)
                                 .onChange(of: searchText) {
                                     if isSelectingFromCabinet {
@@ -479,22 +487,22 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
                         
                         // 提示信息
                         if medicationExists && isManualInput {
-                            Label("药箱中已有此药品，可点击上方【从药箱选择】", systemImage: "info.circle")
+                            Label(String(localized: "medication.existsInCabinetHint"), systemImage: "info.circle")
                                 .font(.caption)
                                 .foregroundStyle(Color.accentPrimary)
                         }
                     }
                 }
                 
-                Section("剂量信息") {
+                Section(String(localized: "medication.section.dosage")) {
                     HStack {
-                        TextField("剂量", text: $dosage)
+                        TextField(String(localized: "health.event.dosage"), text: $dosage)
                             .keyboardType(.decimalPad)
                         
-                        Picker("单位", selection: $unit) {
+                        Picker(String(localized: "medication.unit"), selection: $unit) {
                             Text("mg").tag("mg")
-                            Text("片").tag("片")
-                            Text("粒").tag("粒")
+                            Text(String(localized: "medication.unit.tablet")).tag("片")
+                            Text(String(localized: "medication.unit.capsule")).tag("粒")
                             Text("g").tag("g")
                             Text("ml").tag("ml")
                         }
@@ -510,25 +518,25 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
                     }
                 }
                 
-                Section("服用时间") {
-                    DatePicker("时间", selection: $timeTaken, displayedComponents: [.date, .hourAndMinute])
+                Section(String(localized: "medication.section.time")) {
+                    DatePicker(String(localized: "common.time"), selection: $timeTaken, displayedComponents: [.date, .hourAndMinute])
                 }
                 
                 if shouldShowSyncOption {
                     Section {
-                        Toggle("同步到药箱", isOn: $saveToMedicineBox)
+                        Toggle(String(localized: "medication.syncToCabinet"), isOn: $saveToMedicineBox)
                         
                         if saveToMedicineBox {
                             VStack(alignment: .leading, spacing: 8) {
-                                Label("将使用以下默认设置:", systemImage: "info.circle")
+                                Label(String(localized: "medication.defaultSyncSettings"), systemImage: "info.circle")
                                     .font(.caption)
                                     .foregroundStyle(Color.textSecondary)
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("• 药物类型: 其他")
-                                    Text("• 用药类型: 急需用药")
-                                    Text("• 标准剂量: 1")
-                                    Text("• 库存: 6")
+                                    Text(String(localized: "medication.syncDefault.type"))
+                                    Text(String(localized: "medication.syncDefault.usage"))
+                                    Text(String(localized: "medication.syncDefault.dose"))
+                                    Text(String(localized: "medication.syncDefault.inventory"))
                                 }
                                 .font(.caption)
                                 .foregroundStyle(Color.textTertiary)
@@ -536,24 +544,24 @@ struct UnifiedMedicationInputSheet<ViewModel: MedicationManaging>: View {
                             .padding(.top, 4)
                         }
                     } header: {
-                        Text("药箱管理")
+                        Text(String(localized: "medication.cabinetManage"))
                     } footer: {
                         if saveToMedicineBox {
-                            Text("保存后可在药箱中修改详细信息")
+                            Text(String(localized: "medication.editAfterSave"))
                         }
                     }
                 }
             }
-            .navigationTitle("添加用药记录")
+            .navigationTitle(String(localized: "medication.addRecord"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         isPresented = false
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("添加") {
+                    Button(String(localized: "common.add")) {
                         addMedication()
                     }
                     .disabled(!canSubmit)
@@ -648,11 +656,11 @@ struct MedicationSelectionList: View {
                     .padding(.vertical, 4)
                 }
             }
-            .navigationTitle("选择药物")
+            .navigationTitle(String(localized: "medication.select"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }

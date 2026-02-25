@@ -104,14 +104,14 @@ struct WeatherAttribution: View {
                 Spacer()
             }
             
-            Text("天气数据由 Apple Weather 提供")
+            Text(String(localized: "weather.attribution"))
                 .font(.body)
                 .foregroundStyle(Color.textSecondary)
             
             if let link = attributionLink {
                 Link(destination: link) {
                     HStack(spacing: 6) {
-                        Text("数据来源与归属")
+                        Text(String(localized: "component.weather.attributionLink"))
                             .font(.subheadline)
                         Image(systemName: "arrow.up.right")
                             .font(.caption)

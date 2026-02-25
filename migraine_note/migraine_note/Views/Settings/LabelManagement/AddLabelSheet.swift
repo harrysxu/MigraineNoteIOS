@@ -31,10 +31,10 @@ struct AddLabelSheet: View {
                         .font(.largeTitle)
                         .foregroundStyle(Color.accentPrimary)
                     
-                    Text("添加自定义\(categoryDisplayName)")
+                    Text(String(format: String(localized: "editor.addLabel.addTitleFormat"), categoryDisplayName))
                         .font(.headline)
                     
-                    Text("输入标签名称(\(minLabelLength)-\(maxLabelLength)个字符)，方便下次快速选择")
+                    Text(String(format: String(localized: "editor.addLabel.hintFormat"), minLabelLength, maxLabelLength))
                         .font(.subheadline)
                         .foregroundStyle(Color.textSecondary)
                         .multilineTextAlignment(.center)
@@ -43,7 +43,7 @@ struct AddLabelSheet: View {
                 
                 // 输入框
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    TextField("标签名称", text: $labelName)
+                    TextField(String(localized: "editor.addLabel.namePlaceholder"), text: $labelName)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
                         .onChange(of: labelName) { _, newValue in
@@ -81,17 +81,17 @@ struct AddLabelSheet: View {
                 
                 Spacer()
             }
-            .navigationTitle("添加自定义标签")
+            .navigationTitle(String(localized: "editor.addLabel.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("添加") {
+                    Button(String(localized: "common.add")) {
                         addLabel()
                     }
                     .disabled(labelName.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -105,17 +105,17 @@ struct AddLabelSheet: View {
         switch category {
         case .symptom:
             if let sub = subcategory {
-                return sub == SymptomSubcategory.western.rawValue ? "西医症状" : "中医症状"
+                return sub == SymptomSubcategory.western.rawValue ? String(localized: "label.symptomSubcategory.western") : String(localized: "label.symptomSubcategory.tcm")
             }
-            return "症状"
+            return String(localized: "label.category.symptom")
         case .trigger:
-            return "诱因"
+            return String(localized: "label.category.trigger")
         case .painQuality:
-            return "疼痛性质"
+            return String(localized: "label.category.painQuality")
         case .intervention:
-            return "非药物干预"
+            return String(localized: "label.category.intervention")
         case .aura:
-            return "先兆"
+            return String(localized: "label.category.auraShort")
         }
     }
     
@@ -123,17 +123,17 @@ struct AddLabelSheet: View {
         let trimmedName = labelName.trimmingCharacters(in: .whitespaces)
         
         guard !trimmedName.isEmpty else {
-            errorMessage = "标签名称不能为空"
+            errorMessage = String(localized: "validation.label.empty")
             return
         }
         
         guard trimmedName.count >= minLabelLength else {
-            errorMessage = "标签名称至少需要\(minLabelLength)个字符"
+            errorMessage = String(format: String(localized: "validation.label.minLengthFormat"), minLabelLength)
             return
         }
         
         guard trimmedName.count <= maxLabelLength else {
-            errorMessage = "标签名称不能超过\(maxLabelLength)个字符"
+            errorMessage = String(format: String(localized: "validation.label.maxLengthFormat"), maxLabelLength)
             return
         }
         
@@ -154,16 +154,16 @@ struct AddLabelSheet: View {
             if let labelError = error as? LabelError {
                 switch labelError {
                 case .duplicateName:
-                    errorMessage = "该标签已存在"
+                    errorMessage = String(localized: "validation.label.duplicateName")
                 case .nameTooLong:
-                    errorMessage = "标签名称过长，最多\(maxLabelLength)个字符"
+                    errorMessage = String(format: String(localized: "validation.label.tooLongFormat"), maxLabelLength)
                 case .invalidName:
-                    errorMessage = "标签名称无效"
+                    errorMessage = String(localized: "validation.label.invalid")
                 case .cannotDeleteDefault, .cannotEditDefault:
-                    errorMessage = "操作失败"
+                    errorMessage = String(localized: "validation.label.operationFailed")
                 }
             } else {
-                errorMessage = "添加失败，请重试"
+                errorMessage = String(localized: "validation.label.addFailed")
             }
             
             // 错误触觉反馈

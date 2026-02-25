@@ -53,13 +53,17 @@ final class Medication {
 }
 
 enum MedicationCategory: String, Codable, CaseIterable {
-    case nsaid = "非甾体抗炎药(NSAID)"
-    case triptan = "曲普坦类"
-    case opioid = "阿片类"
-    case ergotamine = "麦角胺类"
-    case preventive = "预防性药物"
-    case tcmHerbal = "中成药"
-    case other = "其他"
+    case nsaid = "nsaid"
+    case triptan = "triptan"
+    case opioid = "opioid"
+    case ergotamine = "ergotamine"
+    case preventive = "preventive"
+    case tcmHerbal = "tcmHerbal"
+    case other = "other"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("medication.category.\(rawValue)"))
+    }
     
     var isAcuteMedication: Bool {
         switch self {

@@ -57,17 +57,17 @@ struct SubscriptionView: View {
                 }
             }
         }
-        .alert("购买成功", isPresented: $showSuccessAlert) {
-            Button("好的") {
+        .alert("premium.purchaseSuccess", isPresented: $showSuccessAlert) {
+            Button("common.ok") {
                 dismiss()
             }
         } message: {
-            Text("恭喜！您已成功升级为高级版，所有功能已解锁。")
+            Text("premium.purchaseSuccessMessage")
         }
-        .alert("恢复购买", isPresented: $showRestoreAlert) {
-            Button("确定", role: .cancel) {}
+        .alert("premium.restore", isPresented: $showRestoreAlert) {
+            Button("common.ok", role: .cancel) {}
         } message: {
-            Text(storeManager.errorMessage ?? "恢复购买完成")
+            Text(storeManager.errorMessage ?? String(localized: "premium.restoreComplete"))
         }
         .onChange(of: storeManager.purchaseState) { _, newValue in
             if newValue == .purchased {
@@ -94,11 +94,11 @@ struct SubscriptionView: View {
                 )
                 .padding(.top, Spacing.xl)
             
-            Text("升级高级版")
+            Text("premium.upgradeHeader")
                 .font(.largeTitle.bold())
                 .foregroundStyle(Color.textPrimary)
             
-            Text("解锁全部专业功能，让偏头痛管理更高效")
+            Text("premium.upgradeSubtitle")
                 .font(.body)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -149,7 +149,7 @@ struct SubscriptionView: View {
     
     private var pricingSection: some View {
         VStack(spacing: Spacing.sm) {
-            Text("选择方案")
+            Text("premium.selectPlan")
                 .font(.headline)
                 .foregroundStyle(Color.textPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -183,7 +183,7 @@ struct SubscriptionView: View {
                             .foregroundStyle(Color.textPrimary)
                         
                         if plan.isBestValue {
-                            Text("最划算")
+                            Text("premium.bestValue")
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
@@ -272,17 +272,17 @@ struct SubscriptionView: View {
     
     private var purchaseButtonTitle: String {
         if storeManager.purchaseState == .purchasing {
-            return "处理中..."
+            return String(localized: "premium.processing")
         }
         
         let price = storeManager.localizedPrice(for: selectedPlan)
         switch selectedPlan {
         case .monthly:
-            return "以 \(price)/月 订阅"
+            return String(format: String(localized: "premium.subscribeMonth"), price)
         case .yearly:
-            return "以 \(price)/年 订阅"
+            return String(format: String(localized: "premium.subscribeYear"), price)
         case .lifetime:
-            return "以 \(price) 买断"
+            return String(format: String(localized: "premium.buyLifetime"), price)
         }
     }
     
@@ -296,30 +296,30 @@ struct SubscriptionView: View {
                     await storeManager.restorePurchases()
                 }
             } label: {
-                Text("恢复购买")
+                Text("premium.restore")
                     .font(.subheadline)
                     .foregroundStyle(Color.accentPrimary)
             }
             
             // 法律文字
             VStack(spacing: 6) {
-                Text("订阅将自动续订，除非在当前订阅期结束前至少24小时关闭自动续订。")
+                Text("premium.termsHint")
                     .font(.caption2)
                     .foregroundStyle(Color.textTertiary)
                 
-                Text("续订费用将在当前订阅期结束前24小时内从您的 Apple ID 账户中扣取。")
+                Text("premium.termsHint2")
                     .font(.caption2)
                     .foregroundStyle(Color.textTertiary)
                 
                 HStack(spacing: 12) {
-                    Link("使用条款", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
+                    Link("premium.termsOfUse", destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                         .font(.caption2)
                     
                     Text("·")
                         .font(.caption2)
                         .foregroundStyle(Color.textTertiary)
                     
-                    Link("隐私政策", destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html")!)
+                    Link("premium.privacyPolicy", destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html")!)
                         .font(.caption2)
                 }
             }

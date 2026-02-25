@@ -35,7 +35,7 @@ struct LabelRow: View {
             
             // 标识
             if label.isDefault {
-                Text("默认")
+                Text(String(localized: "label.badge.default"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
@@ -43,7 +43,7 @@ struct LabelRow: View {
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(4)
             } else {
-                Text("自定义")
+                Text(String(localized: "label.badge.custom"))
                     .font(.caption)
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
@@ -59,13 +59,13 @@ struct LabelRow: View {
                         newName = label.displayName
                         showRenameAlert = true
                     } label: {
-                        Label("重命名", systemImage: "pencil")
+                        Label(String(localized: "editor.action.rename"), systemImage: "pencil")
                     }
                     
                     Button(role: .destructive) {
                         onAction(.delete)
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(String(localized: "editor.action.delete"), systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -77,17 +77,17 @@ struct LabelRow: View {
         .background(AppColors.backgroundSecondary)
         .cornerRadius(AppSpacing.cornerRadiusSmall)
         .opacity(label.isHidden ? 0.6 : 1.0)
-        .alert("重命名标签", isPresented: $showRenameAlert) {
-            TextField("新名称", text: $newName)
-            Button("取消", role: .cancel) {}
-            Button("确定") {
+        .alert(String(localized: "editor.rename.title"), isPresented: $showRenameAlert) {
+            TextField(String(localized: "editor.rename.placeholder"), text: $newName)
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.confirm")) {
                 let trimmed = newName.trimmingCharacters(in: .whitespaces)
                 if !trimmed.isEmpty && trimmed.count <= 10 {
                     onAction(.rename(newName: trimmed))
                 }
             }
         } message: {
-            Text("请输入新的标签名称(最多10个字符)")
+            Text(String(localized: "validation.rename.maxChars"))
         }
     }
 }

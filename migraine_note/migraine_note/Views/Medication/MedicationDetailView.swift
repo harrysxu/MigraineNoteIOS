@@ -100,7 +100,7 @@ struct MedicationDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("关闭") {
+                    Button("common.close") {
                         dismiss()
                     }
                 }
@@ -110,35 +110,35 @@ struct MedicationDetailView: View {
                         Button {
                             showingInventorySheet = true
                         } label: {
-                            Label("调整库存", systemImage: "shippingbox")
+                            Label("medication.detail.adjustStock", systemImage: "shippingbox")
                         }
                         
                         Button {
                             showingEditSheet = true
                         } label: {
-                            Label("编辑", systemImage: "pencil")
+                            Label("common.edit", systemImage: "pencil")
                         }
                         
                         Button(role: .destructive) {
                             showingDeleteAlert = true
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label("common.delete", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
                 }
             }
-            .alert("删除药物", isPresented: $showingDeleteAlert) {
-                Button("取消", role: .cancel) { }
-                Button("删除", role: .destructive) {
+            .alert("medication.detail.deleteConfirm", isPresented: $showingDeleteAlert) {
+                Button("common.cancel", role: .cancel) { }
+                Button("common.delete", role: .destructive) {
                     deleteMedication()
                 }
             } message: {
-                Text("确定要删除这个药物吗？相关的用药记录不会被删除。")
+                Text("medication.detail.deleteMessage")
             }
             .sheet(isPresented: $showingEditSheet) {
-                Text("编辑功能即将推出")
+                Text("medication.detail.editComing")
                     .padding()
             }
             .sheet(isPresented: $showingInventorySheet) {
@@ -153,20 +153,20 @@ struct MedicationDetailView: View {
     // MARK: - Basic Info Card
     
     private var basicInfoCard: some View {
-        DetailCard(title: "基本信息", icon: "info.circle") {
+        DetailCard(title: String(localized: "medication.detail.basicInfo"), icon: "info.circle") {
             VStack(spacing: AppSpacing.medium) {
                 // 药物类别和类型
                 HStack(spacing: AppSpacing.medium) {
                     InfoPill(
-                        label: "药物类别",
+                        label: String(localized: "medication.detail.category"),
                         value: medication.category.rawValue,
                         icon: "pills",
                         color: Color.accentPrimary
                     )
                     
                     InfoPill(
-                        label: "用药类型",
-                        value: medication.isAcute ? "急性用药" : "预防性用药",
+                        label: String(localized: "medication.detail.type"),
+                        value: medication.isAcute ? String(localized: "medication.detail.acute") : String(localized: "medication.detail.preventive"),
                         icon: medication.isAcute ? "bolt.fill" : "shield.fill",
                         color: medication.isAcute ? AppColors.warning : AppColors.info
                     )
@@ -177,7 +177,7 @@ struct MedicationDetailView: View {
                 // 剂量和限制
                 VStack(spacing: AppSpacing.small) {
                     HStack {
-                        Label("标准剂量", systemImage: "scalemass")
+                        Label("medication.detail.standardDosage", systemImage: "scalemass")
                             .appFont(.subheadline)
                             .foregroundStyle(AppColors.textSecondary)
                         
@@ -190,13 +190,13 @@ struct MedicationDetailView: View {
                     
                     if let limit = medication.monthlyLimit {
                         HStack {
-                            Label("月度限制", systemImage: "calendar.badge.exclamationmark")
+                            Label(String(localized: "medication.detail.monthlyLimit"), systemImage: "calendar.badge.exclamationmark")
                                 .appFont(.subheadline)
                                 .foregroundStyle(AppColors.textSecondary)
                             
                             Spacer()
                             
-                            Text("\(limit) 天")
+                            Text("\(limit) \(String(localized: "form.unit.day"))")
                                 .appFont(.headline)
                                 .foregroundStyle(AppColors.textPrimary)
                         }
@@ -209,24 +209,24 @@ struct MedicationDetailView: View {
     // MARK: - Usage Stats Card
     
     private var usageStatsCard: some View {
-        DetailCard(title: "使用统计", icon: "chart.bar") {
+        DetailCard(title: String(localized: "medication.detail.usageStats"), icon: "chart.bar") {
             VStack(spacing: AppSpacing.medium) {
                 // 本月使用和总使用
                 HStack(spacing: AppSpacing.medium) {
                     EnhancedStatItem(
-                        title: "本月使用",
+                        title: String(localized: "medication.detail.monthlyUsage"),
                         value: "\(monthlyUsageDays)",
                         icon: "calendar",
                         color: monthlyUsageDays >= (medication.monthlyLimit ?? 100) ? AppColors.error : Color.accentPrimary,
-                        subtitle: "天"
+                        subtitle: String(localized: "form.unit.day")
                     )
                     
                     EnhancedStatItem(
-                        title: "总使用",
+                        title: String(localized: "medication.detail.totalUsage"),
                         value: "\(totalUsageCount)",
                         icon: "number",
                         color: Color.accentPrimary,
-                        subtitle: "次"
+                        subtitle: String(localized: "form.unit.count")
                     )
                 }
                 
@@ -249,7 +249,7 @@ struct MedicationDetailView: View {
         let isApproaching = monthlyUsageDays >= limit - 3 && !isExceeding
         
         return DetailCard(
-            title: "MOH 风险",
+            title: String(localized: "medication.detail.mohRisk"),
             icon: "exclamationmark.triangle.fill"
         ) {
             VStack(alignment: .leading, spacing: AppSpacing.medium) {
@@ -259,7 +259,7 @@ struct MedicationDetailView: View {
                         .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundStyle(mohRiskColor(progress))
                     
-                    Text("/ \(limit) 天")
+                    Text("/ \(limit) \(String(localized: "form.unit.day"))")
                         .appFont(.title3)
                         .foregroundStyle(AppColors.textSecondary)
                     
@@ -270,7 +270,7 @@ struct MedicationDetailView: View {
                             .font(.system(size: 24, weight: .semibold, design: .rounded))
                             .foregroundStyle(mohRiskColor(progress))
                         
-                        Text("使用率")
+                        Text(String(localized: "medication.usageRate"))
                             .appFont(.caption)
                             .foregroundStyle(AppColors.textSecondary)
                     }
@@ -340,24 +340,24 @@ struct MedicationDetailView: View {
     
     private func mohRiskMessage(isExceeding: Bool, isApproaching: Bool) -> String {
         if isExceeding {
-            return "已超过 MOH 阈值，请咨询医生"
+            return String(localized: "medication.detail.mohExceeded")
         } else if isApproaching {
-            return "接近 MOH 阈值，请注意控制用药频率"
+            return String(localized: "medication.detail.mohApproaching")
         } else {
-            return "用药频率正常"
+            return String(localized: "medication.detail.mohNormal")
         }
     }
     
     // MARK: - Inventory Card
     
     private var inventoryCard: some View {
-        DetailCard(title: "库存管理", icon: "shippingbox") {
+        DetailCard(title: String(localized: "medication.detail.inventory"), icon: "shippingbox") {
             VStack(spacing: AppSpacing.medium) {
                 // 库存显示
                 HStack(spacing: AppSpacing.large) {
                     // 左侧库存信息
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("当前库存")
+                        Text(String(localized: "medication.detail.currentStock"))
                             .appFont(.subheadline)
                             .foregroundStyle(AppColors.textSecondary)
                         
@@ -366,7 +366,7 @@ struct MedicationDetailView: View {
                                 .font(.system(size: 48, weight: .bold, design: .rounded))
                                 .foregroundStyle(inventoryColor)
                             
-                            Text("片")
+                            Text(String(localized: "medication.unit.tablet"))
                                 .appFont(.title3)
                                 .foregroundStyle(AppColors.textSecondary)
                         }
@@ -398,7 +398,7 @@ struct MedicationDetailView: View {
                         Image(systemName: medication.inventory == 0 ? "xmark.circle.fill" : "exclamationmark.triangle.fill")
                             .foregroundStyle(medication.inventory == 0 ? AppColors.error : AppColors.warning)
                         
-                        Text(medication.inventory == 0 ? "库存已用完，请及时补充" : "库存不足，建议补充")
+                        Text(medication.inventory == 0 ? String(localized: "medication.detail.stockOut") : String(localized: "medication.detail.lowStock"))
                             .appFont(.subheadline)
                             .foregroundStyle(medication.inventory == 0 ? AppColors.error : AppColors.warning)
                         
@@ -415,7 +415,7 @@ struct MedicationDetailView: View {
                 } label: {
                     HStack {
                         Image(systemName: "slider.horizontal.3")
-                        Text("调整库存")
+                        Text(String(localized: "medication.detail.adjustStock"))
                             .appFont(.body)
                             .fontWeight(.medium)
                     }
@@ -432,14 +432,14 @@ struct MedicationDetailView: View {
     // MARK: - Usage History Card
     
     private var usageHistoryCard: some View {
-        DetailCard(title: "使用历史", icon: "clock.arrow.circlepath") {
+        DetailCard(title: String(localized: "medication.detail.usageHistory"), icon: "clock.arrow.circlepath") {
             VStack(spacing: AppSpacing.small) {
                 ForEach(medicationLogs.prefix(10)) { log in
                     UsageHistoryRow(log: log)
                 }
                 
                 if medicationLogs.count > 10 {
-                    Text("显示最近10条记录，共\(medicationLogs.count)条")
+                    Text(String(format: String(localized: "medication.detail.usageHistoryFormat"), medicationLogs.count))
                         .appFont(.caption)
                         .foregroundStyle(AppColors.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -452,7 +452,7 @@ struct MedicationDetailView: View {
     // MARK: - Notes Card
     
     private func notesCard(_ notes: String) -> some View {
-        DetailCard(title: "备注", icon: "note.text") {
+        DetailCard(title: String(localized: "medication.detail.notes"), icon: "note.text") {
             HStack(alignment: .top, spacing: AppSpacing.small) {
                 Image(systemName: "quote.opening")
                     .font(.caption)
@@ -618,17 +618,17 @@ struct InventoryAdjustmentSheet: View {
             Form {
                 Section {
                     HStack {
-                        Text("当前库存")
+                        Text(String(localized: "medication.detail.currentStock"))
                         Spacer()
                         Text("\(currentInventory)")
                             .foregroundStyle(AppColors.textSecondary)
                     }
                 }
                 
-                Section("调整库存") {
+                Section("medication.detail.adjustStock") {
                     Stepper(value: $newInventory, in: 0...999) {
                         HStack {
-                            Text("新库存")
+                            Text("medication.inventory.newStock")
                         Spacer()
                         Text("\(newInventory)")
                             .foregroundStyle(Color.accentPrimary)
@@ -637,7 +637,7 @@ struct InventoryAdjustmentSheet: View {
                     }
                     
                     HStack {
-                        Text("变化")
+                        Text("medication.inventory.change")
                         Spacer()
                         let diff = newInventory - currentInventory
                         Text(diff >= 0 ? "+\(diff)" : "\(diff)")
@@ -646,17 +646,17 @@ struct InventoryAdjustmentSheet: View {
                     }
                 }
             }
-            .navigationTitle("调整库存")
+            .navigationTitle("medication.detail.adjustStock")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") {
+                    Button("common.cancel") {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("保存") {
+                    Button("common.save") {
                         saveInventory()
                     }
                     .disabled(newInventory == currentInventory)
@@ -761,7 +761,7 @@ struct EffectivenessCard: View {
             
             // 疗效信息
             VStack(alignment: .leading, spacing: 4) {
-                Text("平均疗效")
+                Text("medication.detail.avgEffectiveness")
                     .appFont(.subheadline)
                     .foregroundStyle(AppColors.textSecondary)
                 
@@ -800,13 +800,13 @@ struct EffectivenessCard: View {
     
     private var effectivenessLabel: String {
         if value >= 4.5 {
-            return "非常有效"
+            return String(localized: "medication.detail.effectiveness.excellent")
         } else if value >= 3.5 {
-            return "较为有效"
+            return String(localized: "medication.detail.effectiveness.good")
         } else if value >= 2.5 {
-            return "一般"
+            return String(localized: "medication.detail.effectiveness.moderate")
         } else {
-            return "效果不佳"
+            return String(localized: "medication.detail.effectiveness.poor")
         }
     }
 }

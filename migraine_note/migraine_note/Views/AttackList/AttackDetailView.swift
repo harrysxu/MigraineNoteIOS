@@ -67,11 +67,11 @@ struct AttackDetailView: View {
                     .padding(AppSpacing.medium)
                 }
             }
-            .navigationTitle("记录详情")
+            .navigationTitle(String(localized: "record.detail.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("关闭") {
+                    Button(String(localized: "common.close")) {
                         dismiss()
                     }
                 }
@@ -81,26 +81,26 @@ struct AttackDetailView: View {
                         Button {
                             showingEditSheet = true
                         } label: {
-                            Label("编辑", systemImage: "pencil")
+                            Label(String(localized: "common.edit"), systemImage: "pencil")
                         }
                         
                         Button(role: .destructive) {
                             showingDeleteAlert = true
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label(String(localized: "common.delete"), systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
                 }
             }
-            .alert("删除记录", isPresented: $showingDeleteAlert) {
-                Button("取消", role: .cancel) { }
-                Button("删除", role: .destructive) {
+            .alert(String(localized: "alert.delete.record"), isPresented: $showingDeleteAlert) {
+                Button(String(localized: "common.cancel"), role: .cancel) { }
+                Button(String(localized: "common.delete"), role: .destructive) {
                     deleteAttack()
                 }
             } message: {
-                Text("确定要删除这条记录吗？此操作无法撤销。")
+                Text(String(localized: "alert.delete.confirm"))
             }
             .sheet(isPresented: $showingEditSheet) {
                 EditAttackView(attack: attack, modelContext: modelContext)
@@ -114,7 +114,7 @@ struct AttackDetailView: View {
         VStack(spacing: AppSpacing.medium) {
             // 疼痛强度
             VStack(spacing: 8) {
-                Text("疼痛强度")
+                Text(String(localized: "form.pain.intensity"))
                     .appFont(.caption)
                     .foregroundStyle(AppColors.textSecondary)
                 
@@ -137,7 +137,7 @@ struct AttackDetailView: View {
             
             // 持续时间
             VStack(spacing: 4) {
-                Text("持续时间")
+                Text(String(localized: "form.duration"))
                     .appFont(.caption)
                     .foregroundStyle(AppColors.textSecondary)
                 
@@ -156,14 +156,14 @@ struct AttackDetailView: View {
     // MARK: - Time Info Card
     
     private var timeDetailCard: some View {
-        DetailCard(title: "时间信息", icon: "clock") {
+        DetailCard(title: String(localized: "form.time.info"), icon: "clock") {
             VStack(spacing: AppSpacing.small) {
-                InfoRow(label: "开始时间", value: attack.startTime.fullDateTime())
+                InfoRow(label: String(localized: "form.start.time"), value: attack.startTime.fullDateTime())
                 
                 if let endTime = attack.endTime {
-                    InfoRow(label: "结束时间", value: endTime.fullDateTime())
+                    InfoRow(label: String(localized: "form.end.time"), value: endTime.fullDateTime())
                 } else {
-                    InfoRow(label: "状态", value: "进行中", valueColor: AppColors.warning)
+                    InfoRow(label: String(localized: "form.status"), value: String(localized: "status.in.progress"), valueColor: AppColors.warning)
                 }
             }
         }
@@ -172,12 +172,12 @@ struct AttackDetailView: View {
     // MARK: - Pain Details Card
     
     private var painDetailsCard: some View {
-        DetailCard(title: "疼痛详情", icon: "exclamationmark.circle") {
+        DetailCard(title: String(localized: "form.pain.detail"), icon: "exclamationmark.circle") {
             VStack(spacing: AppSpacing.small) {
                 // 疼痛部位
                 if !attack.painLocations.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("疼痛部位")
+                        Text(String(localized: "form.pain.location"))
                             .appFont(.caption)
                             .foregroundStyle(AppColors.textSecondary)
                         
@@ -199,7 +199,7 @@ struct AttackDetailView: View {
                 // 疼痛性质
                 if !attack.painQualities.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("疼痛性质")
+                        Text(String(localized: "form.pain.quality"))
                             .appFont(.caption)
                             .foregroundStyle(AppColors.textSecondary)
                         
@@ -224,14 +224,14 @@ struct AttackDetailView: View {
     // MARK: - Symptoms Card
     
     private var symptomsCard: some View {
-        DetailCard(title: "症状与先兆", icon: "waveform.path.ecg") {
+        DetailCard(title: String(localized: "detail.symptoms.aura"), icon: "waveform.path.ecg") {
             VStack(alignment: .leading, spacing: AppSpacing.small) {
                 // 先兆
                 if attack.hasAura {
                     HStack {
                         Image(systemName: "sparkles")
                             .foregroundStyle(AppColors.warning)
-                        Text("有先兆")
+                        Text(String(localized: "detail.has.aura"))
                             .appFont(.body)
                             .foregroundStyle(AppColors.textPrimary)
                         Spacer()
@@ -277,7 +277,7 @@ struct AttackDetailView: View {
     // MARK: - Triggers Card
     
     private var triggersCard: some View {
-        DetailCard(title: "可能诱因", icon: "exclamationmark.triangle") {
+        DetailCard(title: String(localized: "detail.triggers"), icon: "exclamationmark.triangle") {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(attack.triggers) { trigger in
                     HStack(spacing: 6) {
@@ -299,7 +299,7 @@ struct AttackDetailView: View {
     // MARK: - Medications Card
     
     private var medicationsCard: some View {
-        DetailCard(title: "用药记录", icon: "pills.fill") {
+        DetailCard(title: String(localized: "detail.medication.logs"), icon: "pills.fill") {
             VStack(spacing: AppSpacing.small) {
                 ForEach(attack.medicationLogs) { log in
                     MedicationLogRowView(log: log)
@@ -311,7 +311,7 @@ struct AttackDetailView: View {
     // MARK: - Non-Pharm Interventions Card
     
     private var nonPharmInterventionsCard: some View {
-        DetailCard(title: "非药物干预", icon: "leaf.fill") {
+        DetailCard(title: String(localized: "detail.non.pharm"), icon: "leaf.fill") {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(attack.nonPharmInterventions, id: \.self) { intervention in
                     Text(intervention.rawValue)
@@ -329,7 +329,7 @@ struct AttackDetailView: View {
     // MARK: - Weather Card
     
     private func weatherCard(_ weather: WeatherSnapshot) -> some View {
-        DetailCard(title: "天气状况", icon: "cloud.sun") {
+        DetailCard(title: String(localized: "weather.status"), icon: "cloud.sun") {
             VStack(spacing: AppSpacing.medium) {
                 // 顶部：温度和天气状况
                 HStack(spacing: AppSpacing.medium) {
@@ -380,7 +380,7 @@ struct AttackDetailView: View {
                     HStack(spacing: 12) {
                         WeatherDetailBox(
                             icon: "gauge.high",
-                            label: "气压",
+                            label: String(localized: "weather.pressure"),
                             value: String(format: "%.0f", weather.pressure),
                             unit: "hPa",
                             trend: weather.pressureTrend
@@ -388,7 +388,7 @@ struct AttackDetailView: View {
                         
                         WeatherDetailBox(
                             icon: "humidity",
-                            label: "湿度",
+                            label: String(localized: "weather.humidity"),
                             value: String(format: "%.0f", weather.humidity),
                             unit: "%"
                         )
@@ -397,15 +397,15 @@ struct AttackDetailView: View {
                     HStack(spacing: 12) {
                         WeatherDetailBox(
                             icon: "wind",
-                            label: "风速",
+                            label: String(localized: "weather.wind.speed"),
                             value: String(format: "%.1f", weather.windSpeed),
                             unit: "m/s"
                         )
                         
                         WeatherDetailBox(
                             icon: weather.isHighRisk ? "exclamationmark.triangle.fill" : "checkmark.shield.fill",
-                            label: "风险",
-                            value: weather.isHighRisk ? "高" : "低",
+                            label: String(localized: "weather.risk"),
+                            value: weather.isHighRisk ? String(localized: "weather.risk.high") : String(localized: "weather.risk.low"),
                             unit: "",
                             isWarning: weather.isHighRisk
                         )
@@ -417,7 +417,7 @@ struct AttackDetailView: View {
                     Divider()
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("⚠️ 环境风险提示")
+                        Text(String(localized: "alert.environment.risk"))
                             .appFont(.subheadline)
                             .foregroundStyle(AppColors.warning)
                             .fontWeight(.semibold)
@@ -453,7 +453,7 @@ struct AttackDetailView: View {
     // MARK: - Notes Card
     
     private func notesCard(_ notes: String) -> some View {
-        DetailCard(title: "备注", icon: "note.text") {
+        DetailCard(title: String(localized: "form.notes"), icon: "note.text") {
             Text(notes)
                 .appFont(.body)
                 .foregroundStyle(AppColors.textPrimary)
@@ -469,9 +469,9 @@ struct AttackDetailView: View {
         let minutes = Int((duration.truncatingRemainder(dividingBy: 3600)) / 60)
         
         if hours > 0 {
-            return "\(hours)小时\(minutes)分钟"
+            return "\(hours)\(String(localized: "form.duration.hour"))\(minutes)\(String(localized: "form.duration.minute"))"
         } else {
-            return "\(minutes)分钟"
+            return "\(minutes)\(String(localized: "form.duration.minute"))"
         }
     }
     
@@ -528,7 +528,7 @@ struct MedicationLogRowView: View {
                         .appFont(.caption)
                         .foregroundStyle(AppColors.textSecondary)
                 } else {
-                    Label("未分类", systemImage: "pills")
+                    Label(String(localized: "form.uncategorized"), systemImage: "pills")
                         .appFont(.caption)
                         .foregroundStyle(AppColors.textSecondary)
                 }

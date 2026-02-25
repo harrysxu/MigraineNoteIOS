@@ -39,10 +39,10 @@ struct SymptomLabelEditor: View {
                         HStack {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(AppColors.primary)
-                            Text("症状标签管理")
+                            Text(String(localized: "editor.symptom.title"))
                                 .font(.headline)
                         }
-                        Text("默认标签可以隐藏但不能删除，自定义标签可以随时修改和删除。")
+                        Text(String(localized: "editor.symptom.description"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -51,7 +51,7 @@ struct SymptomLabelEditor: View {
                 
                 // 西医症状
                 labelSection(
-                    title: "西医症状",
+                    title: String(localized: "editor.symptom.sectionWestern"),
                     icon: "stethoscope",
                     labels: westernSymptoms,
                     subcategory: .western
@@ -59,7 +59,7 @@ struct SymptomLabelEditor: View {
                 
                 // 中医症状
                 labelSection(
-                    title: "中医症状",
+                    title: String(localized: "editor.symptom.sectionTcm"),
                     icon: "leaf.fill",
                     labels: tcmSymptoms,
                     subcategory: .tcm
@@ -87,8 +87,8 @@ struct SymptomLabelEditor: View {
         .sheet(isPresented: $showAddSheet) {
             AddSymptomLabelSheet()
         }
-        .alert("错误", isPresented: $showError) {
-            Button("确定", role: .cancel) {}
+        .alert(String(localized: "common.error"), isPresented: $showError) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -159,9 +159,9 @@ struct AddSymptomLabelSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("标签信息") {
+                Section(String(localized: "section.labelInfo")) {
                     VStack(alignment: .leading, spacing: 4) {
-                        TextField("症状名称", text: $labelName)
+                        TextField(String(localized: "editor.symptom.namePlaceholder"), text: $labelName)
                             .onChange(of: labelName) { _, newValue in
                                 // 限制输入长度
                                 if newValue.count > maxLabelLength {
@@ -177,37 +177,37 @@ struct AddSymptomLabelSheet: View {
                         }
                     }
                     
-                    Picker("类型", selection: $selectedSubcategory) {
-                        Text("西医症状").tag(SymptomSubcategory.western)
-                        Text("中医症状").tag(SymptomSubcategory.tcm)
+                    Picker(String(localized: "editor.type"), selection: $selectedSubcategory) {
+                        Text(String(localized: "label.symptomSubcategory.western")).tag(SymptomSubcategory.western)
+                        Text(String(localized: "label.symptomSubcategory.tcm")).tag(SymptomSubcategory.tcm)
                     }
                     .pickerStyle(.segmented)
                 }
                 
                 Section {
-                    Text("添加后，该症状将出现在记录流程的症状选择界面。标签长度限制为\(maxLabelLength)个字符。")
+                    Text(String(format: String(localized: "editor.symptom.addHint"), maxLabelLength))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("添加症状标签")
+            .navigationTitle(String(localized: "editor.symptom.addTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(String(localized: "common.save")) {
                         saveLabel()
                     }
                     .disabled(labelName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
-            .alert("错误", isPresented: $showError) {
-                Button("确定", role: .cancel) {}
+            .alert(String(localized: "common.error"), isPresented: $showError) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(errorMessage)
             }

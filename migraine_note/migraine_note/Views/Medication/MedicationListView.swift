@@ -32,7 +32,7 @@ struct MedicationListView: View {
                     medicationListContent
                 }
             }
-            .navigationTitle("药箱")
+            .navigationTitle(String(localized: "medication.cabinet"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -44,18 +44,18 @@ struct MedicationListView: View {
                     }
                 }
             }
-            .searchable(text: $viewModel.searchText, prompt: "搜索药物名称或类别")
+            .searchable(text: $viewModel.searchText, prompt: String(localized: "medication.searchPromptExtended"))
             .sheet(isPresented: $showingAddSheet) {
                 AddMedicationView()
             }
             .sheet(item: $selectedMedication) { medication in
                 MedicationDetailView(medication: medication)
             }
-            .alert("确认删除药物", isPresented: $showDeleteConfirmation) {
-                Button("取消", role: .cancel) {
+            .alert(String(localized: "medication.deleteConfirmTitle"), isPresented: $showDeleteConfirmation) {
+                Button(String(localized: "common.cancel"), role: .cancel) {
                     medicationToDelete = nil
                 }
-                Button("删除", role: .destructive) {
+                Button(String(localized: "common.delete"), role: .destructive) {
                     if let medication = medicationToDelete {
                         viewModel.deleteMedication(medication, from: modelContext)
                     }
@@ -63,7 +63,7 @@ struct MedicationListView: View {
                 }
             } message: {
                 if let medication = medicationToDelete {
-                    Text("确定要从药箱中删除「\(medication.name)」吗？相关的用药记录不会被删除。")
+                    Text(String(format: String(localized: "medication.deleteConfirm"), medication.name))
                 }
             }
         }
@@ -77,11 +77,11 @@ struct MedicationListView: View {
                 .font(.system(size: 80))
                 .foregroundStyle(AppColors.textSecondary.opacity(0.5))
             
-            Text("药箱是空的")
+            Text(String(localized: "medication.cabinetEmpty"))
                 .appFont(.title)
                 .foregroundStyle(AppColors.textPrimary)
             
-            Text("添加您常用的药物以便快速记录")
+            Text(String(localized: "medication.addHint"))
                 .appFont(.body)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -89,7 +89,7 @@ struct MedicationListView: View {
             Button {
                 showingAddSheet = true
             } label: {
-                Label("添加药物", systemImage: "plus.circle.fill")
+                Label(String(localized: "medication.add"), systemImage: "plus.circle.fill")
                     .appFont(.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, AppSpacing.large)
@@ -125,7 +125,7 @@ struct MedicationListView: View {
                                 medicationToDelete = medication
                                 showDeleteConfirmation = true
                             } label: {
-                                Label("删除", systemImage: "trash")
+                                Label(String(localized: "common.delete"), systemImage: "trash")
                             }
                         }
                     }
@@ -142,11 +142,11 @@ struct MedicationListView: View {
                 .font(.system(size: 50))
                 .foregroundStyle(AppColors.textSecondary.opacity(0.5))
             
-            Text("未找到匹配的药物")
+            Text(String(localized: "medication.noResults"))
                 .appFont(.headline)
                 .foregroundStyle(AppColors.textPrimary)
             
-            Text("尝试调整搜索或筛选条件")
+            Text(String(localized: "medication.noResultsHint"))
                 .appFont(.body)
                 .foregroundStyle(AppColors.textSecondary)
         }
@@ -188,7 +188,7 @@ struct MedicationCardView: View {
                 Spacer()
                 
                 // 类型标签
-                Text(medication.isAcute ? "急性" : "预防")
+                Text(medication.isAcute ? String(localized: "medication.type.acute") : String(localized: "medication.type.preventive"))
                     .appFont(.caption)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 8)
@@ -202,7 +202,7 @@ struct MedicationCardView: View {
             // 剂量和库存
             HStack(spacing: AppSpacing.large) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("标准剂量")
+                    Text(String(localized: "medication.standardDose"))
                         .appFont(.caption)
                         .foregroundStyle(AppColors.textSecondary)
                     Text("\(medication.standardDosage, specifier: "%.1f") \(medication.unit)")
@@ -213,7 +213,7 @@ struct MedicationCardView: View {
                 Spacer()
                 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("库存")
+                    Text(String(localized: "medication.inventory"))
                         .appFont(.caption)
                         .foregroundStyle(AppColors.textSecondary)
                     HStack(spacing: 4) {
@@ -235,17 +235,17 @@ struct MedicationCardView: View {
                 
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("本月使用")
+                        Text(String(localized: "medication.monthlyUsage"))
                             .appFont(.caption)
                             .foregroundStyle(AppColors.textSecondary)
                         
                         HStack(spacing: 6) {
-                            Text("\(usageDays) 天")
+                            Text(String(format: String(localized: "common.daysFormat"), usageDays))
                                 .appFont(.body)
                                 .foregroundStyle(AppColors.textPrimary)
                             
                             if let limit = medication.monthlyLimit {
-                                Text("/ \(limit) 天")
+                                Text(String(format: String(localized: "medication.usageLimitFormat"), limit))
                                     .appFont(.caption)
                                     .foregroundStyle(AppColors.textSecondary)
                                 

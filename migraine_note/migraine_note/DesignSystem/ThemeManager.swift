@@ -11,11 +11,15 @@ import SwiftUI
 
 /// 应用主题模式
 enum AppTheme: String, CaseIterable, Identifiable {
-    case system = "跟随系统"
-    case light = "浅色模式"
-    case dark = "深色模式"
+    case system = "system"
+    case light = "light"
+    case dark = "dark"
     
     var id: String { rawValue }
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("theme.\(rawValue)"))
+    }
     
     /// 对应的 ColorScheme
     var colorScheme: ColorScheme? {
@@ -43,14 +47,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     
     /// 描述
     var description: String {
-        switch self {
-        case .system:
-            return "自动跟随系统设置"
-        case .light:
-            return "始终使用浅色主题"
-        case .dark:
-            return "始终使用深色主题"
-        }
+        String(localized: String.LocalizationValue("theme.description.\(rawValue)"))
     }
 }
 

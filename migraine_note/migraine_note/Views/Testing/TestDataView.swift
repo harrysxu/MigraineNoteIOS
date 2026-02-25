@@ -84,7 +84,7 @@ struct TestDataView: View {
             .padding(Spacing.md)
         }
         .background(Color.backgroundPrimary.ignoresSafeArea())
-        .navigationTitle("测试数据")
+        .navigationTitle(String(localized: "test.title"))
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -98,50 +98,50 @@ struct TestDataView: View {
         .onAppear {
             refreshStatistics()
         }
-        .alert("操作成功", isPresented: $showSuccessAlert) {
-            Button("确定", role: .cancel) {}
+        .alert(String(localized: "test.alert.success"), isPresented: $showSuccessAlert) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(alertMessage)
         }
-        .alert("确认删除所有数据", isPresented: $showClearAllAlert) {
-            Button("取消", role: .cancel) {}
-            Button("继续", role: .destructive) {
+        .alert(String(localized: "test.alert.confirmClear"), isPresented: $showClearAllAlert) {
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.continue"), role: .destructive) {
                 showClearConfirmInput = true
             }
         } message: {
-            Text("此操作将删除所有发作记录、药物和自定义标签，且不可恢复。确定要继续吗？")
+            Text(String(localized: "test.clearConfirmMessage"))
         }
         .sheet(isPresented: $showClearConfirmInput) {
             clearConfirmInputSheet
         }
-        .alert("最后确认", isPresented: $showFinalConfirmation) {
-            Button("取消", role: .cancel) {
+        .alert(String(localized: "test.alert.finalConfirm"), isPresented: $showFinalConfirmation) {
+            Button(String(localized: "common.cancel"), role: .cancel) {
                 clearInputText = ""
             }
-            Button("删除所有数据", role: .destructive) {
+            Button(String(localized: "test.clearAllData"), role: .destructive) {
                 performClearAll()
             }
         } message: {
             if let stats = statistics {
-                Text("即将删除：\n• \(stats.recordCount) 条发作记录\n• \(stats.medicationCount) 种药物\n• \(stats.customLabelCount) 个自定义标签\n• \(stats.healthEventCount) 个健康事件\n• \(stats.userProfileCount) 个用户档案\n• \(stats.medicationLogCount) 条用药日志\n\n此操作不可恢复！")
+                Text(String(format: String(localized: "test.deleteStatsDetail"), stats.recordCount, stats.medicationCount, stats.customLabelCount, stats.healthEventCount, stats.userProfileCount, stats.medicationLogCount))
             } else {
-                Text("即将删除所有数据，此操作不可恢复！")
+                Text(String(localized: "test.deleteAllWarning"))
             }
         }
-        .confirmationDialog("选择要清空的数据", isPresented: $showSelectiveClear) {
-            Button("清空发作记录", role: .destructive) {
+        .confirmationDialog(String(localized: "test.selectiveClearTitle"), isPresented: $showSelectiveClear) {
+            Button(String(localized: "test.clearRecords"), role: .destructive) {
                 confirmAndClear(.records)
             }
-            Button("清空药箱数据", role: .destructive) {
+            Button(String(localized: "test.clearMedications"), role: .destructive) {
                 confirmAndClear(.medications)
             }
-            Button("清空自定义标签", role: .destructive) {
+            Button(String(localized: "test.clearCustomLabels"), role: .destructive) {
                 confirmAndClear(.customLabels)
             }
-            Button("清空健康事件", role: .destructive) {
+            Button(String(localized: "test.clearHealthEvents"), role: .destructive) {
                 confirmAndClear(.healthEvents)
             }
-            Button("取消", role: .cancel) {}
+            Button(String(localized: "common.cancel"), role: .cancel) {}
         }
     }
     
@@ -156,11 +156,11 @@ struct TestDataView: View {
                     .foregroundStyle(Color.statusWarning)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("测试环境")
+                    Text(String(localized: "test.environment"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                     
-                    Text("此功能仅在 Debug 模式下可用，生成的数据会保存到数据库中")
+                    Text(String(localized: "test.environmentHint"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
@@ -174,7 +174,7 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     icon: "crown.fill",
-                    title: "高级版测试",
+                    title: String(localized: "test.premiumTest"),
                     color: .orange
                 )
                 
@@ -185,10 +185,10 @@ struct TestDataView: View {
                     }
                 )) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("模拟高级版")
+                        Text(String(localized: "test.simulatePremium"))
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(Color.textPrimary)
-                        Text("开启后可测试所有高级功能，无需实际购买")
+                        Text(String(localized: "test.simulatePremiumHint"))
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -197,7 +197,7 @@ struct TestDataView: View {
                 
                 // 当前状态显示
                 HStack {
-                    Text("当前状态")
+                    Text(String(localized: "test.currentStatus"))
                         .font(.subheadline)
                         .foregroundStyle(Color.textSecondary)
                     Spacer()
@@ -205,7 +205,7 @@ struct TestDataView: View {
                         Circle()
                             .fill(premiumManager.isPremium ? Color.green : Color.gray)
                             .frame(width: 8, height: 8)
-                        Text(premiumManager.isPremium ? "高级版" : "免费版")
+                        Text(premiumManager.isPremium ? String(localized: "test.premium") : String(localized: "test.free"))
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(premiumManager.isPremium ? Color.green : Color.textSecondary)
                     }
@@ -220,7 +220,7 @@ struct TestDataView: View {
                         Image(systemName: "info.circle.fill")
                             .font(.caption)
                             .foregroundStyle(Color.blue)
-                        Text("测试模式已激活，高级版状态由此开关控制")
+                        Text(String(localized: "test.debugModeHint"))
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -231,7 +231,7 @@ struct TestDataView: View {
                     Button {
                         premiumManager.debugPremiumOverride = nil
                     } label: {
-                        Text("重置为真实状态")
+                        Text(String(localized: "test.resetToReal"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(Color.blue)
                             .frame(maxWidth: .infinity)
@@ -249,14 +249,14 @@ struct TestDataView: View {
         EmotionalCard(style: .elevated) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("当前数据统计")
+                    Text(String(localized: "test.currentStats"))
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.textPrimary)
                     
                     Spacer()
                     
                     if let stats = statistics {
-                        Text("共 \(stats.recordCount + stats.medicationCount + stats.customLabelCount + stats.healthEventCount + stats.userProfileCount) 项")
+                        Text(String(format: String(localized: "test.statsTotal"), stats.recordCount + stats.medicationCount + stats.customLabelCount + stats.healthEventCount + stats.userProfileCount))
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -267,14 +267,14 @@ struct TestDataView: View {
                         HStack(spacing: 12) {
                             statisticItem(
                                 icon: "list.bullet.clipboard",
-                                title: "发作记录",
+                                title: String(localized: "test.stat.records"),
                                 count: stats.recordCount,
                                 color: .accentPrimary
                             )
                             
                             statisticItem(
                                 icon: "cross.case.fill",
-                                title: "药物",
+                                title: String(localized: "test.stat.medications"),
                                 count: stats.medicationCount,
                                 color: .blue
                             )
@@ -283,14 +283,14 @@ struct TestDataView: View {
                         HStack(spacing: 12) {
                             statisticItem(
                                 icon: "tag.fill",
-                                title: "标签",
+                                title: String(localized: "test.stat.labels"),
                                 count: stats.customLabelCount,
                                 color: .purple
                             )
                             
                             statisticItem(
                                 icon: "heart.text.square.fill",
-                                title: "健康事件",
+                                title: String(localized: "test.stat.healthEvents"),
                                 count: stats.healthEventCount,
                                 color: .green
                             )
@@ -299,14 +299,14 @@ struct TestDataView: View {
                         HStack(spacing: 12) {
                             statisticItem(
                                 icon: "person.circle.fill",
-                                title: "用户档案",
+                                title: String(localized: "test.stat.userProfiles"),
                                 count: stats.userProfileCount,
                                 color: .orange
                             )
                             
                             statisticItem(
                                 icon: "pills.fill",
-                                title: "用药日志",
+                                title: String(localized: "test.stat.medicationLogs"),
                                 count: stats.medicationLogCount,
                                 color: .cyan
                             )
@@ -350,7 +350,7 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     icon: "list.bullet.clipboard.fill",
-                    title: "发作记录生成",
+                    title: String(localized: "test.attackRecordTitle"),
                     color: .accentPrimary
                 )
                 
@@ -358,10 +358,10 @@ struct TestDataView: View {
                     // 月份数
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("月份数")
+                            Text(String(localized: "test.monthCount"))
                                 .font(.subheadline.weight(.medium))
                             Spacer()
-                            Text("\(monthCount) 个月")
+                            Text(String(format: String(localized: "test.monthsFormat"), monthCount))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.accentPrimary)
                         }
@@ -372,7 +372,7 @@ struct TestDataView: View {
                         ), in: 1...24, step: 1)
                         .tint(Color.accentPrimary)
                         
-                        Text("生成过去 \(monthCount) 个月的数据")
+                        Text(String(format: String(localized: "test.generatePastMonths"), monthCount))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -380,10 +380,10 @@ struct TestDataView: View {
                     // 每月频次
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("每月频次")
+                            Text(String(localized: "test.attacksPerMonth"))
                                 .font(.subheadline.weight(.medium))
                             Spacer()
-                            Text("\(attacksPerMonth) 次")
+                            Text(String(format: String(localized: "test.timesFormat"), attacksPerMonth))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.accentPrimary)
                         }
@@ -394,7 +394,7 @@ struct TestDataView: View {
                         ), in: 1...15, step: 1)
                         .tint(Color.accentPrimary)
                         
-                        Text("每月发作 \(attacksPerMonth) 次，共约 \(monthCount * attacksPerMonth) 条记录")
+                        Text(String(format: String(localized: "test.attacksPerMonthHint"), attacksPerMonth, monthCount * attacksPerMonth))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -402,7 +402,7 @@ struct TestDataView: View {
                     // 平均持续时长
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("平均持续时长")
+                            Text(String(localized: "test.avgDuration"))
                                 .font(.subheadline.weight(.medium))
                             Spacer()
                             Text(String(format: "%.1f 小时", avgDuration))
@@ -413,7 +413,7 @@ struct TestDataView: View {
                         Slider(value: $avgDuration, in: 1...24, step: 0.5)
                             .tint(Color.accentPrimary)
                         
-                        Text("发作平均持续 \(String(format: "%.1f", avgDuration)) 小时")
+                        Text(String(format: String(localized: "test.avgDurationHint"), avgDuration))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -421,7 +421,7 @@ struct TestDataView: View {
                     // 时长变化范围
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("时长变化范围")
+                            Text(String(localized: "test.durationVariance"))
                                 .font(.subheadline.weight(.medium))
                             Spacer()
                             Text(String(format: "±%.1f 小时", durationVariance))
@@ -432,13 +432,13 @@ struct TestDataView: View {
                         Slider(value: $durationVariance, in: 0...12, step: 0.5)
                             .tint(Color.accentPrimary)
                         
-                        Text("持续时间约在 \(String(format: "%.1f", max(0.5, avgDuration - durationVariance)))-\(String(format: "%.1f", avgDuration + durationVariance)) 小时之间")
+                        Text(String(format: String(localized: "test.durationVarianceHint"), max(0.5, avgDuration - durationVariance), avgDuration + durationVariance))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
                 
-                PrimaryButton(title: isGenerating ? "生成中..." : "生成记录", action: generateAttackRecords, isEnabled: !isGenerating)
+                PrimaryButton(title: isGenerating ? String(localized: "test.generating") : String(localized: "test.generateRecords"), action: generateAttackRecords, isEnabled: !isGenerating)
             }
         }
     }
@@ -449,16 +449,16 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     icon: "cross.case.fill",
-                    title: "药箱数据生成",
+                    title: String(localized: "test.medicationTitle"),
                     color: .blue
                 )
                 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("药品数量")
+                        Text(String(localized: "test.medicationCount"))
                             .font(.subheadline.weight(.medium))
                         Spacer()
-                        Text("\(medicationCount) 种")
+                        Text(String(format: String(localized: "test.kindsFormat"), medicationCount))
                             .font(.subheadline)
                             .foregroundStyle(Color.blue)
                     }
@@ -469,12 +469,12 @@ struct TestDataView: View {
                     ), in: 5...30, step: 1)
                     .tint(Color.blue)
                     
-                    Text("生成 \(medicationCount) 种药物，包含各类别和库存信息")
+                    Text(String(format: String(localized: "test.generateMedicationsHint"), medicationCount))
                         .font(.caption)
                         .foregroundStyle(Color.textTertiary)
                 }
                 
-                PrimaryButton(title: isGenerating ? "生成中..." : "生成药箱", action: generateMedications, isEnabled: !isGenerating)
+                PrimaryButton(title: isGenerating ? String(localized: "test.generating") : String(localized: "test.generateMedications"), action: generateMedications, isEnabled: !isGenerating)
             }
         }
     }
@@ -485,16 +485,16 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     icon: "tag.fill",
-                    title: "自定义标签生成",
+                    title: String(localized: "test.customLabelsTitle"),
                     color: .purple
                 )
                 
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("标签数量")
+                        Text(String(localized: "test.labelCount"))
                             .font(.subheadline.weight(.medium))
                         Spacer()
-                        Text("\(customLabelCount) 个")
+                        Text(String(format: String(localized: "test.itemsFormat"), customLabelCount))
                             .font(.subheadline)
                             .foregroundStyle(Color.purple)
                     }
@@ -505,12 +505,12 @@ struct TestDataView: View {
                     ), in: 5...20, step: 1)
                     .tint(Color.purple)
                     
-                    Text("生成 \(customLabelCount) 个自定义标签（症状和诱因）")
+                    Text(String(format: String(localized: "test.generateLabelsHint"), customLabelCount))
                         .font(.caption)
                         .foregroundStyle(Color.textTertiary)
                 }
                 
-                PrimaryButton(title: isGenerating ? "生成中..." : "生成标签", action: generateCustomLabels, isEnabled: !isGenerating)
+                PrimaryButton(title: isGenerating ? String(localized: "test.generating") : String(localized: "test.generateLabels"), action: generateCustomLabels, isEnabled: !isGenerating)
             }
         }
     }
@@ -521,7 +521,7 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     icon: "heart.text.square.fill",
-                    title: "健康事件生成",
+                    title: String(localized: "test.healthEventsTitle"),
                     color: .green
                 )
                 
@@ -529,10 +529,10 @@ struct TestDataView: View {
                     // 事件数量
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("事件数量")
+                            Text(String(localized: "test.eventCount"))
                                 .font(.subheadline.weight(.medium))
                             Spacer()
-                            Text("\(healthEventCount) 个")
+                            Text(String(format: String(localized: "test.eventsFormat"), healthEventCount))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.green)
                         }
@@ -543,7 +543,7 @@ struct TestDataView: View {
                         ), in: 10...100, step: 5)
                         .tint(Color.green)
                         
-                        Text("生成 \(healthEventCount) 个健康事件记录")
+                        Text(String(format: String(localized: "test.generateEventsHint"), healthEventCount))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -551,10 +551,10 @@ struct TestDataView: View {
                     // 时间范围
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("时间范围")
+                            Text(String(localized: "test.timeRange"))
                                 .font(.subheadline.weight(.medium))
                             Spacer()
-                            Text("\(healthEventDayRange) 天")
+                            Text(String(format: String(localized: "test.daysFormat"), healthEventDayRange))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.green)
                         }
@@ -565,13 +565,13 @@ struct TestDataView: View {
                         ), in: 7...180, step: 7)
                         .tint(Color.green)
                         
-                        Text("在过去 \(healthEventDayRange) 天内随机分布（用药、中医治疗、手术等）")
+                        Text(String(format: String(localized: "test.eventDayRangeHint"), healthEventDayRange))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
                 }
                 
-                PrimaryButton(title: isGenerating ? "生成中..." : "生成健康事件", action: generateHealthEvents, isEnabled: !isGenerating)
+                PrimaryButton(title: isGenerating ? String(localized: "test.generating") : String(localized: "test.generateHealthEvents"), action: generateHealthEvents, isEnabled: !isGenerating)
             }
         }
     }
@@ -582,15 +582,15 @@ struct TestDataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     icon: "person.circle.fill",
-                    title: "用户档案生成",
+                    title: String(localized: "test.userProfileTitle"),
                     color: .orange
                 )
                 
-                Text("生成一个包含随机信息的测试用户档案（姓名、年龄、性别、病史等）")
+                Text(String(localized: "test.generateUserProfileHint"))
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
                 
-                PrimaryButton(title: isGenerating ? "生成中..." : "生成用户档案", action: generateUserProfile, isEnabled: !isGenerating)
+                PrimaryButton(title: isGenerating ? String(localized: "test.generating") : String(localized: "test.generateUserProfile"), action: generateUserProfile, isEnabled: !isGenerating)
             }
         }
     }
@@ -604,12 +604,12 @@ struct TestDataView: View {
                         .font(.title2)
                         .foregroundStyle(Color.statusError)
                     
-                    Text("危险操作")
+                    Text(String(localized: "test.dangerZone"))
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(Color.statusError)
                 }
                 
-                Text("以下操作将永久删除数据，无法恢复")
+                Text(String(localized: "test.dangerZoneHint"))
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
                 
@@ -617,7 +617,7 @@ struct TestDataView: View {
                     Button {
                         showSelectiveClear = true
                     } label: {
-                        Text("选择性清空")
+                        Text(String(localized: "test.selectiveClear"))
                             .font(.headline)
                             .foregroundStyle(Color.statusWarning)
                             .frame(maxWidth: .infinity)
@@ -630,7 +630,7 @@ struct TestDataView: View {
                     Button {
                         showClearAllAlert = true
                     } label: {
-                        Text("清空所有数据")
+                        Text(String(localized: "test.clearAllData"))
                             .font(.headline)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
@@ -669,46 +669,46 @@ struct TestDataView: View {
                     .foregroundStyle(Color.statusError)
                 
                 VStack(spacing: 12) {
-                    Text("确认删除")
+                    Text(String(localized: "test.confirmDelete"))
                         .font(.title2.bold())
                     
-                    Text("请输入 '确认删除' 以继续")
+                    Text(String(localized: "test.confirmDeleteHint"))
                         .font(.body)
                         .foregroundStyle(Color.textSecondary)
                 }
                 
-                TextField("请输入：确认删除", text: $clearInputText)
+                TextField(String(localized: "test.confirmDeletePlaceholder"), text: $clearInputText)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal)
                 
                 if let stats = statistics {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("即将删除：")
+                        Text(String(localized: "test.aboutToDelete"))
                             .font(.caption.bold())
                             .foregroundStyle(Color.textSecondary)
                         
                         HStack {
-                            Label("\(stats.recordCount) 条记录", systemImage: "list.bullet")
+                            Label(String(format: String(localized: "test.recordsCount"), stats.recordCount), systemImage: "list.bullet")
                             Spacer()
                         }
                         
                         HStack {
-                            Label("\(stats.medicationCount) 种药物", systemImage: "cross.case")
+                            Label(String(format: String(localized: "test.medicationsCount"), stats.medicationCount), systemImage: "cross.case")
                             Spacer()
                         }
                         
                         HStack {
-                            Label("\(stats.customLabelCount) 个标签", systemImage: "tag")
+                            Label(String(format: String(localized: "test.labelsCount"), stats.customLabelCount), systemImage: "tag")
                             Spacer()
                         }
                         
                         HStack {
-                            Label("\(stats.healthEventCount) 个健康事件", systemImage: "heart.text.square")
+                            Label(String(format: String(localized: "test.healthEventsCount"), stats.healthEventCount), systemImage: "heart.text.square")
                             Spacer()
                         }
                         
                         HStack {
-                            Label("\(stats.userProfileCount) 个用户档案", systemImage: "person.circle")
+                            Label(String(format: String(localized: "test.userProfilesCount"), stats.userProfileCount), systemImage: "person.circle")
                             Spacer()
                         }
                     }
@@ -723,22 +723,22 @@ struct TestDataView: View {
                 Spacer()
             }
             .padding(.top, 40)
-            .navigationTitle("确认删除")
+            .navigationTitle(String(localized: "test.confirmDelete"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         clearInputText = ""
                         showClearConfirmInput = false
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("继续") {
+                    Button(String(localized: "common.continue")) {
                         showClearConfirmInput = false
                         showFinalConfirmation = true
                     }
-                    .disabled(clearInputText != "确认删除")
+                    .disabled(clearInputText != "确认删除" && clearInputText != "confirm delete")
                 }
             }
         }
@@ -766,14 +766,14 @@ struct TestDataView: View {
                 
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "成功生成 \(count) 条发作记录"
+                    alertMessage = String(format: String(localized: "test.successRecords"), count)
                     showSuccessAlert = true
                     refreshStatistics()
                 }
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.generateFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }
@@ -790,14 +790,14 @@ struct TestDataView: View {
                 
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "成功生成 \(medications.count) 种药物"
+                    alertMessage = String(format: String(localized: "test.successMedications"), medications.count)
                     showSuccessAlert = true
                     refreshStatistics()
                 }
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.generateFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }
@@ -814,14 +814,14 @@ struct TestDataView: View {
                 
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "成功生成 \(count) 个自定义标签"
+                    alertMessage = String(format: String(localized: "test.successLabels"), count)
                     showSuccessAlert = true
                     refreshStatistics()
                 }
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.generateFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }
@@ -838,14 +838,14 @@ struct TestDataView: View {
                 
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "成功生成 \(count) 个健康事件（过去\(healthEventDayRange)天）"
+                    alertMessage = String(format: String(localized: "test.successHealthEvents"), count, healthEventDayRange)
                     showSuccessAlert = true
                     refreshStatistics()
                 }
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.generateFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }
@@ -862,14 +862,14 @@ struct TestDataView: View {
                 
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "成功生成用户档案测试数据"
+                    alertMessage = String(localized: "test.successUserProfile")
                     showSuccessAlert = true
                     refreshStatistics()
                 }
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "生成失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.generateFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }
@@ -887,14 +887,14 @@ struct TestDataView: View {
                 
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "已清空所有数据"
+                    alertMessage = String(localized: "test.clearedAll")
                     showSuccessAlert = true
                     refreshStatistics()
                 }
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "清空失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.clearFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }
@@ -914,22 +914,22 @@ struct TestDataView: View {
                 case .records:
                     try manager.clearRecords()
                     await MainActor.run {
-                        alertMessage = "已清空所有发作记录"
+                        alertMessage = String(localized: "test.clearedRecords")
                     }
                 case .medications:
                     try manager.clearMedications()
                     await MainActor.run {
-                        alertMessage = "已清空所有药物"
+                        alertMessage = String(localized: "test.clearedMedications")
                     }
                 case .customLabels:
                     try manager.clearCustomLabels()
                     await MainActor.run {
-                        alertMessage = "已清空所有自定义标签"
+                        alertMessage = String(localized: "test.clearedLabels")
                     }
                 case .healthEvents:
                     try manager.clearHealthEvents()
                     await MainActor.run {
-                        alertMessage = "已清空所有健康事件"
+                        alertMessage = String(localized: "test.clearedHealthEvents")
                     }
                 }
                 
@@ -941,7 +941,7 @@ struct TestDataView: View {
             } catch {
                 await MainActor.run {
                     isGenerating = false
-                    alertMessage = "清空失败：\(error.localizedDescription)"
+                    alertMessage = String(format: String(localized: "test.clearFailed"), error.localizedDescription)
                     showSuccessAlert = true
                 }
             }

@@ -22,7 +22,7 @@ struct OnboardingView: View {
                 if currentPage < 2 {
                     HStack {
                         Spacer()
-                        Button("跳过") {
+                        Button(String(localized: "onboarding.skip")) {
                             withAnimation {
                                 isOnboardingComplete = true
                             }
@@ -90,7 +90,7 @@ struct WelcomePage: View {
             }
             
             VStack(spacing: 16) {
-                Text("欢迎使用头痛管家")
+                Text(String(localized: "onboarding.welcome"))
                     .font(.title.bold())
                     .foregroundStyle(Color.textPrimary)
                     .multilineTextAlignment(.center)
@@ -98,17 +98,17 @@ struct WelcomePage: View {
                 VStack(spacing: 8) {
                     FeatureRow(
                         icon: "chart.line.uptrend.xyaxis",
-                        text: "记录每次发作，发现健康规律"
+                        text: String(localized: "onboarding.feature.record")
                     )
                     
                     FeatureRow(
                         icon: "person.crop.circle.badge.checkmark",
-                        text: "与医生更好地沟通你的症状"
+                        text: String(localized: "onboarding.feature.communicate")
                     )
                     
                     FeatureRow(
                         icon: "heart.text.square.fill",
-                        text: "科学管理，改善生活质量"
+                        text: String(localized: "onboarding.feature.manage")
                     )
                 }
                 .padding(.horizontal, 40)
@@ -151,24 +151,24 @@ struct PrivacyPage: View {
             }
             
             VStack(spacing: 16) {
-                Text("您的数据，完全私密")
+                Text(String(localized: "onboarding.privacy.title"))
                     .font(.title.bold())
                     .foregroundStyle(Color.textPrimary)
                 
                 VStack(spacing: 12) {
                     PrivacyFeatureRow(
                         icon: "iphone",
-                        text: "仅存储在您的设备"
+                        text: String(localized: "onboarding.privacy.local")
                     )
                     
                     PrivacyFeatureRow(
                         icon: "icloud.fill",
-                        text: "通过iCloud自动同步"
+                        text: String(localized: "onboarding.privacy.icloud")
                     )
                     
                     PrivacyFeatureRow(
                         icon: "hand.raised.fill",
-                        text: "我们无法访问您的数据"
+                        text: String(localized: "onboarding.privacy.no.access")
                     )
                 }
                 .padding(.horizontal, 40)
@@ -177,14 +177,14 @@ struct PrivacyPage: View {
                     .padding(.vertical, 8)
                 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("需要的权限（可选）")
+                    Text(String(localized: "onboarding.permissions.optional"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textSecondary)
                         .padding(.bottom, 4)
                     
                     PermissionRow(
                         icon: "location.fill",
-                        text: "位置服务 - 记录天气诱因"
+                        text: String(localized: "onboarding.location.reason")
                     )
                 }
                 .padding(.horizontal, 40)
@@ -229,11 +229,11 @@ struct ReadyPage: View {
             }
             
             VStack(spacing: 16) {
-                Text("一切准备就绪")
+                Text(String(localized: "onboarding.ready.title"))
                     .font(.title.bold())
                     .foregroundStyle(Color.textPrimary)
                 
-                Text("要现在开始第一次记录吗？")
+                Text(String(localized: "onboarding.ready.question"))
                     .font(.body)
                     .foregroundStyle(Color.textSecondary)
                 
@@ -243,11 +243,11 @@ struct ReadyPage: View {
                         HStack(spacing: 12) {
                             Image(systemName: "hand.point.right.fill")
                                 .foregroundStyle(Color.warmAccent)
-                            Text("快速开始")
+                            Text(String(localized: "onboarding.quick.start"))
                                 .font(.headline)
                         }
                         
-                        Text("点击首页的\"轻触记录\"按钮\n即可开始您的第一次记录")
+                        Text(String(localized: "onboarding.quick.start.hint"))
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                             .lineSpacing(4)
@@ -269,7 +269,7 @@ struct ReadyPage: View {
                 impact.impactOccurred()
             } label: {
                 HStack {
-                    Text("开始使用")
+                    Text(String(localized: "onboarding.start"))
                         .font(.headline)
                     Image(systemName: "arrow.right")
                 }

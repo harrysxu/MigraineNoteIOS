@@ -31,7 +31,7 @@ struct AddCustomLabelChip: View {
             HStack(spacing: 6) {
                 Image(systemName: "plus.circle")
                     .font(.caption)
-                Text("自定义")
+                Text(String(localized: "component.custom"))
                     .font(.subheadline)
             }
             .padding(.horizontal, Spacing.sm)
@@ -61,10 +61,10 @@ struct AddCustomLabelChip: View {
                         .font(.largeTitle)
                         .foregroundStyle(Color.accentPrimary)
                     
-                    Text("添加自定义\(categoryDisplayName)")
+                    Text(String(format: String(localized: "component.addCustomLabel"), categoryDisplayName))
                         .font(.headline)
                     
-                    Text("输入标签名称(\(minLabelLength)-\(maxLabelLength)个字符)，方便下次快速选择")
+                    Text(String(format: String(localized: "component.labelInputHint"), minLabelLength, maxLabelLength))
                         .font(.subheadline)
                         .foregroundStyle(Color.textSecondary)
                         .multilineTextAlignment(.center)
@@ -73,7 +73,7 @@ struct AddCustomLabelChip: View {
                 
                 // 输入框
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    TextField("标签名称", text: $labelName)
+                    TextField(String(localized: "component.labelNamePlaceholder"), text: $labelName)
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
                         .onChange(of: labelName) { _, newValue in
@@ -111,17 +111,17 @@ struct AddCustomLabelChip: View {
                 
                 Spacer()
             }
-            .navigationTitle("添加自定义标签")
+            .navigationTitle(String(localized: "component.addCustomLabelTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismissSheet()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("添加") {
+                    Button(String(localized: "common.add")) {
                         addLabel()
                     }
                     .disabled(labelName.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -135,17 +135,17 @@ struct AddCustomLabelChip: View {
         switch category {
         case .symptom:
             if let sub = subcategory {
-                return sub == SymptomSubcategory.western.rawValue ? "西医症状" : "中医症状"
+                return sub == SymptomSubcategory.western.rawValue ? String(localized: "component.category.westernSymptom") : String(localized: "component.category.tcmSymptom")
             }
-            return "症状"
+            return String(localized: "component.category.symptom")
         case .trigger:
-            return "诱因"
+            return String(localized: "component.category.trigger")
         case .painQuality:
-            return "疼痛性质"
+            return String(localized: "component.category.painQuality")
         case .intervention:
-            return "非药物干预"
+            return String(localized: "component.category.intervention")
         case .aura:
-            return "先兆类型"
+            return String(localized: "component.category.aura")
         }
     }
     
@@ -154,18 +154,18 @@ struct AddCustomLabelChip: View {
         
         // 验证标签名称不能为空
         guard !trimmedName.isEmpty else {
-            errorMessage = "标签名称不能为空"
+            errorMessage = String(localized: "component.labelError.empty")
             return
         }
         
         // 验证标签长度
         guard trimmedName.count >= minLabelLength else {
-            errorMessage = "标签名称至少需要\(minLabelLength)个字符"
+            errorMessage = String(format: String(localized: "component.labelError.tooShort"), minLabelLength)
             return
         }
         
         guard trimmedName.count <= maxLabelLength else {
-            errorMessage = "标签名称不能超过\(maxLabelLength)个字符"
+            errorMessage = String(format: String(localized: "component.labelError.tooLong"), maxLabelLength)
             return
         }
         
@@ -190,16 +190,16 @@ struct AddCustomLabelChip: View {
             if let labelError = error as? LabelError {
                 switch labelError {
                 case .duplicateName:
-                    errorMessage = "该标签已存在"
+                    errorMessage = String(localized: "component.labelError.duplicate")
                 case .nameTooLong:
-                    errorMessage = "标签名称过长，最多\(maxLabelLength)个字符"
+                    errorMessage = String(format: String(localized: "component.labelError.tooLong"), maxLabelLength)
                 case .invalidName:
-                    errorMessage = "标签名称无效"
+                    errorMessage = String(localized: "component.labelError.invalid")
                 case .cannotDeleteDefault, .cannotEditDefault:
-                    errorMessage = "操作失败"
+                    errorMessage = String(localized: "component.labelError.failed")
                 }
             } else {
-                errorMessage = "添加失败，请重试"
+                errorMessage = String(localized: "component.labelError.addFailed")
             }
             
             // 错误触觉反馈
@@ -224,8 +224,8 @@ struct AddCustomLabelChip: View {
         var body: some View {
             VStack {
                 FlowLayout(spacing: 8) {
-                    SelectableChip(label: "恶心", isSelected: .constant(false))
-                    SelectableChip(label: "呕吐", isSelected: .constant(true))
+                    SelectableChip(label: String(localized: "symptom.nausea"), isSelected: .constant(false))
+                    SelectableChip(label: String(localized: "symptom.vomit"), isSelected: .constant(true))
                     
                     AddCustomLabelChip(
                         category: .symptom,
@@ -237,7 +237,7 @@ struct AddCustomLabelChip: View {
                 .padding()
                 
                 if !selectedLabels.isEmpty {
-                    Text("已添加: \(selectedLabels.joined(separator: ", "))")
+                    Text(String(format: String(localized: "component.label.added"), selectedLabels.joined(separator: ", ")))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }

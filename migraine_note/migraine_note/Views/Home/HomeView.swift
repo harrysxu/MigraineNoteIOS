@@ -58,7 +58,7 @@ struct HomeView: View {
                             // 快速开始/结束 + 健康事件按钮（横排）
                             HStack(spacing: 12) {
                                 SecondaryActionButton(
-                                    title: vm.ongoingAttack == nil ? "快速开始" : "快速结束",
+                                    title: vm.ongoingAttack == nil ? String(localized: "action.quick.start") : String(localized: "action.quick.end"),
                                     icon: vm.ongoingAttack == nil ? "bolt.fill" : "checkmark",
                                     onTap: {
                                         if let attack = vm.ongoingAttack {
@@ -72,7 +72,7 @@ struct HomeView: View {
                                 )
                                 
                                 SecondaryActionButton(
-                                    title: "健康事件",
+                                    title: String(localized: "action.health.event"),
                                     icon: "calendar.badge.plus",
                                     onTap: {
                                         showAddHealthEventSheet = true
@@ -108,7 +108,7 @@ struct HomeView: View {
                             if !vm.recentTimelineItems.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack {
-                                        Text("最近记录")
+                                        Text(String(localized: "home.recent.records"))
                                             .font(.title3.weight(.semibold))
                                             .foregroundStyle(Color.textPrimary)
                                         
@@ -120,7 +120,7 @@ struct HomeView: View {
                                                 object: nil
                                             )
                                         } label: {
-                                            Text("查看全部")
+                                            Text(String(localized: "action.view.all"))
                                                 .font(.subheadline)
                                                 .foregroundStyle(Color.accentPrimary)
                                         }
@@ -142,7 +142,7 @@ struct HomeView: View {
                                                         itemToDelete = item
                                                         showDeleteConfirmation = true
                                                     } label: {
-                                                        Label("删除", systemImage: "trash")
+                                                        Label(String(localized: "action.delete"), systemImage: "trash")
                                                     }
                                                 }
                                         }
@@ -192,9 +192,9 @@ struct HomeView: View {
                         )
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("取消") {
-                                    selectedAttackForEdit = nil
-                                }
+                            Button(String(localized: "common.cancel")) {
+                                selectedAttackForEdit = nil
+                            }
                             }
                         }
                     }
@@ -214,11 +214,11 @@ struct HomeView: View {
                             viewModel?.refreshData()
                         }
                 }
-                .alert("确认删除", isPresented: $showDeleteConfirmation) {
-                    Button("取消", role: .cancel) {
+                .alert(String(localized: "alert.delete.attack.title"), isPresented: $showDeleteConfirmation) {
+                    Button(String(localized: "common.cancel"), role: .cancel) {
                         itemToDelete = nil
                     }
-                    Button("删除", role: .destructive) {
+                    Button(String(localized: "common.delete"), role: .destructive) {
                         if let item = itemToDelete {
                             deleteTimelineItem(item)
                         }
@@ -228,9 +228,9 @@ struct HomeView: View {
                     if let item = itemToDelete {
                         switch item {
                         case .attack:
-                            Text("确定要删除这条发作记录吗？此操作不可撤销。")
+                            Text(String(localized: "alert.delete.attack.message"))
                         case .healthEvent:
-                            Text("确定要删除这条健康事件吗？此操作不可撤销。")
+                            Text(String(localized: "alert.delete.health.event.message"))
                         }
                     }
                 }
@@ -267,9 +267,9 @@ struct HomeView: View {
         do {
             try modelContext.save()
             viewModel?.refreshData()
-            AppToastManager.shared.showSuccess("记录已删除")
+            AppToastManager.shared.showSuccess(String(localized: "toast.deleted"))
         } catch {
-            AppToastManager.shared.showError("删除失败，请重试")
+            AppToastManager.shared.showError(String(localized: "toast.delete.failed"))
         }
     }
     
@@ -284,9 +284,9 @@ struct HomeView: View {
         do {
             try modelContext.save()
             viewModel?.refreshData()
-            AppToastManager.shared.showSuccess("记录已删除")
+            AppToastManager.shared.showSuccess(String(localized: "toast.deleted"))
         } catch {
-            AppToastManager.shared.showError("删除失败，请重试")
+            AppToastManager.shared.showError(String(localized: "toast.delete.failed"))
         }
     }
 }
@@ -299,15 +299,15 @@ struct DynamicGreeting: View {
     var greeting: String {
         switch currentHour {
         case 6..<11:
-            return "早安"
+            return String(localized: "greeting.morning")
         case 11..<14:
-            return "中午好"
+            return String(localized: "greeting.noon")
         case 14..<18:
-            return "下午好"
+            return String(localized: "greeting.afternoon")
         case 18..<22:
-            return "晚上好"
+            return String(localized: "greeting.evening")
         default:
-            return "夜深了"
+            return String(localized: "greeting.night")
         }
     }
     
@@ -342,7 +342,7 @@ struct DynamicGreeting: View {
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(greetingColor)
             
-            Text("今天感觉如何？")
+            Text(String(localized: "home.greeting"))
                 .font(.body)
                 .foregroundStyle(Color.textSecondary)
         }
@@ -389,10 +389,10 @@ struct CompactStatusCard: View {
                         .frame(width: 48, height: cardContentHeight)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("发作进行中")
+                        Text(String(localized: "status.ongoing"))
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
-                        Text("已持续 \(formatDuration(attack.startTime))")
+                        Text(String(localized: "status.ongoing.duration", defaultValue: "已持续 \(formatDuration(attack.startTime))", locale: Locale(identifier: "zh-Hans")))
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -409,17 +409,17 @@ struct CompactStatusCard: View {
                     
                     VStack(alignment: .leading, spacing: 4) {
                         if streakDays > 0 {
-                            Text("\(streakDays) 天")
+                            Text("\(streakDays) \(String(localized: "time.day"))")
                                 .font(.headline)
                                 .foregroundStyle(Color.accentPrimary)
-                            Text("无头痛")
+                            Text(String(localized: "status.pain.free"))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.textSecondary)
                         } else {
-                            Text("开始记录")
+                            Text(String(localized: "record.start"))
                                 .font(.headline)
                                 .foregroundStyle(Color.textPrimary)
-                            Text("发现健康规律")
+                            Text(String(localized: "status.discover.patterns"))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.textSecondary)
                         }
@@ -438,9 +438,9 @@ struct CompactStatusCard: View {
         let minutes = (Int(duration) % 3600) / 60
         
         if hours > 0 {
-            return "\(hours)小时\(minutes)分钟"
+            return String(format: String(localized: "status.duration.format"), hours, minutes)
         } else {
-            return "\(minutes)分钟"
+            return String(format: String(localized: "status.duration.minutes"), minutes)
         }
     }
 }
@@ -461,7 +461,7 @@ struct MainActionButton: View {
                 Image(systemName: ongoingAttack == nil ? "plus.circle.fill" : "square.and.pencil")
                     .font(.system(size: 24))
                 
-                Text(ongoingAttack == nil ? "开始记录" : "编辑记录")
+                Text(ongoingAttack == nil ? String(localized: "action.start.record") : String(localized: "action.edit.record"))
                     .font(.headline)
             }
             .foregroundStyle(.white)
@@ -532,7 +532,7 @@ struct WeatherInsightCard: View {
                             .clipShape(Circle())
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("当前天气")
+                            Text(String(localized: "weather.current"))
                                 .font(.headline)
                                 .foregroundStyle(Color.textPrimary)
                             
@@ -574,14 +574,14 @@ struct WeatherInsightCard: View {
                         HStack(spacing: 12) {
                             WeatherDetailItem(
                                 icon: "gauge.high",
-                                label: "气压",
+                                label: String(localized: "weather.pressure"),
                                 value: String(format: "%.0f hPa", weather.pressure),
                                 trend: weather.pressureTrend
                             )
                             
                             WeatherDetailItem(
                                 icon: "humidity",
-                                label: "湿度",
+                                label: String(localized: "weather.humidity"),
                                 value: String(format: "%.0f%%", weather.humidity)
                             )
                         }
@@ -623,10 +623,10 @@ struct WeatherInsightCard: View {
                             .clipShape(Circle())
                         
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("无法获取位置")
+                            Text(String(localized: "weather.no.location"))
                                 .font(.headline)
                                 .foregroundStyle(Color.textPrimary)
-                            Text("需要定位权限以获取天气数据")
+                            Text(String(localized: "weather.permission.needed"))
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
                         }
@@ -643,7 +643,7 @@ struct WeatherInsightCard: View {
                         HStack {
                             Image(systemName: "location.fill")
                                 .font(.body)
-                            Text("前往设置开启定位")
+                            Text(String(localized: "weather.go.settings"))
                                 .font(.subheadline.weight(.medium))
                         }
                         .foregroundStyle(.white)
@@ -664,7 +664,7 @@ struct WeatherInsightCard: View {
                         .clipShape(Circle())
                     
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("天气数据不可用")
+                        Text(String(localized: "weather.unavailable"))
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
                         Text(error)
@@ -694,10 +694,10 @@ struct WeatherInsightCard: View {
                         .frame(width: 48, height: 48)
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("正在获取天气数据...")
+                        Text(String(localized: "weather.loading"))
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
-                        Text("请稍候")
+                        Text(String(localized: "loading.please.wait"))
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -796,7 +796,7 @@ struct MonthlyOverviewCard: View {
                         Image(systemName: "calendar")
                             .font(.title3)
                             .foregroundStyle(Color.accentPrimary)
-                        Text("本月概况")
+                        Text(String(localized: "home.monthly.overview"))
                             .font(.headline)
                     }
                     
@@ -817,7 +817,7 @@ struct MonthlyOverviewCard: View {
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Text("日历")
+                            Text(String(localized: "home.calendar"))
                                 .font(.caption.weight(.medium))
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
@@ -836,14 +836,14 @@ struct MonthlyOverviewCard: View {
                     HStack(spacing: 12) {
                         CompactStatCard(
                             value: "\(attackDays)",
-                            label: "发作天数",
+                            label: String(localized: "stats.attack.days.short"),
                             icon: "exclamationmark.circle.fill",
                             color: attackDays >= 15 ? .statusError : .accentPrimary
                         )
                         
                         CompactStatCard(
                             value: String(format: "%.1f", averageIntensity),
-                            label: "平均强度",
+                            label: String(localized: "stats.avg.intensity"),
                             icon: "waveform.path.ecg",
                             color: Color.painCategoryColor(for: Int(averageIntensity))
                         )
@@ -853,14 +853,14 @@ struct MonthlyOverviewCard: View {
                     HStack(spacing: 12) {
                         CompactStatCard(
                             value: "\(stats.acuteMedicationCount)",
-                            label: "急性用药次数",
+                            label: String(localized: "stats.acute.med.count"),
                             icon: "pills.fill",
                             color: stats.acuteMedicationCount >= 10 ? .statusWarning : .accentPrimary
                         )
                         
                         CompactStatCard(
                             value: "\(stats.acuteMedicationDays)",
-                            label: "急性用药天数",
+                            label: String(localized: "stats.acute.med.days"),
                             icon: "calendar.badge.clock",
                             color: stats.acuteMedicationDays >= 10 ? .statusWarning : .accentPrimary
                         )
@@ -869,16 +869,16 @@ struct MonthlyOverviewCard: View {
                     // 第三行：预防性用药（有数据时显示）
                     if stats.hasPreventiveMedication {
                         HStack(spacing: 12) {
-                            CompactStatCard(
-                                value: "\(stats.preventiveMedicationCount)",
-                                label: "预防性用药次数",
+                                CompactStatCard(
+                                    value: "\(stats.preventiveMedicationCount)",
+                                    label: String(localized: "stats.preventive.count"),
                                 icon: "shield.fill",
                                 color: Color.statusSuccess
                             )
                             
-                            CompactStatCard(
-                                value: "\(stats.preventiveMedicationDays)",
-                                label: "预防性用药天数",
+                                CompactStatCard(
+                                    value: "\(stats.preventiveMedicationDays)",
+                                    label: String(localized: "stats.preventive.days"),
                                 icon: "calendar.badge.plus",
                                 color: Color.statusSuccess
                             )
@@ -891,7 +891,7 @@ struct MonthlyOverviewCard: View {
                             if stats.hasTCMTreatment {
                                 CompactStatCard(
                                     value: "\(stats.tcmTreatmentCount)",
-                                    label: "中医治疗次数",
+                                    label: String(localized: "stats.tcm.count"),
                                     icon: "leaf.circle.fill",
                                     color: Color.statusSuccess
                                 )
@@ -900,7 +900,7 @@ struct MonthlyOverviewCard: View {
                             if stats.hasSurgery {
                                 CompactStatCard(
                                     value: "\(stats.surgeryCount)",
-                                    label: "手术次数",
+                                    label: String(localized: "stats.surgery.count"),
                                     icon: "cross.case.circle.fill",
                                     color: Color.statusInfo
                                 )
@@ -1043,7 +1043,7 @@ struct CompactTimelineRow: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(Color.painCategoryColor(for: attack.painIntensity))
                 
-                Text("强度")
+                Text(String(localized: "form.pain.intensity"))
                     .font(.caption2)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -1088,7 +1088,7 @@ struct CompactTimelineRow: View {
                 HStack(spacing: 4) {
                     Image(systemName: "pills")
                         .font(.caption2)
-                    Text("\(attack.medications.count)次用药")
+                    Text(String(format: String(localized: "timeline.medication.count"), attack.medications.count))
                 }
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
@@ -1170,18 +1170,18 @@ struct RecordingSheetView: View {
             )
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         showCancelAlert = true
                     }
                 }
             }
-            .alert("确认取消", isPresented: $showCancelAlert) {
-                Button("继续编辑", role: .cancel) {}
-                Button("放弃记录", role: .destructive) {
+            .alert(String(localized: "alert.confirm.cancel"), isPresented: $showCancelAlert) {
+                Button(String(localized: "action.continue.edit"), role: .cancel) {}
+                Button(String(localized: "action.abandon.record"), role: .destructive) {
                     handleCancel()
                 }
             } message: {
-                Text("取消后将不会保存任何信息")
+                Text(String(localized: "alert.cancel.unsaved"))
             }
         }
         .onDisappear {
@@ -1280,7 +1280,7 @@ struct SimplifiedRecordingViewWrapper: View {
                     
                     // 疼痛评估（默认展开）
                     CollapsibleSection(
-                        title: "疼痛评估",
+                        title: String(localized: "form.pain.assessment.title"),
                         icon: "waveform.path.ecg",
                         isExpandedByDefault: true
                     ) {
@@ -1389,26 +1389,26 @@ struct SimplifiedRecordingViewWrapper: View {
     
     private var symptomsSectionTitle: String {
         let count = viewModel.selectedSymptomNames.count + (viewModel.hasAura ? viewModel.selectedAuraTypeNames.count : 0)
-        return count > 0 ? "症状记录 (\(count)项)" : "症状记录"
+        return count > 0 ? String(format: String(localized: "form.symptoms.title"), count) : String(localized: "form.symptoms.title.empty")
     }
     
     private var triggersSectionTitle: String {
         let count = viewModel.selectedTriggers.count
-        return count > 0 ? "诱因分析 (\(count)项)" : "诱因分析"
+        return count > 0 ? String(format: String(localized: "form.triggers.title"), count) : String(localized: "form.triggers.title.empty")
     }
     
     private var medicationsSectionTitle: String {
         let count = viewModel.selectedMedications.count
-        return count > 0 ? "用药记录 (\(count)项)" : "用药记录"
+        return count > 0 ? String(format: String(localized: "form.medications.title"), count) : String(localized: "form.medications.title.empty")
     }
     
     private var nonPharmSectionTitle: String {
         let count = viewModel.selectedNonPharmacological.count
-        return count > 0 ? "非药物干预 (\(count)项)" : "非药物干预"
+        return count > 0 ? String(format: String(localized: "form.interventions.title"), count) : String(localized: "form.interventions.title.empty")
     }
     
     private var notesSectionTitle: String {
-        return viewModel.notes.isEmpty ? "备注" : "备注 (已填写)"
+        return viewModel.notes.isEmpty ? String(localized: "form.notes.title") : String(localized: "form.notes.filled")
     }
     
     // MARK: - Header
@@ -1420,11 +1420,11 @@ struct SimplifiedRecordingViewWrapper: View {
                 .foregroundStyle(Color.accentPrimary)
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("记录偏头痛发作")
+                Text(String(localized: "form.record.title"))
                     .font(.headline)
                     .foregroundStyle(Color.textPrimary)
                 
-                Text("所有字段均可选，随时保存")
+                Text(String(localized: "form.all.optional"))
                     .font(.caption)
                     .foregroundStyle(Color.textSecondary)
             }
@@ -1444,7 +1444,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 HStack(spacing: 12) {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("开始时间")
+                    Text(String(localized: "form.start.time"))
                         .font(.subheadline.weight(.medium))
                     Spacer()
                     DatePicker(
@@ -1465,7 +1465,7 @@ struct SimplifiedRecordingViewWrapper: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "play.circle.fill")
-                            Text("进行中")
+                            Text(String(localized: "status.in.progress"))
                         }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(viewModel.isOngoing ? .white : Color.textPrimary)
@@ -1484,7 +1484,7 @@ struct SimplifiedRecordingViewWrapper: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "stop.circle.fill")
-                            Text("已结束")
+                            Text(String(localized: "status.ended"))
                         }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(!viewModel.isOngoing ? .white : Color.textPrimary)
@@ -1503,7 +1503,7 @@ struct SimplifiedRecordingViewWrapper: View {
                     HStack(spacing: 12) {
                         Image(systemName: "flag.checkered.circle.fill")
                             .foregroundStyle(Color.statusSuccess)
-                        Text("结束时间")
+                        Text(String(localized: "form.end.time"))
                             .font(.subheadline.weight(.medium))
                         Spacer()
                         DatePicker(
@@ -1539,7 +1539,7 @@ struct SimplifiedRecordingViewWrapper: View {
             
             // 疼痛部位
             VStack(alignment: .leading, spacing: 12) {
-                Text("疼痛部位")
+                Text(String(localized: "form.pain.location"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -1550,7 +1550,7 @@ struct SimplifiedRecordingViewWrapper: View {
             
             // 疼痛性质
             VStack(alignment: .leading, spacing: 12) {
-                Text("疼痛性质")
+                Text(String(localized: "form.pain.quality"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -1590,7 +1590,7 @@ struct SimplifiedRecordingViewWrapper: View {
             // 先兆
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("是否有先兆？")
+                    Text(String(localized: "form.has.aura.question"))
                         .font(.subheadline.weight(.medium))
                     
                     Spacer()
@@ -1632,7 +1632,7 @@ struct SimplifiedRecordingViewWrapper: View {
             
             // 西医症状
             VStack(alignment: .leading, spacing: 12) {
-                Text("伴随症状")
+                Text(String(localized: "form.symptoms.accompanying"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -1668,7 +1668,7 @@ struct SimplifiedRecordingViewWrapper: View {
             // 中医症状
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("中医症状")
+                    Text(String(localized: "form.symptoms.tcm"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.textSecondary)
                     Spacer()
@@ -1770,7 +1770,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("添加用药")
+                    Text(String(localized: "form.add.medication"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.accentPrimary)
                 }
@@ -1791,7 +1791,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 ForEach(Array(viewModel.selectedMedications.enumerated()), id: \.offset) { index, medInfo in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(medInfo.medication?.name ?? medInfo.customName ?? "未知药物")
+                            Text(medInfo.medication?.name ?? medInfo.customName ?? String(localized: "health.event.unknown.medication"))
                                 .font(.body.weight(.medium))
                                 .foregroundStyle(Color.textPrimary)
                             Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.medication?.unit ?? medInfo.unit) - \(medInfo.timeTaken.shortTime())")
@@ -1813,7 +1813,7 @@ struct SimplifiedRecordingViewWrapper: View {
                     }
                 }
             } else {
-                Text("未记录用药")
+                Text(String(localized: "form.no.medication"))
                     .font(.subheadline)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -1872,7 +1872,7 @@ struct SimplifiedRecordingViewWrapper: View {
         HStack(spacing: 10) {
             Image(systemName: "info.circle.fill")
                 .foregroundStyle(Color.statusInfo)
-            Text("建议填写疼痛强度和部位以获得更准确的分析")
+            Text(String(localized: "form.fill.suggestion.detail"))
                 .font(.subheadline)
                 .foregroundStyle(Color.textPrimary)
         }
@@ -1889,7 +1889,7 @@ struct SimplifiedRecordingViewWrapper: View {
             Divider()
             
             PrimaryButton(
-                title: "完成记录",
+                title: String(localized: "form.complete.record"),
                 action: {
                     saveAndDismiss()
                 },
@@ -1932,7 +1932,7 @@ struct SimplifiedRecordingViewWrapper: View {
                 HStack(spacing: 4) {
                     Image(systemName: "gear")
                         .font(.caption)
-                    Text("管理")
+                    Text(String(localized: "action.manage"))
                         .font(.caption)
                 }
                 .foregroundStyle(Color.accentPrimary)
@@ -1948,14 +1948,14 @@ struct SimplifiedRecordingViewWrapper: View {
                 await MainActor.run {
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.success)
-                    AppToastManager.shared.showSuccess("记录保存成功")
+                    AppToastManager.shared.showSuccess(String(localized: "toast.save.success"))
                     dismiss()
                 }
             } catch {
                 await MainActor.run {
                     let generator = UINotificationFeedbackGenerator()
                     generator.notificationOccurred(.error)
-                    AppToastManager.shared.showError("保存失败，请重试")
+                    AppToastManager.shared.showError(String(localized: "toast.save.failed"))
                 }
             }
         }

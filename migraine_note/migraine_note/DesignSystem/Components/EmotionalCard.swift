@@ -163,20 +163,20 @@ struct EncouragingText: View {
             switch self {
             case .streak(let days):
                 if days >= 30 {
-                    return "太棒了！坚持一个月无头痛 🎉"
+                    return String(localized: "encourage.streak.30days")
                 } else if days >= 7 {
-                    return "很好！已经一周没有头痛了 ✨"
+                    return String(localized: "encourage.streak.7days")
                 } else if days > 0 {
-                    return "继续保持，你做得很好 💪"
+                    return String(localized: "encourage.continue")
                 } else {
-                    return "开始记录是改善的第一步 🌱"
+                    return String(localized: "encourage.first.step")
                 }
             case .firstRecord:
-                return "开始记录是改善的第一步 🌱"
+                return String(localized: "encourage.first.step")
             case .weekSuccess:
-                return "这周表现不错，值得鼓励 ⭐️"
+                return String(localized: "encourage.week.success")
             case .improvement:
-                return "相比上月，发作次数减少了 📈"
+                return String(localized: "encourage.improvement")
             case .custom(let text, _):
                 return text
             }

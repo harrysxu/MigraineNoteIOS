@@ -60,7 +60,7 @@ struct PremiumGateView<Content: View>: View {
                 
                 // 高级版功能亮点
                 VStack(alignment: .leading, spacing: Spacing.sm) {
-                    Text("升级高级版，解锁更多功能")
+                    Text("premium.upgradeTitle")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textPrimary)
                         .padding(.bottom, 4)
@@ -92,7 +92,7 @@ struct PremiumGateView<Content: View>: View {
                     HStack(spacing: 8) {
                         Image(systemName: "crown.fill")
                             .font(.headline)
-                        Text("升级高级版")
+                        Text("premium.upgradeButton")
                             .font(.headline)
                     }
                     .foregroundStyle(.white)
@@ -110,7 +110,7 @@ struct PremiumGateView<Content: View>: View {
                 .padding(.horizontal, Spacing.md)
                 
                 // 价格提示
-                Text("低至 ¥3/月")
+                Text("premium.priceHint")
                     .font(.caption)
                     .foregroundStyle(Color.textTertiary)
                 
@@ -174,6 +174,6 @@ struct PremiumBadge: View {
         PremiumGateView(feature: .advancedAnalytics) {
             Text("Premium Content")
         }
-        .navigationTitle("数据分析")
+        .navigationTitle("analytics.title")
     }
 }

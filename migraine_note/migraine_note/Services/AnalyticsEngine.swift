@@ -87,7 +87,14 @@ struct BatchAnalyticsResult {
         }
         let totalLocations = locationCounts.values.reduce(0, +)
         let painLocationFrequency = locationCounts
-            .map { PainLocationFrequency(locationName: PainLocation(rawValue: $0.key)?.displayName ?? $0.key, count: $0.value, percentage: totalLocations > 0 ? Double($0.value) / Double(totalLocations) * 100 : 0) }
+            .compactMap { key, count -> PainLocationFrequency? in
+                guard let location = PainLocation(rawValue: key) else { return nil }
+                return PainLocationFrequency(
+                    locationName: location.displayName,
+                    count: count,
+                    percentage: totalLocations > 0 ? Double(count) / Double(totalLocations) * 100 : 0
+                )
+            }
             .sorted { $0.count > $1.count }
         
         // --- Pain Quality Frequency ---
@@ -417,9 +424,10 @@ class AnalyticsEngine {
         let totalCount = locationCounts.values.reduce(0, +)
         
         return locationCounts
-            .map { location, count in
-                PainLocationFrequency(
-                    locationName: PainLocation(rawValue: location)?.displayName ?? location,
+            .compactMap { location, count -> PainLocationFrequency? in
+                guard let painLocation = PainLocation(rawValue: location) else { return nil }
+                return PainLocationFrequency(
+                    locationName: painLocation.displayName,
                     count: count,
                     percentage: Double(count) / Double(totalCount) * 100
                 )

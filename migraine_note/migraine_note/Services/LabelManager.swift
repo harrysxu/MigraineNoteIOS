@@ -81,10 +81,24 @@ class LabelManager {
             return false
         }
         
+        // displayName 在首次创建时根据当前系统语言一次性初始化
+        // 设计理念：
+        // 1. 默认标签：根据 labelKey 获取当前语言的翻译，存储到 displayName
+        // 2. 自定义标签：直接使用用户输入的 displayName
+        // 3. 不支持动态语言切换，简化架构，符合个人健康管理App的实际使用场景
+        let finalDisplayName: String
+        if isDefault && !labelKey.isEmpty {
+            // 构建本地化键：label.{category}.{labelKey}
+            let locKey = "label.\(category).\(labelKey)"
+            finalDisplayName = String(localized: String.LocalizationValue(locKey))
+        } else {
+            finalDisplayName = displayName
+        }
+        
         let label = CustomLabelConfig(
             category: category,
             labelKey: labelKey,
-            displayName: displayName,
+            displayName: finalDisplayName,
             isDefault: isDefault,
             subcategory: subcategory,
             sortOrder: sortOrder

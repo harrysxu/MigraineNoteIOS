@@ -54,26 +54,26 @@ struct ProfileView: View {
             cloudKitManager.checkICloudStatus()
             loadMonthlyMedicationDays()
         }
-        .alert("重置所有数据", isPresented: $showResetDataConfirm) {
-            TextField("请输入 delete 确认", text: $deleteConfirmText)
+        .alert(String(localized: "profile.reset.all.data"), isPresented: $showResetDataConfirm) {
+            TextField(String(localized: "profile.reset.confirm.placeholder"), text: $deleteConfirmText)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-            Button("取消", role: .cancel) {
+            Button(String(localized: "common.cancel"), role: .cancel) {
                 deleteConfirmText = ""
             }
-            Button("确认重置", role: .destructive) {
+            Button(String(localized: "profile.confirm.reset"), role: .destructive) {
                 if deleteConfirmText.lowercased() == "delete" {
                     performResetAllData()
                 }
                 deleteConfirmText = ""
             }
         } message: {
-            Text("此操作将删除所有发作记录、药物数据、健康事件和自定义标签，但会保留默认标签等初始化信息。\n\n请输入 delete 确认此操作。")
+            Text(String(localized: "profile.reset.confirm.message"))
         }
-        .alert("数据已重置", isPresented: $showClearDataSuccess) {
-            Button("确定", role: .cancel) { }
+        .alert(String(localized: "profile.data.reset.success"), isPresented: $showClearDataSuccess) {
+            Button(String(localized: "common.ok"), role: .cancel) { }
         } message: {
-            Text("数据已重置，默认标签已恢复。")
+            Text(String(localized: "profile.data.reset.message"))
         }
     }
     
@@ -103,11 +103,11 @@ struct ProfileView: View {
                         .clipShape(Circle())
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(premiumManager.isPremium ? "高级版" : "升级高级版")
+                        Text(premiumManager.isPremium ? String(localized: "profile.premium") : String(localized: "profile.upgrade.premium"))
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
-                        Text(premiumManager.isPremium ? premiumManager.statusDescription : "解锁全部专业功能")
+                        Text(premiumManager.isPremium ? premiumManager.statusDescription : String(localized: "profile.unlock.all.features"))
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -157,7 +157,7 @@ struct ProfileView: View {
                                 .background(Color.accentPrimary)
                                 .clipShape(Circle())
                             
-                            Text("药箱管理")
+                            Text(String(localized: "profile.medication.box"))
                                 .font(.title3.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                         }
@@ -177,7 +177,7 @@ struct ProfileView: View {
                                 Image(systemName: "pill.fill")
                                     .font(.caption)
                                     .foregroundStyle(Color.accentPrimary)
-                                Text("药物总数")
+                                Text(String(localized: "profile.medication.total"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textSecondary)
                             }
@@ -197,7 +197,7 @@ struct ProfileView: View {
                                 Image(systemName: "calendar")
                                     .font(.caption)
                                     .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.accentPrimary)
-                                Text("本月急性用药")
+                                Text(String(localized: "profile.acute.medication.this.month"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textSecondary)
                             }
@@ -206,7 +206,7 @@ struct ProfileView: View {
                                 Text("\(monthlyMedicationDays)")
                                     .font(.system(size: 28, weight: .bold))
                                     .foregroundStyle(mohRisk != .none ? Color.statusWarning : Color.textPrimary)
-                                Text("天")
+                                Text(String(localized: "form.unit.day"))
                                     .font(.subheadline)
                                     .foregroundStyle(Color.textSecondary)
                             }
@@ -239,7 +239,7 @@ struct ProfileView: View {
                             Image(systemName: "exclamationmark.circle.fill")
                                 .font(.subheadline)
                                 .foregroundStyle(Color.statusWarning)
-                            Text("\(lowInventoryCount)种药物库存不足")
+                            Text(String(format: String(localized: "profile.low.inventory"), lowInventoryCount))
                                 .font(.caption)
                                 .foregroundStyle(Color.textPrimary)
                         }
@@ -263,7 +263,7 @@ struct ProfileView: View {
             if let name = profile?.name, !name.isEmpty {
                 return name
             }
-            return "点击填写个人信息"
+            return String(localized: "profile.tap.to.fill")
         }()
         
         return NavigationLink {
@@ -285,7 +285,7 @@ struct ProfileView: View {
                         .clipShape(Circle())
                     
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("我的信息")
+                        Text(String(localized: "profile.my.info"))
                             .font(.title3.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
@@ -324,7 +324,7 @@ struct ProfileView: View {
                             .clipShape(Circle())
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("主题设置")
+                            Text(String(localized: "settings.theme"))
                                 .font(.body.weight(.medium))
                                 .foregroundStyle(Color.textPrimary)
                             
@@ -349,7 +349,7 @@ struct ProfileView: View {
             // 数据与隐私
             EmotionalCard(style: .default) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("数据与隐私")
+                    Text(String(localized: "settings.data.privacy"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -361,7 +361,7 @@ struct ProfileView: View {
                         SettingRow(
                             icon: "location.fill",
                             iconColor: .blue,
-                            title: "位置服务"
+                            title: String(localized: "settings.location")
                         )
                         .padding(.vertical, 12)
                     }
@@ -378,7 +378,7 @@ struct ProfileView: View {
                             SettingRow(
                                 icon: "icloud.fill",
                                 iconColor: .cyan,
-                                title: "iCloud 同步"
+                                title: String(localized: "settings.icloud.sync")
                             )
                             PremiumBadge()
                         }
@@ -397,7 +397,7 @@ struct ProfileView: View {
                             SettingRow(
                                 icon: "square.and.arrow.up.fill",
                                 iconColor: .green,
-                                title: "数据导出"
+                                title: String(localized: "settings.data.export")
                             )
                             PremiumBadge()
                         }
@@ -420,11 +420,11 @@ struct ProfileView: View {
                                 .clipShape(Circle())
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("重置所有数据")
+                                Text(String(localized: "profile.reset.all.data"))
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(Color.red)
                                 
-                                Text("恢复到初始状态")
+                                Text(String(localized: "profile.restore.initial"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
                             }
@@ -447,7 +447,7 @@ struct ProfileView: View {
             // 功能设置
             EmotionalCard(style: .default) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("功能设置")
+                    Text(String(localized: "settings.features"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -461,7 +461,7 @@ struct ProfileView: View {
                             SettingRow(
                                 icon: "tag.fill",
                                 iconColor: .blue,
-                                title: "标签管理"
+                                title: String(localized: "settings.label.management")
                             )
                             PremiumBadge()
                         }
@@ -478,7 +478,7 @@ struct ProfileView: View {
                         SettingRow(
                             icon: "slider.horizontal.3",
                             iconColor: .purple,
-                            title: "个性化配置"
+                            title: String(localized: "settings.personalization")
                         )
                         .padding(.vertical, 12)
                     }
@@ -495,7 +495,7 @@ struct ProfileView: View {
                             SettingRow(
                                 icon: "bell.badge.fill",
                                 iconColor: .orange,
-                                title: "用药提醒"
+                                title: String(localized: "moh.reminder")
                             )
                             PremiumBadge()
                         }
@@ -515,7 +515,7 @@ struct ProfileView: View {
                     SettingRow(
                         icon: "info.circle.fill",
                         iconColor: .gray,
-                        title: "关于应用"
+                        title: String(localized: "settings.about.app")
                     )
                     .padding(.vertical, 12)
                 }
@@ -646,11 +646,11 @@ struct ProfileView: View {
         case .none:
             return ""
         case .low:
-            return "本月用药频次较高，请注意用药规律"
+            return String(localized: "moh.msg.low")
         case .medium:
-            return "用药天数接近MOH阈值，建议咨询医生"
+            return String(localized: "moh.msg.medium")
         case .high:
-            return "用药天数超过MOH阈值，强烈建议就医"
+            return String(localized: "moh.msg.high")
         }
     }
     

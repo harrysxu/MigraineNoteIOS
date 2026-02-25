@@ -49,8 +49,12 @@ struct AddMedicationView: View {
                 label.displayName.lowercased().contains(trimmedName)
             }
             .compactMap { label -> MedicationPreset? in
-                guard let subcategory = label.subcategory,
-                      let category = MedicationCategory.allCases.first(where: { $0.rawValue == subcategory }) else {
+                guard let subcategory = label.subcategory else { return nil }
+                
+                // 通过 localizedName 匹配枚举（因为 subcategory 存储的可能是旧的中文值）
+                guard let category = MedicationCategory.allCases.first(where: { 
+                    $0.localizedName == subcategory || $0.rawValue == subcategory 
+                }) else {
                     return nil
                 }
                 
@@ -84,7 +88,7 @@ struct AddMedicationView: View {
     private var medicationNameSearchField: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                TextField("药物名称", text: $name)
+                TextField(String(localized: "medication.namePlaceholder"), text: $name)
                     .textInputAutocapitalization(.never)
                 
                 if !name.isEmpty {
@@ -142,7 +146,7 @@ struct AddMedicationView: View {
                     showingPresets = true
                 } label: {
                     HStack {
-                        Text("查看全部 \(filteredPresets.count) 个预设...")
+                        Text(String(format: String(localized: "medication.viewAllPresets"), filteredPresets.count))
                             .appFont(.caption)
                             .foregroundStyle(Color.accentPrimary)
                         Spacer()
@@ -169,19 +173,19 @@ struct AddMedicationView: View {
         NavigationStack {
             Form {
                 // 基本信息
-                Section("基本信息") {
+                Section(String(localized: "medication.section.basic")) {
                     // 药物名称搜索框
                     medicationNameSearchField
                     
-                    Picker("药物类别", selection: $selectedCategory) {
+                    Picker(String(localized: "medication.category"), selection: $selectedCategory) {
                         ForEach(MedicationCategory.allCases, id: \.self) { category in
                             Text(category.rawValue).tag(category)
                         }
                     }
                     
-                    Picker("用药类型", selection: $isAcute) {
-                        Text("急性用药").tag(true)
-                        Text("预防性用药").tag(false)
+                    Picker(String(localized: "medication.usageType"), selection: $isAcute) {
+                        Text(String(localized: "medication.filter.acute")).tag(true)
+                        Text(String(localized: "medication.filter.preventive")).tag(false)
                     }
                     .onChange(of: selectedCategory) { _, newValue in
                         // 根据类别自动设置用药类型
@@ -190,30 +194,30 @@ struct AddMedicationView: View {
                 }
                 
                 // 剂量信息
-                Section("剂量信息") {
+                Section(String(localized: "medication.section.dosage")) {
                     HStack {
-                        Text("标准剂量")
+                        Text(String(localized: "medication.standardDose"))
                         Spacer()
-                        TextField("剂量", value: $standardDosage, format: .number)
+                        TextField(String(localized: "health.event.dosage"), value: $standardDosage, format: .number)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 100)
                     }
                     
-                    Picker("单位", selection: $unit) {
+                    Picker(String(localized: "medication.unit"), selection: $unit) {
                         Text("mg").tag("mg")
-                        Text("片").tag("片")
-                        Text("粒").tag("粒")
+                        Text(String(localized: "medication.unit.tablet")).tag("片")
+                        Text(String(localized: "medication.unit.capsule")).tag("粒")
                         Text("g").tag("g")
                         Text("ml").tag("ml")
                     }
                 }
                 
                 // 库存管理
-                Section("库存管理") {
+                Section(String(localized: "medication.section.inventory")) {
                     Stepper(value: $inventory, in: 0...999) {
                         HStack {
-                            Text("当前库存")
+                            Text(String(localized: "medication.currentInventory"))
                             Spacer()
                             Text("\(inventory)")
                                 .foregroundStyle(AppColors.textSecondary)
@@ -224,7 +228,7 @@ struct AddMedicationView: View {
                 // MOH阈值（仅急性用药）
                 if isAcute {
                     Section {
-                        Toggle("设置月度使用限制（MOH预防）", isOn: Binding(
+                        Toggle(String(localized: "medication.mohLimitToggle"), isOn: Binding(
                             get: { monthlyLimit != nil },
                             set: { enabled in
                                 if enabled {
@@ -249,26 +253,26 @@ struct AddMedicationView: View {
                                 set: { monthlyLimit = $0 }
                             ), in: 5...30) {
                                 HStack {
-                                    Text("月度限制")
+                                    Text(String(localized: "medication.monthlyLimit"))
                                     Spacer()
-                                    Text("\(monthlyLimit ?? 15) 天")
+                                    Text(String(format: String(localized: "common.daysFormat"), monthlyLimit ?? 15))
                                         .foregroundStyle(AppColors.textSecondary)
                                 }
                             }
                             
-                            Text("超过此天数将触发MOH（药物过度使用头痛）风险警告")
+                            Text(String(localized: "medication.mohWarning"))
                                 .appFont(.caption)
                                 .foregroundStyle(AppColors.textSecondary)
                         }
                     } header: {
-                        Text("MOH预防")
+                        Text(String(localized: "medication.mohPrevention"))
                     } footer: {
-                        Text("根据《中国偏头痛指南2024》，NSAID类药物使用≥15天/月，曲普坦类、麦角胺类、阿片类使用≥10天/月可能导致MOH")
+                        Text(String(localized: "medication.mohGuideline"))
                     }
                 }
                 
                 // 备注
-                Section("备注") {
+                Section(String(localized: "medication.section.notes")) {
                     TextEditor(text: $notes)
                         .frame(minHeight: 80)
                 }
@@ -279,25 +283,25 @@ struct AddMedicationView: View {
                         showingPresets = true
                     } label: {
                         if !name.isEmpty && !filteredPresets.isEmpty {
-                            Label("浏览所有匹配的常用药物", systemImage: "list.bullet.clipboard")
+                            Label(String(localized: "medication.browsePresets"), systemImage: "list.bullet.clipboard")
                         } else {
-                            Label("从常用药物列表选择", systemImage: "list.bullet.clipboard")
+                            Label(String(localized: "medication.selectFromPresets"), systemImage: "list.bullet.clipboard")
                         }
                     }
                 }
                 .listRowBackground(AppColors.backgroundSecondary)
             }
-            .navigationTitle("添加药物")
+            .navigationTitle(String(localized: "medication.add"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("保存") {
+                    Button(String(localized: "common.save")) {
                         saveMedication()
                     }
                     .disabled(!canSave)
@@ -394,7 +398,7 @@ struct MedicationPresetsView: View {
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(AppColors.textSecondary)
-                        TextField("搜索药物名称", text: $searchText)
+                        TextField(String(localized: "medication.searchPrompt"), text: $searchText)
                             .textInputAutocapitalization(.never)
                         
                         if !searchText.isEmpty {
@@ -447,7 +451,7 @@ struct MedicationPresetsView: View {
                                 Image(systemName: "magnifyingglass")
                                     .font(.system(size: 40))
                                     .foregroundStyle(AppColors.textSecondary.opacity(0.5))
-                                Text("未找到匹配的药物")
+                                Text(String(localized: "medication.noResults"))
                                     .appFont(.body)
                                     .foregroundStyle(AppColors.textSecondary)
                             }
@@ -457,11 +461,11 @@ struct MedicationPresetsView: View {
                     }
                 }
             }
-            .navigationTitle("常用药物列表")
+            .navigationTitle(String(localized: "medication.presetsList"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }

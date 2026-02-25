@@ -35,12 +35,12 @@ struct CalendarView: View {
                 .padding(.vertical)
             }
             .background(AppColors.background)
-            .navigationTitle("日历")
+            .navigationTitle(String(localized: "calendar.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: viewModel.moveToToday) {
-                        Text("今天")
+                        Text(String(localized: "calendar.today"))
                             .font(.subheadline)
                             .foregroundStyle(Color.accentPrimary)
                     }
@@ -112,7 +112,7 @@ struct CalendarView: View {
     
     private var weekdayHeader: some View {
         HStack(spacing: 0) {
-            ForEach(["日", "一", "二", "三", "四", "五", "六"], id: \.self) { weekday in
+            ForEach([String(localized: "calendar.weekday.sun"), String(localized: "calendar.weekday.mon"), String(localized: "calendar.weekday.tue"), String(localized: "calendar.weekday.wed"), String(localized: "calendar.weekday.thu"), String(localized: "calendar.weekday.fri"), String(localized: "calendar.weekday.sat")], id: \.self) { weekday in
                 Text(weekday)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(AppColors.textSecondary)
@@ -271,7 +271,7 @@ struct SelectedDateDetailPanel: View {
                         .foregroundStyle(Color.textPrimary)
                     
                     if calendar.isDateInToday(date) {
-                        Text("今天")
+                        Text(String(localized: "calendar.today"))
                             .font(.caption.weight(.medium))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 8)
@@ -289,7 +289,7 @@ struct SelectedDateDetailPanel: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title3)
                             .foregroundStyle(Color.statusSuccess)
-                        Text("当天无发作记录")
+                        Text(String(localized: "calendar.no.attack.today"))
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -298,7 +298,7 @@ struct SelectedDateDetailPanel: View {
                     // 发作记录
                     if !attacks.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("发作记录")
+                            Text(String(localized: "calendar.attack.records"))
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Color.textSecondary)
                             
@@ -316,14 +316,14 @@ struct SelectedDateDetailPanel: View {
                                             .cornerRadius(10)
                                         
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(attack.startTime.shortTime() + (attack.endTime != nil ? " - \(attack.endTime!.shortTime())" : " (进行中)"))
+                                            Text(attack.startTime.shortTime() + (attack.endTime != nil ? " - \(attack.endTime!.shortTime())" : " (\(String(localized: "status.in.progress")))"))
                                                 .font(.subheadline.weight(.medium))
                                                 .foregroundStyle(Color.textPrimary)
                                             
                                             if let duration = attack.duration {
                                                 let hours = Int(duration) / 3600
                                                 let minutes = (Int(duration) % 3600) / 60
-                                                Text("持续 \(hours > 0 ? "\(hours)h" : "")\(minutes)m")
+                                                Text("\(String(localized: "status.duration")) \(hours > 0 ? "\(hours)h" : "")\(minutes)m")
                                                     .font(.caption)
                                                     .foregroundStyle(Color.textSecondary)
                                             }
@@ -358,7 +358,7 @@ struct SelectedDateDetailPanel: View {
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("健康事件")
+                            Text(String(localized: "calendar.health.event"))
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Color.textSecondary)
                             
@@ -425,7 +425,7 @@ struct MonthlyStatsCard: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 // 标题行 - 与图表页整体概况保持一致
                 HStack {
-                    Text("本月统计")
+                    Text(String(localized: "stats.monthly.title"))
                         .font(.title3.weight(.semibold))
                     
                     Spacer()
@@ -438,28 +438,28 @@ struct MonthlyStatsCard: View {
                 ], spacing: Spacing.md) {
                     // 核心指标
                     StatItem(
-                        title: "发作天数",
+                        title: String(localized: "stats.attack.days"),
                         value: "\(stats.attackDays)",
                         icon: "calendar.badge.exclamationmark",
                         color: Color.statusWarning
                     )
                     
                     StatItem(
-                        title: "发作次数",
+                        title: String(localized: "stats.attack.count"),
                         value: "\(stats.totalAttacks)",
                         icon: "exclamationmark.triangle.fill",
                         color: Color.statusError
                     )
                     
                     StatItem(
-                        title: "平均持续时长",
+                        title: String(localized: "stats.avg.duration"),
                         value: stats.averageDurationFormatted,
                         icon: "clock.fill",
                         color: Color.accentSecondary
                     )
                     
                     StatItem(
-                        title: "平均强度",
+                        title: String(localized: "stats.avg.intensity"),
                         value: stats.averageIntensityFormatted,
                         icon: "waveform.path.ecg",
                         color: Color.painCategoryColor(for: Int(stats.averagePainIntensity))
@@ -467,14 +467,14 @@ struct MonthlyStatsCard: View {
                     
                     // 急性用药（始终显示）
                     StatItem(
-                        title: "急性用药天数",
+                        title: String(localized: "stats.acute.days"),
                         value: "\(stats.acuteMedicationDays)",
                         icon: "calendar.badge.clock",
                         color: stats.acuteMedicationDays >= 10 ? Color.statusWarning : Color.statusSuccess
                     )
                     
                     StatItem(
-                        title: "急性用药次数",
+                        title: String(localized: "stats.acute.count"),
                         value: "\(stats.acuteMedicationCount)",
                         icon: "pills.fill",
                         color: stats.acuteMedicationDays >= 10 ? Color.statusWarning : Color.accentPrimary
@@ -483,14 +483,14 @@ struct MonthlyStatsCard: View {
                     // 日常用药（有数据时显示）
                     if stats.hasPreventiveMedication {
                         StatItem(
-                            title: "日常用药天数",
+                            title: String(localized: "stats.preventive.days"),
                             value: "\(stats.preventiveMedicationDays)",
                             icon: "calendar.badge.plus",
                             color: Color.accentPrimary
                         )
                         
                         StatItem(
-                            title: "日常用药次数",
+                            title: String(localized: "stats.preventive.count"),
                             value: "\(stats.preventiveMedicationCount)",
                             icon: "pills.circle.fill",
                             color: Color.accentPrimary
@@ -500,7 +500,7 @@ struct MonthlyStatsCard: View {
                     // 中医治疗（有数据时显示）
                     if stats.hasTCMTreatment {
                         StatItem(
-                            title: "中医治疗次数",
+                            title: String(localized: "stats.tcm.count"),
                             value: "\(stats.tcmTreatmentCount)",
                             icon: "leaf.circle.fill",
                             color: Color.statusSuccess
@@ -510,7 +510,7 @@ struct MonthlyStatsCard: View {
                     // 手术（有数据时显示）
                     if stats.hasSurgery {
                         StatItem(
-                            title: "手术次数",
+                            title: String(localized: "stats.surgery.count"),
                             value: "\(stats.surgeryCount)",
                             icon: "cross.case.circle.fill",
                             color: Color.statusInfo
@@ -565,11 +565,11 @@ struct MonthlyStatsCard: View {
         case .none:
             return ""
         case .low:
-            return "用药提醒"
+            return String(localized: "moh.reminder")
         case .medium:
-            return "MOH中度风险"
+            return String(localized: "moh.risk.medium")
         case .high:
-            return "MOH高度风险"
+            return String(localized: "moh.risk.high")
         }
     }
     
@@ -578,11 +578,11 @@ struct MonthlyStatsCard: View {
         case .none:
             return ""
         case .low:
-            return "本月用药频次较高，请注意用药规律"
+            return String(localized: "moh.msg.low")
         case .medium:
-            return "用药天数接近MOH阈值，建议咨询医生"
+            return String(localized: "moh.msg.medium")
         case .high:
-            return "用药天数超过MOH阈值，强烈建议就医"
+            return String(localized: "moh.msg.high")
         }
     }
 }

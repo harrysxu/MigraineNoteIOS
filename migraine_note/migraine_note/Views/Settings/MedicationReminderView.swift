@@ -25,16 +25,16 @@ struct MedicationReminderView: View {
                             .foregroundStyle(Color.statusWarning)
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("通知权限未开启")
+                            Text("reminder.noPermission")
                                 .font(.subheadline.weight(.medium))
-                            Text("请在系统设置中允许通知，以接收用药提醒")
+                            Text("reminder.noPermissionHint")
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
                         }
                         
                         Spacer()
                         
-                        Button("去设置") {
+                        Button("reminder.goSettings") {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
                             }
@@ -53,11 +53,11 @@ struct MedicationReminderView: View {
                             .font(.system(size: 36))
                             .foregroundStyle(Color.textTertiary)
                         
-                        Text("暂无用药提醒")
+                        Text("reminder.empty")
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                         
-                        Text("添加提醒，按时服药不遗忘")
+                        Text("reminder.emptyHint")
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -82,10 +82,10 @@ struct MedicationReminderView: View {
                     }
                 }
             } header: {
-                Text("用药提醒")
+                Text("reminder.title")
             }
         }
-        .navigationTitle("用药提醒")
+        .navigationTitle("reminder.title")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -182,11 +182,11 @@ struct AddReminderSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("药物信息") {
+                Section("reminder.medicationInfo") {
                     // 药物名称（可选择已有药物）
                     if !medications.isEmpty {
-                        Picker("选择药物", selection: $medicationName) {
-                            Text("手动输入").tag("")
+                        Picker("reminder.selectMedication", selection: $medicationName) {
+                            Text("reminder.manualInput").tag("")
                             ForEach(medications, id: \.id) { medication in
                                 Text(medication.name).tag(medication.name)
                             }
@@ -194,11 +194,11 @@ struct AddReminderSheet: View {
                     }
                     
                     if medicationName.isEmpty || medications.isEmpty {
-                        TextField("药物名称", text: $medicationName)
+                        TextField("reminder.medicationName", text: $medicationName)
                     }
                     
                     HStack {
-                        Text("剂量")
+                        Text("reminder.dosage")
                         Spacer()
                         TextField("0", value: $dosage, format: .number)
                             .keyboardType(.decimalPad)
@@ -209,7 +209,7 @@ struct AddReminderSheet: View {
                     }
                 }
                 
-                Section("提醒时间") {
+                Section("reminder.time") {
                     // 已添加的时间列表
                     ForEach(Array(times.enumerated()), id: \.offset) { index, time in
                         HStack {
@@ -246,11 +246,16 @@ struct AddReminderSheet: View {
                     }
                 }
                 
-                Section("重复") {
-                    Toggle("每天提醒", isOn: $isEveryDay)
+                Section("reminder.repeat") {
+                    Toggle("reminder.daily", isOn: $isEveryDay)
                     
                     if !isEveryDay {
-                        let weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+                        let weekdayNames = [
+                            String(localized: "weekday.sunday"), String(localized: "weekday.monday"),
+                            String(localized: "weekday.tuesday"), String(localized: "weekday.wednesday"),
+                            String(localized: "weekday.thursday"), String(localized: "weekday.friday"),
+                            String(localized: "weekday.saturday")
+                        ]
                         ForEach(1...7, id: \.self) { day in
                             HStack {
                                 Text(weekdayNames[day - 1])
@@ -272,16 +277,16 @@ struct AddReminderSheet: View {
                     }
                 }
             }
-            .navigationTitle("添加提醒")
+            .navigationTitle("reminder.add")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button("common.cancel") {
                         isPresented = false
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button("common.save") {
                         saveReminder()
                     }
                     .disabled(medicationName.isEmpty || times.isEmpty)
@@ -306,7 +311,7 @@ struct AddReminderSheet: View {
             isEnabled: true
         )
         reminderManager.addReminder(reminder)
-        AppToastManager.shared.showSuccess("提醒已添加")
+        AppToastManager.shared.showSuccess(String(localized: "reminder.added"))
         isPresented = false
     }
 }
@@ -340,11 +345,11 @@ struct EditReminderSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("药物信息") {
+                Section("reminder.medicationInfo") {
                     TextField("药物名称", text: $medicationName)
                     
                     HStack {
-                        Text("剂量")
+                        Text("reminder.dosage")
                         Spacer()
                         TextField("0", value: $dosage, format: .number)
                             .keyboardType(.decimalPad)
@@ -355,7 +360,7 @@ struct EditReminderSheet: View {
                     }
                 }
                 
-                Section("提醒时间") {
+                Section("reminder.time") {
                     ForEach(Array(times.enumerated()), id: \.offset) { index, time in
                         HStack {
                             Text({
@@ -390,11 +395,16 @@ struct EditReminderSheet: View {
                     }
                 }
                 
-                Section("重复") {
-                    Toggle("每天提醒", isOn: $isEveryDay)
+                Section("reminder.repeat") {
+                    Toggle("reminder.daily", isOn: $isEveryDay)
                     
                     if !isEveryDay {
-                        let weekdayNames = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+                        let weekdayNames = [
+                            String(localized: "weekday.sunday"), String(localized: "weekday.monday"),
+                            String(localized: "weekday.tuesday"), String(localized: "weekday.wednesday"),
+                            String(localized: "weekday.thursday"), String(localized: "weekday.friday"),
+                            String(localized: "weekday.saturday")
+                        ]
                         ForEach(1...7, id: \.self) { day in
                             HStack {
                                 Text(weekdayNames[day - 1])
@@ -417,23 +427,23 @@ struct EditReminderSheet: View {
                 }
                 
                 Section {
-                    Button("删除提醒", role: .destructive) {
+                    Button("reminder.delete", role: .destructive) {
                         reminderManager.removeReminder(reminder)
-                        AppToastManager.shared.showSuccess("提醒已删除")
+                        AppToastManager.shared.showSuccess(String(localized: "reminder.deleted"))
                         isPresented = false
                     }
                 }
             }
-            .navigationTitle("编辑提醒")
+            .navigationTitle("reminder.edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button("common.cancel") {
                         isPresented = false
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button("common.save") {
                         saveChanges()
                     }
                     .disabled(medicationName.isEmpty || times.isEmpty)
@@ -450,7 +460,7 @@ struct EditReminderSheet: View {
         updated.times = times
         updated.weekdays = isEveryDay ? [] : Array(weekdays)
         reminderManager.updateReminder(updated)
-        AppToastManager.shared.showSuccess("提醒已更新")
+        AppToastManager.shared.showSuccess(String(localized: "reminder.updated"))
         isPresented = false
     }
 }

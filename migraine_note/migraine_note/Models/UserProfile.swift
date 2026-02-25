@@ -95,10 +95,10 @@ final class UserProfile {
     var bmiDescription: String? {
         guard let bmi = bmi else { return nil }
         switch bmi {
-        case ..<18.5: return "偏瘦"
-        case 18.5..<24.0: return "正常"
-        case 24.0..<28.0: return "偏胖"
-        default: return "肥胖"
+        case ..<18.5: return String(localized: "profile.bmi.underweight")
+        case 18.5..<24.0: return String(localized: "profile.bmi.normal")
+        case 24.0..<28.0: return String(localized: "profile.bmi.overweight")
+        default: return String(localized: "profile.bmi.obese")
         }
     }
     
@@ -119,27 +119,43 @@ final class UserProfile {
 // MARK: - 枚举定义
 
 enum Gender: String, Codable, CaseIterable {
-    case male = "男"
-    case female = "女"
-    case other = "其他"
+    case male = "male"
+    case female = "female"
+    case other = "other"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("gender.\(rawValue)"))
+    }
 }
 
 enum BloodType: String, Codable, CaseIterable {
-    case a = "A型"
-    case b = "B型"
-    case ab = "AB型"
-    case o = "O型"
+    case a = "a"
+    case b = "b"
+    case ab = "ab"
+    case o = "o"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("blood.type.\(rawValue)"))
+    }
 }
 
 enum MigraineType: String, Codable, CaseIterable {
-    case withoutAura = "无先兆偏头痛"
-    case withAura = "有先兆偏头痛"
-    case chronic = "慢性偏头痛"
-    case menstrual = "月经性偏头痛"
-    case other = "其他类型"
+    case withoutAura = "withoutAura"
+    case withAura = "withAura"
+    case chronic = "chronic"
+    case menstrual = "menstrual"
+    case other = "other"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("migraine.type.\(rawValue)"))
+    }
 }
 
 enum PainScale: String, Codable, CaseIterable {
-    case numeric = "数字评分(NRS)"
-    case visual = "视觉模拟(VAS)"
+    case numeric = "numeric"
+    case visual = "visual"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("pain.scale.\(rawValue)"))
+    }
 }

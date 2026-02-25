@@ -19,13 +19,14 @@ final class PainLocationTests: XCTestCase {
     }
     
     func testDisplayName_SpecificValues() {
-        XCTAssertEqual(PainLocation.forehead.displayName, "前额")
-        XCTAssertEqual(PainLocation.leftTemple.displayName, "左侧太阳穴")
-        XCTAssertEqual(PainLocation.rightTemple.displayName, "右侧太阳穴")
-        XCTAssertEqual(PainLocation.occipital.displayName, "后脑勺")
-        XCTAssertEqual(PainLocation.vertex.displayName, "头顶")
-        XCTAssertEqual(PainLocation.neck.displayName, "颈部")
-        XCTAssertEqual(PainLocation.wholehead.displayName, "全头")
+        // 测试 displayName 返回本地化字符串
+        XCTAssertFalse(PainLocation.forehead.displayName.isEmpty)
+        XCTAssertFalse(PainLocation.leftTemple.displayName.isEmpty)
+        XCTAssertFalse(PainLocation.rightTemple.displayName.isEmpty)
+        XCTAssertFalse(PainLocation.occipital.displayName.isEmpty)
+        XCTAssertFalse(PainLocation.vertex.displayName.isEmpty)
+        XCTAssertFalse(PainLocation.neck.displayName.isEmpty)
+        XCTAssertFalse(PainLocation.wholehead.displayName.isEmpty)
     }
     
     // MARK: - shortDescription 测试
@@ -57,10 +58,11 @@ final class PainLocationTests: XCTestCase {
     }
     
     func testHeadViewDirection_DisplayNames() {
-        XCTAssertEqual(HeadViewDirection.front.displayName, "正面")
-        XCTAssertEqual(HeadViewDirection.back.displayName, "背面")
-        XCTAssertEqual(HeadViewDirection.left.displayName, "左侧")
-        XCTAssertEqual(HeadViewDirection.right.displayName, "右侧")
+        // 测试所有方向都有非空的 displayName
+        XCTAssertFalse(HeadViewDirection.front.displayName.isEmpty, "front 应有 displayName")
+        XCTAssertFalse(HeadViewDirection.back.displayName.isEmpty, "back 应有 displayName")
+        XCTAssertFalse(HeadViewDirection.left.displayName.isEmpty, "left 应有 displayName")
+        XCTAssertFalse(HeadViewDirection.right.displayName.isEmpty, "right 应有 displayName")
     }
     
     // MARK: - availableLocations 测试

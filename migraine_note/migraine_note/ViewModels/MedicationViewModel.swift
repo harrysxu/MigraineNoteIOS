@@ -26,9 +26,17 @@ class MedicationViewModel {
     // MARK: - Enums
     
     enum MedicationCategoryFilter: String, CaseIterable {
-        case all = "全部"
-        case acute = "急性用药"
-        case preventive = "预防性用药"
+        case all = "all"
+        case acute = "acute"
+        case preventive = "preventive"
+        
+        var localizedDisplayName: String {
+            switch self {
+            case .all: return String(localized: "medication.filter.all")
+            case .acute: return String(localized: "medication.filter.acute")
+            case .preventive: return String(localized: "medication.filter.preventive")
+            }
+        }
         
         var systemImage: String {
             switch self {
@@ -40,10 +48,19 @@ class MedicationViewModel {
     }
     
     enum SortOption: String, CaseIterable {
-        case name = "名称"
-        case usageFrequency = "使用频次"
-        case inventory = "库存"
-        case dateAdded = "添加日期"
+        case name = "name"
+        case usageFrequency = "usageFrequency"
+        case inventory = "inventory"
+        case dateAdded = "dateAdded"
+        
+        var localizedDisplayName: String {
+            switch self {
+            case .name: return String(localized: "viewmodel.medication.sort.name")
+            case .usageFrequency: return String(localized: "viewmodel.medication.sort.usageFrequency")
+            case .inventory: return String(localized: "viewmodel.medication.sort.inventory")
+            case .dateAdded: return String(localized: "viewmodel.medication.sort.dateAdded")
+            }
+        }
         
         var systemImage: String {
             switch self {
@@ -142,9 +159,9 @@ class MedicationViewModel {
         guard let limit = medication.monthlyLimit else { return nil }
         
         if usageDays >= limit {
-            return "已超过MOH阈值(\(limit)天)"
+            return String(format: String(localized: "viewmodel.medication.mohExceeded"), limit)
         } else if usageDays >= limit - 3 {
-            return "接近MOH阈值(还剩\(limit - usageDays)天)"
+            return String(format: String(localized: "viewmodel.medication.mohApproaching"), limit - usageDays)
         }
         return nil
     }
@@ -160,9 +177,9 @@ class MedicationViewModel {
         context.delete(medication)
         do {
             try context.save()
-            AppToastManager.shared.showSuccess("\(name) 已从药箱中删除")
+            AppToastManager.shared.showSuccess(String(format: String(localized: "viewmodel.medication.deletedFromCabinet"), name))
         } catch {
-            AppToastManager.shared.showError("删除药物失败，请重试")
+            AppToastManager.shared.showError(String(localized: "viewmodel.medication.deleteFailed"))
         }
     }
     
@@ -172,7 +189,7 @@ class MedicationViewModel {
         do {
             try context.save()
         } catch {
-            AppToastManager.shared.showError("更新库存失败，请重试")
+            AppToastManager.shared.showError(String(localized: "viewmodel.medication.updateInventoryFailed"))
         }
     }
 }

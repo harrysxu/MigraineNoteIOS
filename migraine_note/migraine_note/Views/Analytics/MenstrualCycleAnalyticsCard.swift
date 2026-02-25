@@ -26,10 +26,10 @@ struct MenstrualCycleAnalyticsCard: View {
                     Image(systemName: "heart.circle.fill")
                         .foregroundStyle(Color.gentlePink)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("经期关联分析")
+                        Text(String(localized: "menstrual.title"))
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
-                        Text("来自 Apple 健康")
+                        Text(String(localized: "menstrual.fromHealth"))
                             .font(.caption2)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -37,7 +37,7 @@ struct MenstrualCycleAnalyticsCard: View {
                     Spacer()
                     
                     if !cycleManager.isAuthorized {
-                        Button("授权") {
+                        Button(String(localized: "menstrual.authorize")) {
                             Task {
                                 await authorizeAndLoad()
                             }
@@ -61,7 +61,7 @@ struct MenstrualCycleAnalyticsCard: View {
                     // 加载中
                     HStack(spacing: 12) {
                         ProgressView()
-                        Text("正在分析经期数据...")
+                        Text(String(localized: "menstrual.loading"))
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -72,7 +72,7 @@ struct MenstrualCycleAnalyticsCard: View {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle")
                                 .foregroundStyle(Color.statusWarning)
-                            Text("数据加载失败")
+                            Text(String(localized: "menstrual.loadFailed"))
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(Color.textPrimary)
                         }
@@ -81,7 +81,7 @@ struct MenstrualCycleAnalyticsCard: View {
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                         
-                        Button("重试") {
+                        Button(String(localized: "menstrual.retry")) {
                             cycleManager.errorMessage = nil
                             Task {
                                 await authorizeAndLoad()
@@ -120,10 +120,10 @@ struct MenstrualCycleAnalyticsCard: View {
             Image(systemName: "heart.slash.circle")
                 .foregroundStyle(Color.textTertiary)
             VStack(alignment: .leading, spacing: 4) {
-                Text("此设备不支持 Apple 健康")
+                Text(String(localized: "menstrual.notAvailable"))
                     .font(.subheadline)
                     .foregroundStyle(Color.textSecondary)
-                Text("需要 iOS 设备上的 HealthKit 功能")
+                Text(String(localized: "menstrual.healthKitRequired"))
                     .font(.caption2)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -138,17 +138,17 @@ struct MenstrualCycleAnalyticsCard: View {
                     .foregroundStyle(Color.accentPrimary)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("连接 Apple 健康数据")
+                    Text(String(localized: "menstrual.connectHealth"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textPrimary)
                     
-                    Text("使用 HealthKit 读取经期数据")
+                    Text(String(localized: "menstrual.healthKitRead"))
                         .font(.caption2)
                         .foregroundStyle(Color.textTertiary)
                 }
             }
             
-            Text("授权后将从「健康」App 自动读取您的经期数据，分析月经周期与偏头痛发作的关联，帮助识别月经性偏头痛。")
+            Text(String(localized: "menstrual.privacyHint"))
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
                 .lineSpacing(4)
@@ -158,7 +158,7 @@ struct MenstrualCycleAnalyticsCard: View {
                     .font(.caption2)
                     .foregroundStyle(Color.statusSuccess)
                 
-                Text("所有数据仅在本地分析，不会上传到任何服务器")
+                Text(String(localized: "menstrual.localOnly"))
                     .font(.caption2)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -174,12 +174,12 @@ struct MenstrualCycleAnalyticsCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "calendar.badge.exclamationmark")
                     .foregroundStyle(Color.textTertiary)
-                Text("未找到经期记录")
+                Text(String(localized: "menstrual.noData"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textPrimary)
             }
             
-            Text("请在「健康」App 中记录经期数据。打开「健康」→「浏览」→「经期追踪」进行记录。")
+            Text(String(localized: "menstrual.noDataHint"))
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
                 .lineSpacing(4)
@@ -191,12 +191,12 @@ struct MenstrualCycleAnalyticsCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .foregroundStyle(Color.textTertiary)
-                Text("经期数据不足")
+                Text(String(localized: "menstrual.insufficientData"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textPrimary)
             }
             
-            Text("至少需要 2 个完整的月经周期才能进行关联分析。请在「健康」App 中继续记录经期数据。")
+            Text(String(localized: "menstrual.insufficientHint"))
                 .font(.caption)
                 .foregroundStyle(Color.textSecondary)
                 .lineSpacing(4)
@@ -211,7 +211,7 @@ struct MenstrualCycleAnalyticsCard: View {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color.statusWarning)
-                    Text("可能存在月经性偏头痛")
+                    Text(String(localized: "menstrual.menstrualMigraine"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.statusWarning)
                 }
@@ -224,10 +224,10 @@ struct MenstrualCycleAnalyticsCard: View {
             // 核心数据
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("平均周期")
+                    Text(String(localized: "menstrual.avgCycle"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
-                    Text("\(analysis.averageCycleLength) 天")
+                    Text(String(format: String(localized: "common.daysFormat"), analysis.averageCycleLength))
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -235,7 +235,7 @@ struct MenstrualCycleAnalyticsCard: View {
                 Spacer()
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("经期相关发作")
+                    Text(String(localized: "menstrual.periodRelated"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                     Text(String(format: "%.0f%%", analysis.periodCorrelationPercentage))
@@ -246,10 +246,10 @@ struct MenstrualCycleAnalyticsCard: View {
                 Spacer()
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("分析发作数")
+                    Text(String(localized: "menstrual.analyzedCount"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
-                    Text("\(analysis.totalAttacksAnalyzed) 次")
+                    Text(String(format: String(localized: "common.timesFormat"), analysis.totalAttacksAnalyzed))
                         .font(.title3.weight(.bold))
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -259,25 +259,25 @@ struct MenstrualCycleAnalyticsCard: View {
             
             // 发作时机分布
             VStack(alignment: .leading, spacing: 8) {
-                Text("发作时机分布")
+                Text(String(localized: "menstrual.timingDistribution"))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
                 
                 HStack(spacing: 12) {
                     AttackTimingItem(
-                        label: "经期中",
+                        label: String(localized: "menstrual.timingDuring"),
                         count: analysis.attacksDuringPeriod,
                         color: .gentlePink
                     )
                     
                     AttackTimingItem(
-                        label: "经前2天",
+                        label: String(localized: "menstrual.timingBefore"),
                         count: analysis.attacksBeforePeriod,
                         color: .statusWarning
                     )
                     
                     AttackTimingItem(
-                        label: "其他时间",
+                        label: String(localized: "menstrual.timingOther"),
                         count: analysis.attacksOutsidePeriod,
                         color: .accentPrimary
                     )
@@ -289,15 +289,15 @@ struct MenstrualCycleAnalyticsCard: View {
                 Divider()
                 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("周期各阶段发作次数")
+                    Text(String(localized: "menstrual.phaseDistribution"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textPrimary)
                     
                     Chart {
                         ForEach(analysis.cyclePhaseDistribution) { data in
                             BarMark(
-                                x: .value("阶段", data.phase),
-                                y: .value("次数", data.count)
+                                x: .value(String(localized: "chart.phase"), data.phase),
+                                y: .value(String(localized: "chart.count"), data.count)
                             )
                             .foregroundStyle(phaseColor(for: data.phase))
                             .cornerRadius(6)

@@ -115,9 +115,13 @@ final class HealthEvent {
 
 // 健康事件类型枚举
 enum HealthEventType: String, Codable, CaseIterable {
-    case medication = "用药"
-    case tcmTreatment = "中医治疗"
-    case surgery = "手术"
+    case medication = "medication"
+    case tcmTreatment = "tcmTreatment"
+    case surgery = "surgery"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("health.event.type.\(rawValue)"))
+    }
     
     var icon: String {
         switch self {
@@ -144,11 +148,15 @@ enum HealthEventType: String, Codable, CaseIterable {
 
 // 中医治疗类型预设
 enum TCMTreatmentType: String, CaseIterable {
-    case acupuncture = "针灸"
-    case massage = "推拿按摩"
-    case cupping = "拔罐"
-    case guasha = "刮痧"
-    case moxibustion = "艾灸"
-    case herbalMedicine = "中药汤剂"
-    case other = "其他"
+    case acupuncture = "acupuncture"
+    case massage = "massage"
+    case cupping = "cupping"
+    case guasha = "guasha"
+    case moxibustion = "moxibustion"
+    case herbalMedicine = "herbalMedicine"
+    case other = "other"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("tcm.treatment.type.\(rawValue)"))
+    }
 }

@@ -1,0 +1,9 @@
+/* 
+  InfoPlist.strings
+  migraine_note (繁體中文)
+*/
+
+"CFBundleDisplayName" = "頭痛管家";
+"NSLocationWhenInUseUsageDescription" = "我們需要您的位置資訊來記錄當地天氣狀況，幫助分析環境誘因";
+"NSHealthShareUsageDescription" = "「頭痛管家」需要讀取您的經期數據（通過 Apple 健康 HealthKit），以分析月經週期與偏頭痛發作的關聯，幫助識別月經性偏頭痛。所有數據僅在本地分析，不會上傳到任何伺服器。";
+"NSHealthUpdateUsageDescription" = "「頭痛管家」可將您的偏頭痛記錄寫入 Apple 健康（HealthKit），方便您在「健康」App 中統一管理和查看所有健康數據。";

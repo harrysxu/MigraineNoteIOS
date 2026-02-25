@@ -200,17 +200,28 @@ class AttackListViewModel {
     /// 重新计算时间轴数据（基于已加载的数据进行内存过滤和排序）
     func updateTimelineItems() {
         var items: [TimelineItemType] = []
+        var seenIDs = Set<UUID>()
         
         // 添加偏头痛发作记录（已经通过数据库谓词做了日期过滤，只需做搜索过滤）
         let filteredAttacks = applySearchFilter(to: attacks)
         if recordTypeFilter == .all || recordTypeFilter == .attacksOnly {
-            items.append(contentsOf: filteredAttacks.map { .attack($0) })
+            for attack in filteredAttacks {
+                if !seenIDs.contains(attack.id) {
+                    items.append(.attack(attack))
+                    seenIDs.insert(attack.id)
+                }
+            }
         }
         
         // 添加健康事件
         let filteredEvents = applySearchAndTypeFilter(to: healthEvents)
         if recordTypeFilter != .attacksOnly {
-            items.append(contentsOf: filteredEvents.map { .healthEvent($0) })
+            for event in filteredEvents {
+                if !seenIDs.contains(event.id) {
+                    items.append(.healthEvent(event))
+                    seenIDs.insert(event.id)
+                }
+            }
         }
         
         // 按日期排序

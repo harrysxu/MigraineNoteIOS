@@ -45,7 +45,7 @@ struct AttackListView: View {
                     }
                 }
             }
-            .searchable(text: $viewModel.searchText, prompt: "搜索症状、诱因或用药")
+            .searchable(text: $viewModel.searchText, prompt: String(localized: "search.placeholder"))
             .sheet(isPresented: $showingFilterSheet) {
                 FilterSheetView(viewModel: viewModel)
             }
@@ -95,11 +95,11 @@ struct AttackListView: View {
                 .font(.system(size: 80))
                 .foregroundStyle(AppColors.textSecondary.opacity(0.5))
             
-            Text("暂无记录")
+            Text(String(localized: "empty.records.title"))
                 .appFont(.title)
                 .foregroundStyle(AppColors.textPrimary)
             
-            Text("开始记录您的第一次偏头痛发作")
+            Text(String(localized: "empty.records.subtitle"))
                 .appFont(.body)
                 .foregroundStyle(AppColors.textSecondary)
                 .multilineTextAlignment(.center)
@@ -126,7 +126,7 @@ struct AttackListView: View {
                     ForEach(groupedItems, id: \.key) { year, yearItems in
                         VStack(alignment: .leading, spacing: AppSpacing.small) {
                             // 年份标题
-                            Text("\(year)年")
+                            Text(String(localized: "year.suffix").isEmpty ? "\(year)" : "\(year)\(String(localized: "year.suffix"))")
                                 .appFont(.title3)
                                 .foregroundStyle(AppColors.textPrimary)
                                 .fontWeight(.semibold)
@@ -140,7 +140,7 @@ struct AttackListView: View {
                                         Button(role: .destructive) {
                                             deleteTimelineItem(item)
                                         } label: {
-                                            Label("删除", systemImage: "trash")
+                                            Label(String(localized: "common.delete"), systemImage: "trash")
                                         }
                                     }
                             }
@@ -185,11 +185,11 @@ struct AttackListView: View {
                 .font(.system(size: 50))
                 .foregroundStyle(AppColors.textSecondary.opacity(0.5))
             
-            Text("未找到匹配的记录")
+            Text(String(localized: "filter.no.results"))
                 .appFont(.headline)
                 .foregroundStyle(AppColors.textPrimary)
             
-            Text("尝试调整搜索或筛选条件")
+            Text(String(localized: "filter.try.adjust"))
                 .appFont(.body)
                 .foregroundStyle(AppColors.textSecondary)
         }
@@ -243,7 +243,7 @@ struct AttackRowView: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(intensityColor)
                 
-                Text("强度")
+                Text(String(localized: "attack.intensity"))
                     .font(.caption2)
                     .foregroundStyle(AppColors.textTertiary)
             }
@@ -272,7 +272,7 @@ struct AttackRowView: View {
                         HStack(spacing: 4) {
                             Image(systemName: "pills")
                                 .font(.caption2)
-                            Text("\(attack.medicationCount)次用药")
+                            Text(String(format: String(localized: "attack.medication.count"), attack.medicationCount))
                         }
                         .font(.caption)
                         .foregroundStyle(AppColors.textSecondary)
@@ -323,8 +323,8 @@ struct FilterSheetView: View {
         NavigationStack {
             Form {
                 // 记录类型
-                Section("记录类型") {
-                    Picker("类型", selection: $viewModel.recordTypeFilter) {
+                Section(String(localized: "filter.record.type")) {
+                    Picker(String(localized: "filter.type"), selection: $viewModel.recordTypeFilter) {
                         ForEach(AttackListViewModel.RecordTypeFilter.allCases, id: \.self) { filter in
                             Label(filter.rawValue, systemImage: filter.systemImage)
                                 .tag(filter)
@@ -334,8 +334,8 @@ struct FilterSheetView: View {
                 }
                 
                 // 时间范围
-                Section("时间范围") {
-                    Picker("筛选", selection: $viewModel.filterOption) {
+                Section(String(localized: "filter.time.range")) {
+                    Picker(String(localized: "common.filter"), selection: $viewModel.filterOption) {
                         ForEach(AttackListViewModel.FilterOption.allCases, id: \.self) { option in
                             Label(option.rawValue, systemImage: option.systemImage)
                                 .tag(option)
@@ -346,10 +346,10 @@ struct FilterSheetView: View {
                     // 自定义日期范围选择器
                     if viewModel.filterOption == .custom {
                         VStack(spacing: AppSpacing.small) {
-                            DatePicker("开始日期", 
+                            DatePicker(String(localized: "form.start.date"), 
                                        selection: $customStartDate, 
                                        displayedComponents: .date)
-                            DatePicker("结束日期", 
+                            DatePicker(String(localized: "form.end.date"), 
                                        selection: $customEndDate, 
                                        displayedComponents: .date)
                         }
@@ -358,8 +358,8 @@ struct FilterSheetView: View {
                 }
                 
                 // 排序方式
-                Section("排序方式") {
-                    Picker("排序", selection: $viewModel.sortOption) {
+                Section(String(localized: "filter.sort")) {
+                    Picker(String(localized: "filter.sort.label"), selection: $viewModel.sortOption) {
                         ForEach(AttackListViewModel.SortOption.allCases, id: \.self) { option in
                             Label(option.rawValue, systemImage: option.systemImage)
                                 .tag(option)
@@ -370,17 +370,17 @@ struct FilterSheetView: View {
                 
                 // 重置按钮
                 Section {
-                    Button("重置所有筛选") {
+                    Button(String(localized: "filter.reset")) {
                         viewModel.resetFilters()
                     }
                     .foregroundStyle(AppColors.warning)
                 }
             }
-            .navigationTitle("筛选和排序")
+            .navigationTitle(String(localized: "filter.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                 }

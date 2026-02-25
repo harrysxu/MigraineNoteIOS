@@ -38,13 +38,17 @@ final class Trigger {
 }
 
 enum TriggerCategory: String, Codable, CaseIterable {
-    case food = "饮食"
-    case environment = "环境"
-    case sleep = "睡眠"
-    case stress = "压力"
-    case hormone = "激素"
-    case lifestyle = "生活方式"
-    case tcm = "中医诱因"
+    case food = "food"
+    case environment = "environment"
+    case sleep = "sleep"
+    case stress = "stress"
+    case hormone = "hormone"
+    case lifestyle = "lifestyle"
+    case tcm = "tcm"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("trigger.category.\(rawValue)"))
+    }
     
     var systemImage: String {
         switch self {

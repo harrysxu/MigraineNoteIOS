@@ -86,9 +86,13 @@ final class WeatherSnapshot {
 }
 
 enum PressureTrend: String, Codable, CaseIterable {
-    case rising = "上升"
-    case falling = "下降"
-    case steady = "稳定"
+    case rising = "rising"
+    case falling = "falling"
+    case steady = "steady"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("weather.pressure.trend.\(rawValue)"))
+    }
     
     var icon: String {
         switch self {

@@ -99,12 +99,23 @@ class HomeViewModel {
     private func loadRecentTimelineItems() {
         // 合并偏头痛发作和健康事件
         var items: [TimelineItemType] = []
+        var seenIDs = Set<UUID>()
         
-        // 添加偏头痛发作
-        items += recentAttacks.map { .attack($0) }
+        // 添加偏头痛发作（去重）
+        for attack in recentAttacks {
+            if !seenIDs.contains(attack.id) {
+                items.append(.attack(attack))
+                seenIDs.insert(attack.id)
+            }
+        }
         
-        // 添加健康事件
-        items += recentHealthEvents.map { .healthEvent($0) }
+        // 添加健康事件（去重）
+        for event in recentHealthEvents {
+            if !seenIDs.contains(event.id) {
+                items.append(.healthEvent(event))
+                seenIDs.insert(event.id)
+            }
+        }
         
         // 按时间倒序排序
         items.sort { $0.eventDate > $1.eventDate }

@@ -57,11 +57,15 @@ final class MedicationLog {
     
     // 便捷属性：兼容旧代码 - effectiveness
     enum Effectiveness: String, CaseIterable {
-        case excellent = "完全缓解"
-        case good = "明显缓解"
-        case moderate = "部分缓解"
-        case poor = "轻微缓解"
-        case none = "无效"
+        case excellent = "excellent"
+        case good = "good"
+        case moderate = "moderate"
+        case poor = "poor"
+        case none = "none"
+        
+        var localizedName: String {
+            String(localized: String.LocalizationValue("medication.effectiveness.\(rawValue)"))
+        }
     }
     
     var effectiveness: Effectiveness? {
@@ -90,13 +94,13 @@ final class MedicationLog {
 }
 
 enum MedicationEfficacy: String, Codable, CaseIterable {
-    case notEvaluated = "未评估"
-    case complete = "完全缓解"
-    case partial = "部分缓解"
-    case noEffect = "无效"
+    case notEvaluated = "notEvaluated"
+    case complete = "complete"
+    case partial = "partial"
+    case noEffect = "noEffect"
     
     var displayName: String {
-        rawValue
+        String(localized: String.LocalizationValue("medication.efficacy.\(rawValue)"))
     }
     
     var icon: String {

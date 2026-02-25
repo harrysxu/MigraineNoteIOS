@@ -147,38 +147,54 @@ final class AttackRecord {
 
 // 枚举类型
 enum PainQuality: String, Codable, CaseIterable {
-    case pulsating = "搏动性"
-    case pressing = "压迫感"
-    case stabbing = "刺痛"
-    case dull = "钝痛"
-    case distending = "胀痛" // 中医
+    case pulsating = "pulsating"
+    case pressing = "pressing"
+    case stabbing = "stabbing"
+    case dull = "dull"
+    case distending = "distending"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("pain.quality.\(rawValue)"))
+    }
 }
 
 enum AuraType: String, Codable, CaseIterable {
-    case visualFlashes = "视觉闪光"
-    case visualScotoma = "视野暗点"
-    case sensoryNumbness = "肢体麻木"
-    case speechDifficulty = "言语障碍"
+    case visualFlashes = "visualFlashes"
+    case visualScotoma = "visualScotoma"
+    case sensoryNumbness = "sensoryNumbness"
+    case speechDifficulty = "speechDifficulty"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("aura.type.\(rawValue)"))
+    }
 }
 
 enum TCMPattern: String, Codable, CaseIterable {
-    case windCold = "风寒侵袭"
-    case dampness = "湿邪困阻"
-    case liverQiStagnation = "肝气郁结"
-    case liverFire = "肝火上炎"
-    case qiBloodDeficiency = "气血亏虚"
-    case dampHeat = "湿热内蕴"
+    case windCold = "windCold"
+    case dampness = "dampness"
+    case liverQiStagnation = "liverQiStagnation"
+    case liverFire = "liverFire"
+    case qiBloodDeficiency = "qiBloodDeficiency"
+    case dampHeat = "dampHeat"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("tcm.pattern.\(rawValue)"))
+    }
 }
 
 enum NonPharmIntervention: String, Codable, CaseIterable {
-    case rest = "休息"
-    case sleep = "睡眠"
-    case darkRoom = "黑暗安静环境"
-    case coldCompress = "冷敷"
-    case hotCompress = "热敷"
-    case massage = "按摩"
-    case meditation = "冥想"
-    case deepBreathing = "深呼吸"
-    case acupuncture = "针灸"
-    case yoga = "瑜伽"
+    case rest = "rest"
+    case sleep = "sleep"
+    case darkRoom = "darkRoom"
+    case coldCompress = "coldCompress"
+    case hotCompress = "hotCompress"
+    case massage = "massage"
+    case meditation = "meditation"
+    case deepBreathing = "deepBreathing"
+    case acupuncture = "acupuncture"
+    case yoga = "yoga"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("intervention.\(rawValue)"))
+    }
 }

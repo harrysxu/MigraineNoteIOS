@@ -37,8 +37,12 @@ final class Symptom {
     
     // 便捷属性：分类（兼容）
     enum Category: String {
-        case ihs = "IHS标准"
-        case tcm = "中医"
+        case ihs = "ihs"
+        case tcm = "tcm"
+        
+        var localizedName: String {
+            String(localized: String.LocalizationValue("symptom.category.\(rawValue)"))
+        }
     }
     
     var category: Category {
@@ -53,20 +57,24 @@ final class Symptom {
 
 enum SymptomType: String, Codable, CaseIterable {
     // IHS标准症状
-    case nausea = "恶心"
-    case vomiting = "呕吐"
-    case photophobia = "畏光"
-    case phonophobia = "畏声"
-    case osmophobia = "气味敏感"
-    case allodynia = "头皮触痛"
+    case nausea = "nausea"
+    case vomiting = "vomiting"
+    case photophobia = "photophobia"
+    case phonophobia = "phonophobia"
+    case osmophobia = "osmophobia"
+    case allodynia = "allodynia"
     
     // 中医特有症状
-    case bitterTaste = "口苦"
-    case facialFlushing = "面红目赤"
-    case coldExtremities = "手脚冰凉"
-    case heavyHeadedness = "头重如裹"
-    case dizziness = "眩晕"
-    case palpitation = "心悸"
+    case bitterTaste = "bitterTaste"
+    case facialFlushing = "facialFlushing"
+    case coldExtremities = "coldExtremities"
+    case heavyHeadedness = "heavyHeadedness"
+    case dizziness = "dizziness"
+    case palpitation = "palpitation"
+    
+    var localizedName: String {
+        String(localized: String.LocalizationValue("symptom.type.\(rawValue)"))
+    }
     
     var isWesternMedicine: Bool {
         switch self {

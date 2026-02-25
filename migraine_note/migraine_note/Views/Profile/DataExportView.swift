@@ -21,11 +21,11 @@ enum ExportTimeRange: String, CaseIterable, Identifiable {
     
     var displayName: String {
         switch self {
-        case .lastMonth: return "近1个月"
-        case .last3Months: return "近3个月"
-        case .last6Months: return "近6个月"
-        case .lastYear: return "近1年"
-        case .custom: return "自定义"
+        case .lastMonth: return String(localized: "export.range.lastMonth")
+        case .last3Months: return String(localized: "export.range.last3Months")
+        case .last6Months: return String(localized: "export.range.last6Months")
+        case .lastYear: return String(localized: "export.range.lastYear")
+        case .custom: return String(localized: "export.range.custom")
         }
     }
     
@@ -107,12 +107,12 @@ struct DataExportView: View {
                                 Image(systemName: "info.circle.fill")
                                     .font(.title3)
                                     .foregroundStyle(Color.accentPrimary)
-                                Text("数据导出")
+                                Text("export.title")
                                     .font(.headline)
                                     .foregroundStyle(Color.textPrimary)
                             }
                             
-                            Text("导出您的偏头痛数据，包含统计分析和详细记录。CSV格式适合数据分析，PDF格式适合打印和医疗就诊。")
+                            Text("export.description")
                                 .font(.body)
                                 .foregroundStyle(Color.textSecondary)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -121,11 +121,11 @@ struct DataExportView: View {
                     
                     // 时间范围选择
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("时间范围")
+                        Text("export.timeRange")
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
                         
-                        Picker("时间范围", selection: $selectedTimeRange) {
+                        Picker("export.timeRange", selection: $selectedTimeRange) {
                             ForEach(ExportTimeRange.allCases) { range in
                                 Text(range.displayName).tag(range)
                             }
@@ -134,9 +134,9 @@ struct DataExportView: View {
                         
                         if selectedTimeRange == .custom {
                             VStack(spacing: Spacing.sm) {
-                                DatePicker("开始日期", selection: $customStartDate, displayedComponents: .date)
+                                DatePicker("export.startDate", selection: $customStartDate, displayedComponents: .date)
                                     .datePickerStyle(.compact)
-                                DatePicker("结束日期", selection: $customEndDate, displayedComponents: .date)
+                                DatePicker("export.endDate", selection: $customEndDate, displayedComponents: .date)
                                     .datePickerStyle(.compact)
                             }
                             .padding(Spacing.md)
@@ -147,11 +147,11 @@ struct DataExportView: View {
                     
                     // 文件类型选择
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("文件类型")
+                        Text("export.fileType", bundle: .main)
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
                         
-                        Picker("文件类型", selection: $selectedExportType) {
+                        Picker("export.fileType", selection: $selectedExportType) {
                             ForEach(ExportType.allCases) { type in
                                 Label(type.displayName, systemImage: type.icon).tag(type)
                             }
@@ -175,21 +175,21 @@ struct DataExportView: View {
                     
                     // 数据预览
                     VStack(alignment: .leading, spacing: Spacing.md) {
-                        Text("数据预览")
+                        Text("export.preview")
                             .font(.headline)
                             .foregroundStyle(Color.textPrimary)
                         
                         EmotionalCard(style: .elevated) {
                             VStack(spacing: Spacing.sm) {
-                                DataPreviewRow(label: "发作次数", value: "\(filteredAttacks.count)次")
+                                DataPreviewRow(label: String(localized: "export.preview.attackCount"), value: "\(filteredAttacks.count)次")
                                 Divider()
-                                DataPreviewRow(label: "发作天数", value: "\(attackDaysCount)天")
+                                DataPreviewRow(label: String(localized: "export.preview.attackDays"), value: "\(attackDaysCount)天")
                                 Divider()
-                                DataPreviewRow(label: "健康事件", value: "\(filteredHealthEvents.count)条")
+                                DataPreviewRow(label: String(localized: "export.preview.healthEvents"), value: "\(filteredHealthEvents.count)条")
                                 Divider()
-                                DataPreviewRow(label: "平均强度", value: String(format: "%.1f/10", averagePainIntensity))
+                                DataPreviewRow(label: String(localized: "export.preview.avgIntensity"), value: String(format: "%.1f/10", averagePainIntensity))
                                 Divider()
-                                DataPreviewRow(label: "用药天数", value: "\(medicationDaysCount)天")
+                                DataPreviewRow(label: String(localized: "export.preview.medicationDays"), value: "\(medicationDaysCount)天")
                             }
                         }
                     }
@@ -202,7 +202,7 @@ struct DataExportView: View {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .font(.headline)
                                         .foregroundStyle(Color.statusError)
-                                    Text("导出失败")
+                                    Text("export.failed")
                                         .font(.headline)
                                         .foregroundStyle(Color.textPrimary)
                                 }
@@ -223,7 +223,7 @@ struct DataExportView: View {
                                 Image(systemName: "square.and.arrow.up.fill")
                                     .font(.title3)
                             }
-                            Text(isGenerating ? "生成中..." : "导出数据")
+                            Text(isGenerating ? String(localized: "export.generating") : String(localized: "export.button"))
                                 .font(.headline)
                         }
                         .foregroundStyle(.white)
@@ -238,7 +238,7 @@ struct DataExportView: View {
                     .disabled(isGenerating || (filteredAttacks.isEmpty && filteredHealthEvents.isEmpty))
                     
                     if filteredAttacks.isEmpty && filteredHealthEvents.isEmpty {
-                        Text("所选时间范围内无记录数据")
+                        Text("export.noData")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                             .frame(maxWidth: .infinity, alignment: .center)
@@ -247,7 +247,7 @@ struct DataExportView: View {
                 .padding(Spacing.md)
             }
             .background(Color.backgroundPrimary.ignoresSafeArea())
-            .navigationTitle("数据导出")
+            .navigationTitle("export.title")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showShareSheet, onDismiss: cleanupExportState) {
                 if let fileURL = exportFileURL {
@@ -308,7 +308,7 @@ struct DataExportView: View {
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "导出失败：\(error.localizedDescription)"
+                    errorMessage = "\(String(localized: "export.failed"))：\(error.localizedDescription)"
                     isGenerating = false
                 }
             }
@@ -344,7 +344,7 @@ struct DataExportView: View {
         
         // 验证文件确实已写入
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            throw NSError(domain: "DataExport", code: -1, userInfo: [NSLocalizedDescriptionKey: "文件创建失败"])
+            throw NSError(domain: "DataExport", code: -1, userInfo: [NSLocalizedDescriptionKey: String(localized: "export.error.fileCreation")])
         }
         
         await MainActor.run {
@@ -378,7 +378,7 @@ struct DataExportView: View {
         
         // 验证文件确实已写入
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
-            throw NSError(domain: "DataExport", code: -1, userInfo: [NSLocalizedDescriptionKey: "文件创建失败"])
+            throw NSError(domain: "DataExport", code: -1, userInfo: [NSLocalizedDescriptionKey: String(localized: "export.error.fileCreation")])
         }
         
         await MainActor.run {
@@ -428,8 +428,8 @@ enum ExportType: String, CaseIterable, Identifiable {
     
     var description: String {
         switch self {
-        case .csv: return "包含统计数据和详细记录，适合Excel分析"
-        case .pdf: return "专业医疗报告，适合打印和就诊"
+        case .csv: return String(localized: "export.type.csv")
+        case .pdf: return String(localized: "export.type.pdf")
         }
     }
 }

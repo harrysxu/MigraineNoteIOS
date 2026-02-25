@@ -75,7 +75,7 @@ class CSVExporter {
                 escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
                 escapeCSV(attack.symptoms.map { "\($0.name):\($0.severity)" }.joined(separator: "; ")),
                 escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
-                escapeCSV(attack.triggers.map { $0.category.rawValue }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.category.localizedName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.efficacy.displayName }.joined(separator: "; ")),
@@ -271,7 +271,7 @@ class CSVExporter {
                 escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
                 escapeCSV(attack.symptoms.map { "\($0.name):\($0.severity)" }.joined(separator: "; ")),
                 escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
-                escapeCSV(attack.triggers.map { $0.category.rawValue }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.category.localizedName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.efficacy.displayName }.joined(separator: "; ")),
@@ -445,7 +445,7 @@ class CSVExporter {
             parts.append("湿度:\(String(format: "%.0f", weather.humidity))%")
         }
         if weather.pressure != 0 {
-            parts.append("气压:\(String(format: "%.0f", weather.pressure))hPa(\(weather.pressureTrend.rawValue))")
+            parts.append("气压:\(String(format: "%.0f", weather.pressure))hPa(\(weather.pressureTrend.localizedName))")
         }
         if weather.windSpeed != 0 {
             parts.append("风速:\(String(format: "%.1f", weather.windSpeed))m/s")
@@ -509,7 +509,7 @@ class CSVExporter {
         for event in sortedEvents {
             let row = [
                 escapeCSV(event.id.uuidString),
-                escapeCSV(event.eventType.rawValue),
+                escapeCSV(event.eventType.localizedName),
                 escapeCSV(formatDate(event.eventDate)),
                 escapeCSV(formatTime(event.eventDate)),
                 escapeCSV(event.medicationLog?.displayName ?? ""),
@@ -710,7 +710,7 @@ class CSVExporter {
                 escapeCSV(attack.symptoms.map { $0.name }.joined(separator: "; ")),
                 escapeCSV(attack.symptoms.map { "\($0.name):\($0.severity)" }.joined(separator: "; ")),
                 escapeCSV(attack.triggers.map { $0.name }.joined(separator: "; ")),
-                escapeCSV(attack.triggers.map { $0.category.rawValue }.joined(separator: "; ")),
+                escapeCSV(attack.triggers.map { $0.category.localizedName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.displayName }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.dosageString }.joined(separator: "; ")),
                 escapeCSV(attack.medications.map { $0.efficacy.displayName }.joined(separator: "; ")),
@@ -755,7 +755,7 @@ class CSVExporter {
             for event in sortedEvents {
                 let row = [
                     escapeCSV(event.id.uuidString),
-                    escapeCSV(event.eventType.rawValue),
+                    escapeCSV(event.eventType.localizedName),
                     escapeCSV(formatDate(event.eventDate)),
                     escapeCSV(formatTime(event.eventDate)),
                     escapeCSV(event.medicationLog?.displayName ?? ""),

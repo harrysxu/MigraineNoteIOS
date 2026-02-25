@@ -52,7 +52,7 @@ final class EnumTests: XCTestCase {
     func testSymptom_Name() {
         let symptom = Symptom(type: .nausea, severity: 5)
         
-        XCTAssertEqual(symptom.name, "恶心")
+        XCTAssertEqual(symptom.name, symptom.type.localizedName)
         XCTAssertEqual(symptom.severity, 5)
     }
     
@@ -69,7 +69,7 @@ final class EnumTests: XCTestCase {
         XCTAssertEqual(symptom.type, .nausea)
         
         symptom.type = .vomiting
-        XCTAssertEqual(symptom.typeRawValue, "呕吐")
+        XCTAssertEqual(symptom.typeRawValue, "vomiting")
     }
     
     // MARK: - TriggerCategory 测试
@@ -97,10 +97,10 @@ final class EnumTests: XCTestCase {
     func testTrigger_CategoryConversion() {
         let trigger = Trigger(category: .sleep, specificType: "失眠")
         
-        XCTAssertEqual(trigger.categoryRawValue, "睡眠")
+        XCTAssertEqual(trigger.categoryRawValue, "sleep")
         
         trigger.category = .stress
-        XCTAssertEqual(trigger.categoryRawValue, "压力")
+        XCTAssertEqual(trigger.categoryRawValue, "stress")
     }
     
     // MARK: - TriggerLibrary 测试
@@ -196,8 +196,8 @@ final class EnumTests: XCTestCase {
     // MARK: - SymptomSubcategory 测试
     
     func testSymptomSubcategory_DisplayNames() {
-        XCTAssertEqual(SymptomSubcategory.western.displayName, "西医症状")
-        XCTAssertEqual(SymptomSubcategory.tcm.displayName, "中医症状")
+        XCTAssertEqual(SymptomSubcategory.western.displayName, String(localized: "label.symptomSubcategory.western"))
+        XCTAssertEqual(SymptomSubcategory.tcm.displayName, String(localized: "label.symptomSubcategory.tcm"))
     }
     
     // MARK: - CustomLabelConfig 测试
@@ -228,11 +228,11 @@ final class EnumTests: XCTestCase {
     }
     
     func testPainQuality_RawValues() {
-        XCTAssertEqual(PainQuality.pulsating.rawValue, "搏动性")
-        XCTAssertEqual(PainQuality.pressing.rawValue, "压迫感")
-        XCTAssertEqual(PainQuality.stabbing.rawValue, "刺痛")
-        XCTAssertEqual(PainQuality.dull.rawValue, "钝痛")
-        XCTAssertEqual(PainQuality.distending.rawValue, "胀痛")
+        XCTAssertEqual(PainQuality.pulsating.rawValue, "pulsating")
+        XCTAssertEqual(PainQuality.pressing.rawValue, "pressing")
+        XCTAssertEqual(PainQuality.stabbing.rawValue, "stabbing")
+        XCTAssertEqual(PainQuality.dull.rawValue, "dull")
+        XCTAssertEqual(PainQuality.distending.rawValue, "distending")
     }
     
     // MARK: - AuraType 枚举测试
@@ -269,7 +269,7 @@ final class EnumTests: XCTestCase {
         XCTAssertNil(profile.gender)
         
         profile.gender = .female
-        XCTAssertEqual(profile.genderRawValue, "女")
+        XCTAssertEqual(profile.genderRawValue, "female")
         XCTAssertEqual(profile.gender, .female)
         
         profile.gender = nil
@@ -282,7 +282,7 @@ final class EnumTests: XCTestCase {
         XCTAssertEqual(profile.preferredPainScale, .numeric)
         
         profile.preferredPainScale = .visual
-        XCTAssertEqual(profile.preferredPainScaleRawValue, "视觉模拟(VAS)")
+        XCTAssertEqual(profile.preferredPainScaleRawValue, "visual")
     }
     
     // MARK: - RecordingStep 测试

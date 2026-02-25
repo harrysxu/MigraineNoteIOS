@@ -219,17 +219,17 @@ extension Int {
     var painIntensityDescription: String {
         switch self {
         case 0:
-            return "无疼痛"
+            return String(localized: "accessibility.pain.none")
         case 1...3:
-            return "轻度疼痛，\(self)分"
+            return String(format: String(localized: "accessibility.pain.mild"), self)
         case 4...6:
-            return "中度疼痛，\(self)分"
+            return String(format: String(localized: "accessibility.pain.moderate"), self)
         case 7...9:
-            return "重度疼痛，\(self)分"
+            return String(format: String(localized: "accessibility.pain.severe"), self)
         case 10:
-            return "极重度疼痛，10分"
+            return String(localized: "accessibility.pain.extreme")
         default:
-            return "\(self)分"
+            return String(format: String(localized: "accessibility.pain.score"), self)
         }
     }
 }
@@ -244,13 +244,13 @@ extension TimeInterval {
         
         var parts: [String] = []
         if hours > 0 {
-            parts.append("\(hours)小时")
+            parts.append(String(format: String(localized: "accessibility.duration.hours"), hours))
         }
         if minutes > 0 {
-            parts.append("\(minutes)分钟")
+            parts.append(String(format: String(localized: "accessibility.duration.minutes"), minutes))
         }
         
-        return parts.isEmpty ? "少于1分钟" : parts.joined(separator: "")
+        return parts.isEmpty ? String(localized: "accessibility.duration.underMinute") : parts.joined(separator: "")
     }
 }
 

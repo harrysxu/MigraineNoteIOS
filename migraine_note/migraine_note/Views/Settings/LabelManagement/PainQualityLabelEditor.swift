@@ -34,14 +34,14 @@ struct PainQualityLabelEditor: View {
                 .onMove(perform: moveLabels)
             } header: {
                 HStack {
-                    Text("疼痛性质")
+                    Text(String(localized: "label.category.painQuality"))
                     Spacer()
-                    Text("\(labels.count) 个")
+                    Text(String(format: String(localized: "editor.label.countFormat"), labels.count))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
             } footer: {
-                Text("长按拖动可调整顺序，默认标签只能隐藏不能删除")
+                Text(String(localized: "editor.footer.dragHint"))
                     .font(.caption)
             }
             
@@ -53,7 +53,7 @@ struct PainQualityLabelEditor: View {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(Color.accentPrimary)
-                        Text("添加自定义疼痛性质")
+                        Text(String(localized: "editor.painQuality.addButton"))
                             .foregroundStyle(Color.textPrimary)
                     }
                 }

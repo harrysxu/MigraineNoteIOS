@@ -28,10 +28,10 @@ struct TriggerLabelEditor: View {
                         HStack {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(AppColors.primary)
-                            Text("诱因标签管理")
+                            Text(String(localized: "editor.trigger.title"))
                                 .font(.headline)
                         }
-                        Text("按分类管理诱因标签，默认标签可以隐藏但不能删除。")
+                        Text(String(localized: "editor.trigger.description"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -65,8 +65,8 @@ struct TriggerLabelEditor: View {
         .sheet(isPresented: $showAddSheet) {
             AddTriggerLabelSheet()
         }
-        .alert("错误", isPresented: $showError) {
-            Button("确定", role: .cancel) {}
+        .alert(String(localized: "common.error"), isPresented: $showError) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -99,7 +99,7 @@ struct TriggerLabelEditor: View {
                     Image(systemName: category.systemImage)
                         .foregroundStyle(AppColors.primary)
                     
-                    Text(category.rawValue)
+                    Text(category.localizedName)
                         .font(.headline)
                         .foregroundColor(AppColors.textPrimary)
                     
@@ -167,9 +167,9 @@ struct AddTriggerLabelSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("标签信息") {
+                Section(String(localized: "section.labelInfo")) {
                     VStack(alignment: .leading, spacing: 4) {
-                        TextField("诱因名称", text: $labelName)
+                        TextField(String(localized: "editor.trigger.namePlaceholder"), text: $labelName)
                             .onChange(of: labelName) { _, newValue in
                                 // 限制输入长度
                                 if newValue.count > maxLabelLength {
@@ -185,38 +185,38 @@ struct AddTriggerLabelSheet: View {
                         }
                     }
                     
-                    Picker("分类", selection: $selectedCategory) {
+                    Picker(String(localized: "editor.category"), selection: $selectedCategory) {
                         ForEach(TriggerCategory.allCases, id: \.self) { category in
-                            Label(category.rawValue, systemImage: category.systemImage)
+                            Label(category.localizedName, systemImage: category.systemImage)
                                 .tag(category)
                         }
                     }
                 }
                 
                 Section {
-                    Text("添加后，该诱因将出现在记录流程的诱因选择界面。标签长度限制为\(maxLabelLength)个字符。")
+                    Text(String(format: String(localized: "editor.trigger.addHint"), maxLabelLength))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("添加诱因标签")
+            .navigationTitle(String(localized: "editor.trigger.addTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(String(localized: "common.save")) {
                         saveLabel()
                     }
                     .disabled(labelName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
-            .alert("错误", isPresented: $showError) {
-                Button("确定", role: .cancel) {}
+            .alert(String(localized: "common.error"), isPresented: $showError) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(errorMessage)
             }

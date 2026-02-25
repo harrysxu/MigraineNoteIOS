@@ -1,0 +1,9 @@
+/* 
+  InfoPlist.strings
+  migraine_note (English)
+*/
+
+"CFBundleDisplayName" = "Migraine Manager";
+"NSLocationWhenInUseUsageDescription" = "We need your location to record local weather conditions to help analyze environmental triggers";
+"NSHealthShareUsageDescription" = "Migraine Manager needs to read your menstrual cycle data (via Apple Health HealthKit) to analyze the relationship between menstrual cycles and migraine attacks, helping identify menstrual migraines. All data is analyzed locally and never uploaded to any server.";
+"NSHealthUpdateUsageDescription" = "Migraine Manager can write your migraine records to Apple Health (HealthKit), allowing you to manage and view all your health data in the Health app.";

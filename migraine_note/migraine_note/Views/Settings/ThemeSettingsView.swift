@@ -65,7 +65,7 @@ struct ThemeSettingsView: View {
                     .buttonStyle(.plain)
                 }
             } header: {
-                Text("选择主题")
+                Text(String(localized: "theme.select"))
             }
             
             // 预览区域
@@ -76,16 +76,16 @@ struct ThemeSettingsView: View {
                         HStack {
                             Image(systemName: "bolt.fill")
                                 .foregroundStyle(AppColors.primary)
-                            Text("头痛发作")
+                            Text(String(localized: "theme.attack.sample"))
                                 .font(.headline)
                                 .foregroundColor(AppColors.textPrimary)
                             Spacer()
-                            Text("强度 7")
+                            Text(String(localized: "theme.intensity.sample"))
                                 .font(.caption)
                                 .foregroundColor(AppColors.textSecondary)
                         }
                         
-                        Text("2026年2月3日 14:30")
+        Text(String(localized: "theme.date.sample"))
                             .font(.caption)
                             .foregroundColor(AppColors.textTertiary)
                         
@@ -93,14 +93,14 @@ struct ThemeSettingsView: View {
                             .background(AppColors.divider)
                         
                         HStack(spacing: AppSpacing.small) {
-                            Label("恶心", systemImage: "circle.fill")
+                            Label(String(localized: "label.symptom.nausea"), systemImage: "circle.fill")
                                 .font(.caption)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
                                 .background(AppColors.backgroundTertiary)
                                 .cornerRadius(6)
                             
-                            Label("畏光", systemImage: "circle.fill")
+                            Label(String(localized: "label.symptom.photophobia"), systemImage: "circle.fill")
                                 .font(.caption)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
@@ -115,7 +115,7 @@ struct ThemeSettingsView: View {
                     
                     // 按钮示例
                     HStack(spacing: AppSpacing.medium) {
-                        Button("主按钮") { }
+                        Button(String(localized: "theme.primary.btn")) { }
                             .font(.body.weight(.semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -123,7 +123,7 @@ struct ThemeSettingsView: View {
                             .background(AppColors.primary)
                             .cornerRadius(AppSpacing.cornerRadiusDefault)
                         
-                        Button("次按钮") { }
+                        Button(String(localized: "theme.secondary.btn")) { }
                             .font(.body.weight(.semibold))
                             .foregroundColor(AppColors.primary)
                             .frame(maxWidth: .infinity)
@@ -140,7 +140,7 @@ struct ThemeSettingsView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(AppColors.success)
-                            Text("成功")
+                            Text(String(localized: "theme.status.success"))
                                 .font(.caption2)
                         }
                         .frame(maxWidth: .infinity)
@@ -148,7 +148,7 @@ struct ThemeSettingsView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(AppColors.warning)
-                            Text("警告")
+                            Text(String(localized: "theme.status.warning"))
                                 .font(.caption2)
                         }
                         .frame(maxWidth: .infinity)
@@ -156,7 +156,7 @@ struct ThemeSettingsView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "xmark.octagon.fill")
                                 .foregroundStyle(AppColors.error)
-                            Text("错误")
+                            Text(String(localized: "theme.status.error"))
                                 .font(.caption2)
                         }
                         .frame(maxWidth: .infinity)
@@ -164,7 +164,7 @@ struct ThemeSettingsView: View {
                         VStack(spacing: 4) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(AppColors.info)
-                            Text("信息")
+                            Text(String(localized: "theme.status.info"))
                                 .font(.caption2)
                         }
                         .frame(maxWidth: .infinity)
@@ -172,41 +172,41 @@ struct ThemeSettingsView: View {
                     .foregroundColor(AppColors.textSecondary)
                 }
             } header: {
-                Text("主题预览")
+                Text(String(localized: "theme.preview"))
             } footer: {
-                Text("预览当前主题下的界面效果")
+                Text(String(localized: "theme.preview.footer"))
             }
             
             // 说明
             Section {
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
-                    Label("自动适配", systemImage: "checkmark.circle.fill")
+                    Label(String(localized: "theme.auto.adapt"), systemImage: "checkmark.circle.fill")
                         .foregroundColor(AppColors.success)
-                    Text("界面会自动适配您选择的主题模式")
+                    Text(String(localized: "theme.auto.desc"))
                         .font(.caption)
                         .foregroundColor(AppColors.textTertiary)
                 }
                 
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
-                    Label("护眼设计", systemImage: "eye.fill")
+                    Label(String(localized: "theme.eye.care"), systemImage: "eye.fill")
                         .foregroundColor(AppColors.info)
-                    Text("深色模式可在暗光环境下保护眼睛")
+                    Text(String(localized: "theme.eye.desc"))
                         .font(.caption)
                         .foregroundColor(AppColors.textTertiary)
                 }
                 
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
-                    Label("跟随系统", systemImage: "gear")
+                    Label(String(localized: "theme.follow.system"), systemImage: "gear")
                         .foregroundColor(AppColors.textSecondary)
-                    Text("选择跟随系统时,将根据系统时间自动切换")
+                    Text(String(localized: "theme.follow.desc"))
                         .font(.caption)
                         .foregroundColor(AppColors.textTertiary)
                 }
             } header: {
-                Text("主题说明")
+                Text(String(localized: "theme.description.section"))
             }
         }
-        .navigationTitle("主题设置")
+        .navigationTitle(String(localized: "theme.settings.title"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }

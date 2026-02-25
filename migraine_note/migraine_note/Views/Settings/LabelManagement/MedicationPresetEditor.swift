@@ -28,10 +28,10 @@ struct MedicationPresetEditor: View {
                         HStack {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(AppColors.primary)
-                            Text("药物预设管理")
+                            Text(String(localized: "editor.medication.title"))
                                 .font(.headline)
                         }
-                        Text("管理常用药物预设，方便快速添加药物。默认药物可以隐藏但不能删除。")
+                        Text(String(localized: "editor.medication.description"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -65,8 +65,8 @@ struct MedicationPresetEditor: View {
         .sheet(isPresented: $showAddSheet) {
             AddMedicationPresetSheet()
         }
-        .alert("错误", isPresented: $showError) {
-            Button("确定", role: .cancel) {}
+        .alert(String(localized: "common.error"), isPresented: $showError) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
@@ -99,7 +99,7 @@ struct MedicationPresetEditor: View {
                     Image(systemName: "pills.fill")
                         .foregroundStyle(AppColors.primary)
                     
-                    Text(category.rawValue)
+                    Text(category.localizedName)
                         .font(.headline)
                         .foregroundColor(AppColors.textPrimary)
                     
@@ -187,7 +187,7 @@ struct MedicationLabelRow: View {
             
             // 标识
             if label.isDefault {
-                Text("默认")
+                Text(String(localized: "label.badge.default"))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
@@ -195,7 +195,7 @@ struct MedicationLabelRow: View {
                     .background(Color.gray.opacity(0.2))
                     .cornerRadius(4)
             } else {
-                Text("自定义")
+                Text(String(localized: "label.badge.custom"))
                     .font(.caption)
                     .foregroundColor(.white)
                     .padding(.horizontal, 8)
@@ -211,13 +211,13 @@ struct MedicationLabelRow: View {
                         newName = label.displayName
                         showRenameAlert = true
                     } label: {
-                        Label("重命名", systemImage: "pencil")
+                        Label(String(localized: "editor.action.rename"), systemImage: "pencil")
                     }
                     
                     Button(role: .destructive) {
                         onAction(.delete)
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(String(localized: "editor.action.delete"), systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -229,16 +229,16 @@ struct MedicationLabelRow: View {
         .background(AppColors.backgroundSecondary)
         .cornerRadius(AppSpacing.cornerRadiusSmall)
         .opacity(label.isHidden ? 0.6 : 1.0)
-        .alert("重命名标签", isPresented: $showRenameAlert) {
-            TextField("新名称", text: $newName)
-            Button("取消", role: .cancel) {}
-            Button("确定") {
+        .alert(String(localized: "editor.rename.title"), isPresented: $showRenameAlert) {
+            TextField(String(localized: "editor.rename.placeholder"), text: $newName)
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.confirm")) {
                 if !newName.trimmingCharacters(in: .whitespaces).isEmpty {
                     onAction(.rename(newName: newName))
                 }
             }
         } message: {
-            Text("请输入新的标签名称")
+            Text(String(localized: "validation.rename.generic"))
         }
     }
     
@@ -269,40 +269,40 @@ struct AddMedicationPresetSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("药物信息") {
-                    TextField("药物名称", text: $medicationName)
+                Section(String(localized: "section.medicationInfo")) {
+                    TextField(String(localized: "editor.medication.namePlaceholder"), text: $medicationName)
                     
-                    Picker("分类", selection: $selectedCategory) {
+                    Picker(String(localized: "editor.category"), selection: $selectedCategory) {
                         ForEach(MedicationCategory.allCases, id: \.self) { category in
-                            Text(category.rawValue).tag(category)
+                            Text(category.localizedName).tag(category)
                         }
                     }
                 }
                 
                 Section {
-                    Text("添加常用药物到预设列表，方便在添加药物时快速选择。")
+                    Text(String(localized: "editor.medication.addHint"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("添加药物预设")
+            .navigationTitle(String(localized: "editor.medication.addTitle"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(String(localized: "common.save")) {
                         saveLabel()
                     }
                     .disabled(medicationName.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
-            .alert("错误", isPresented: $showError) {
-                Button("确定", role: .cancel) {}
+            .alert(String(localized: "common.error"), isPresented: $showError) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(errorMessage)
             }
@@ -325,7 +325,7 @@ struct AddMedicationPresetSheet: View {
         )
         
         if let existing = try? modelContext.fetch(descriptor), !existing.isEmpty {
-            errorMessage = "标签名称已存在"
+            errorMessage = String(localized: "validation.label.duplicate")
             showError = true
             return
         }

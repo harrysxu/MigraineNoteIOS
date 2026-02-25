@@ -55,10 +55,10 @@ class MedicalReportGenerator {
         // 创建PDF渲染器
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
-            kCGPDFContextTitle as String: "头痛医疗报告",
-            kCGPDFContextAuthor as String: "头痛管家App",
-            kCGPDFContextSubject as String: "医疗数据分析报告",
-            kCGPDFContextCreator as String: "头痛管家 iOS App"
+            kCGPDFContextTitle as String: String(localized: "report.title"),
+            kCGPDFContextAuthor as String: String(localized: "report.metadata.author"),
+            kCGPDFContextSubject as String: String(localized: "report.metadata.subject"),
+            kCGPDFContextCreator as String: String(localized: "report.metadata.creator")
         ]
         
         let pageRect = CGRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
@@ -124,19 +124,19 @@ class MedicalReportGenerator {
             // === 月度趋势图表 ===
             if let chartImage = chartImages["monthlyTrend"] {
                 currentY = ensureSpace(context: context, currentY: currentY, needed: 220, pageCount: &pageCount)
-                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: "月度发作趋势", height: 180)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: String(localized: "report.chart.monthlyTrend"), height: 180)
             }
             
             // === 昼夜节律图表 ===
             if let chartImage = chartImages["circadian"] {
                 currentY = ensureSpace(context: context, currentY: currentY, needed: 220, pageCount: &pageCount)
-                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: "发作时间分布（24小时）", height: 180)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: String(localized: "report.chart.circadian"), height: 180)
             }
             
             // === 星期分布图表 ===
             if let chartImage = chartImages["weekday"] {
                 currentY = ensureSpace(context: context, currentY: currentY, needed: 220, pageCount: &pageCount)
-                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: "星期发作分布", height: 180)
+                currentY = drawChartImage(context: context, y: currentY, image: chartImage, title: String(localized: "report.chart.weekday"), height: 180)
             }
             
             // === 健康事件统计 ===
@@ -255,8 +255,8 @@ class MedicalReportGenerator {
             let attackDays = Set(monthAttacks.map { calendar.startOfDay(for: $0.startTime) }).count
             
             let formatter = DateFormatter()
-            formatter.dateFormat = "M月"
-            formatter.locale = Locale(identifier: "zh_CN")
+            formatter.locale = Locale.current
+            formatter.setLocalizedDateFormatFromTemplate("MMM")
             let monthName = formatter.string(from: monthDate)
             
             result.append(MonthlyTrendItem(monthName: monthName, attackDays: attackDays))
@@ -305,7 +305,7 @@ class MedicalReportGenerator {
         
         // 主标题
         let titleFont = UIFont.systemFont(ofSize: 24, weight: .bold)
-        let titleText = "头痛医疗报告"
+        let titleText = String(localized: "report.title")
         let titleAttrs: [NSAttributedString.Key: Any] = [
             .font: titleFont,
             .foregroundColor: UIColor.label
@@ -318,7 +318,7 @@ class MedicalReportGenerator {
         
         // 副标题
         let subtitleFont = UIFont.systemFont(ofSize: 12, weight: .regular)
-        let subtitleText = "Headache Medical Report"
+        let subtitleText = String(localized: "report.subtitle")
         let subtitleAttrs: [NSAttributedString.Key: Any] = [
             .font: subtitleFont,
             .foregroundColor: UIColor.secondaryLabel
@@ -345,85 +345,86 @@ class MedicalReportGenerator {
         var currentY = y
         
         // 标题
-        currentY = drawSectionTitle(context: context, y: currentY, title: "患者信息")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.patientInfo"))
         
         // 字段
         let infoFont = UIFont.systemFont(ofSize: 11)
+        let notFilled = String(localized: "report.info.notFilled")
         
         if let profile = profile {
             // 基本信息
-            currentY = drawInfoRow(context: context, y: currentY, label: "姓名：", value: profile.name?.isEmpty == false ? profile.name! : "未填写", font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.name"), value: profile.name?.isEmpty == false ? profile.name! : notFilled, font: infoFont)
             
             let ageText: String
             if let age = profile.calculatedAge {
-                ageText = "\(age)岁"
+                ageText = String(format: String(localized: "report.format.age"), age)
             } else {
-                ageText = "未填写"
+                ageText = notFilled
             }
-            currentY = drawInfoRow(context: context, y: currentY, label: "年龄：", value: ageText, font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.age"), value: ageText, font: infoFont)
             
             let genderText: String
             if let gender = profile.gender {
                 switch gender {
-                case .male: genderText = "男性"
-                case .female: genderText = "女性"
-                case .other: genderText = "其他"
+                case .male: genderText = String(localized: "gender.male")
+                case .female: genderText = String(localized: "gender.female")
+                case .other: genderText = String(localized: "gender.other")
                 }
             } else {
-                genderText = "未指定"
+                genderText = String(localized: "report.info.unspecified")
             }
-            currentY = drawInfoRow(context: context, y: currentY, label: "性别：", value: genderText, font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.gender"), value: genderText, font: infoFont)
             
             // 血型
             if let bloodType = profile.bloodType {
-                currentY = drawInfoRow(context: context, y: currentY, label: "血型：", value: bloodType.rawValue, font: infoFont)
+                currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.bloodType"), value: bloodType.localizedName, font: infoFont)
             }
             
             // 身高体重 / BMI
             var bodyInfo: [String] = []
             if let height = profile.height {
-                bodyInfo.append("身高 \(String(format: "%.0f", height))cm")
+                bodyInfo.append(String(format: String(localized: "report.format.height"), String(format: "%.0f", height)))
             }
             if let weight = profile.weight {
-                bodyInfo.append("体重 \(String(format: "%.1f", weight))kg")
+                bodyInfo.append(String(format: String(localized: "report.format.weight"), String(format: "%.1f", weight)))
             }
             if let bmi = profile.bmi, let desc = profile.bmiDescription {
-                bodyInfo.append("BMI \(String(format: "%.1f", bmi))(\(desc))")
+                bodyInfo.append(String(format: String(localized: "report.format.bmi"), String(format: "%.1f", bmi), desc))
             }
             if !bodyInfo.isEmpty {
-                currentY = drawInfoRow(context: context, y: currentY, label: "体格：", value: bodyInfo.joined(separator: "  "), font: infoFont)
+                currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.bodyInfo"), value: bodyInfo.joined(separator: "  "), font: infoFont)
             }
             
             // 病史信息
             if let onsetAge = profile.migraineOnsetAge {
                 let currentAge = profile.calculatedAge ?? profile.age
                 if let currentAge = currentAge {
-                    let years = currentAge - onsetAge
-                    currentY = drawInfoRow(context: context, y: currentY, label: "病史：", value: "\(max(0, years))年（\(onsetAge)岁首发）", font: infoFont)
+                    let years = max(0, currentAge - onsetAge)
+                    currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.medicalHistory"), value: String(format: String(localized: "report.format.historyYears"), years, onsetAge), font: infoFont)
                 } else {
-                    currentY = drawInfoRow(context: context, y: currentY, label: "首发年龄：", value: "\(onsetAge)岁", font: infoFont)
+                    currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.onsetAge"), value: String(format: String(localized: "report.format.age"), onsetAge), font: infoFont)
                 }
             }
             
             if let migraineType = profile.migraineType {
-                currentY = drawInfoRow(context: context, y: currentY, label: "诊断类型：", value: migraineType.rawValue, font: infoFont)
+                currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.diagnosisType"), value: migraineType.localizedName, font: infoFont)
             }
             
             if profile.familyHistory {
-                currentY = drawInfoRow(context: context, y: currentY, label: "家族史：", value: "有偏头痛家族史", font: infoFont)
+                currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.familyHistory"), value: String(localized: "report.info.familyHistoryYes"), font: infoFont)
             }
             
             // 过敏史
             if let allergies = profile.allergies, !allergies.isEmpty {
-                currentY = drawInfoRow(context: context, y: currentY, label: "药物过敏：", value: allergies, font: infoFont)
+                currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.allergies"), value: allergies, font: infoFont)
             }
             
             // 医疗备注
             if let notes = profile.medicalNotes, !notes.isEmpty {
-                currentY = drawInfoRow(context: context, y: currentY, label: "备注：", value: notes, font: infoFont)
+                currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.notes"), value: notes, font: infoFont)
             }
         } else {
-            currentY = drawInfoRow(context: context, y: currentY, label: "患者信息：", value: "未填写", font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.patientInfo"), value: notFilled, font: infoFont)
         }
         
         currentY += 15
@@ -434,12 +435,12 @@ class MedicalReportGenerator {
     private func drawReportPeriod(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: DateInterval) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "报告周期")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.period"))
         
-        let periodText = "\(dateRange.start.fullDate()) 至 \(dateRange.end.fullDate())"
+        let periodText = String(format: String(localized: "report.format.periodRange"), dateRange.start.fullDate(), dateRange.end.fullDate())
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "时间范围：", value: periodText, font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.timeRange"), value: periodText, font: infoFont)
         
         currentY += 15
         return currentY
@@ -449,7 +450,7 @@ class MedicalReportGenerator {
     private func drawStatisticsSummary(context: UIGraphicsPDFRendererContext, y: CGFloat, attacks: [AttackRecord], dateRange: DateInterval) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "统计摘要")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.statisticsSummary"))
         
         // 计算统计数据
         let totalAttacks = attacks.count
@@ -461,11 +462,11 @@ class MedicalReportGenerator {
         
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "总发作次数：", value: "\(totalAttacks)次", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "发作天数：", value: "\(attackDays)天", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "平均疼痛强度：", value: String(format: "%.1f/10", averageIntensity), font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "平均持续时间：", value: formatDuration(averageDuration), font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "总用药次数：", value: "\(totalMeds)次", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.totalAttacks"), value: String(format: String(localized: "report.format.count"), totalAttacks), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.attackDays"), value: String(format: String(localized: "report.format.days"), attackDays), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.avgIntensity"), value: String(format: String(localized: "report.format.intensityPer10"), averageIntensity), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.avgDuration"), value: formatDuration(averageDuration), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.totalMedicationUses"), value: String(format: String(localized: "report.format.count"), totalMeds), font: infoFont)
         
         // 慢性偏头痛判断
         let daysInRange = Calendar.current.dateComponents([.day], from: dateRange.start, to: dateRange.end).day ?? 30
@@ -476,7 +477,7 @@ class MedicalReportGenerator {
                 .font: UIFont.systemFont(ofSize: 11, weight: .medium),
                 .foregroundColor: UIColor.systemRed
             ]
-            let warningText = "⚠️ 符合慢性偏头痛诊断标准（≥15天/月）"
+            let warningText = String(localized: "report.chronic.warning")
             warningText.draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: warningAttrs)
             currentY += 20
         }
@@ -489,14 +490,14 @@ class MedicalReportGenerator {
     private func drawDurationStatistics(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "持续时间统计")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.durationStats"))
         
         let durationStats = analyticsEngine.analyzeDurationStatistics(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "平均持续时长：", value: String(format: "%.1f小时", durationStats.averageDurationHours), font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "最长持续时长：", value: String(format: "%.1f小时", durationStats.longestDurationHours), font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "最短持续时长：", value: String(format: "%.1f小时", durationStats.shortestDurationHours), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.avgDurationHours"), value: String(format: String(localized: "report.format.hours"), durationStats.averageDurationHours), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.longestDuration"), value: String(format: String(localized: "report.format.hours"), durationStats.longestDurationHours), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.shortestDuration"), value: String(format: String(localized: "report.format.hours"), durationStats.shortestDurationHours), font: infoFont)
         
         currentY += 15
         return currentY
@@ -506,7 +507,7 @@ class MedicalReportGenerator {
     private func drawMOHAssessment(context: UIGraphicsPDFRendererContext, y: CGFloat, attacks: [AttackRecord], dateRange: DateInterval) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "药物过度使用头痛（MOH）评估")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.mohAssessment"))
         
         // 计算用药统计
         var medicationDaysSet = Set<Date>()
@@ -543,23 +544,24 @@ class MedicalReportGenerator {
         let infoFont = UIFont.systemFont(ofSize: 11)
         
         if isMonthlyData {
-            currentY = drawInfoRow(context: context, y: currentY, label: "本月用药天数：", value: "\(totalMedicationDays)天", font: infoFont)
-            currentY = drawInfoRow(context: context, y: currentY, label: "NSAID类用药：", value: "\(nsaidDays)天 (阈值: ≥15天)", font: infoFont)
-            currentY = drawInfoRow(context: context, y: currentY, label: "曲普坦类用药：", value: "\(triptanDays)天 (阈值: ≥10天)", font: infoFont)
-            currentY = drawInfoRow(context: context, y: currentY, label: "阿片类用药：", value: "\(opioidDays)天 (阈值: ≥10天)", font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.medicationDaysThisMonth"), value: String(format: String(localized: "report.format.days"), totalMedicationDays), font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.nsaidUsage"), value: String(format: String(localized: "report.format.nsaidThreshold"), nsaidDays), font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.triptanUsage"), value: String(format: String(localized: "report.format.triptanOpioidThreshold"), triptanDays), font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.opioidUsage"), value: String(format: String(localized: "report.format.triptanOpioidThreshold"), opioidDays), font: infoFont)
             
             // MOH风险判断
-            var riskLevel = "无风险"
+            let noRisk = String(localized: "report.risk.none")
+            var riskLevel = noRisk
             var riskColor = UIColor.systemGreen
             
             if nsaidDays >= 15 || triptanDays >= 10 || opioidDays >= 10 {
-                riskLevel = "高风险 ⚠️"
+                riskLevel = String(localized: "report.risk.high")
                 riskColor = UIColor.systemRed
             } else if nsaidDays >= 12 || triptanDays >= 8 || opioidDays >= 8 {
-                riskLevel = "中风险 ⚠️"
+                riskLevel = String(localized: "report.risk.medium")
                 riskColor = UIColor.systemOrange
             } else if nsaidDays >= 10 || triptanDays >= 6 || opioidDays >= 6 {
-                riskLevel = "低风险"
+                riskLevel = String(localized: "report.risk.low")
                 riskColor = UIColor.systemYellow
             }
             
@@ -568,16 +570,16 @@ class MedicalReportGenerator {
                 .foregroundColor: riskColor
             ]
             
-            currentY = drawInfoRow(context: context, y: currentY, label: "MOH风险等级：", value: riskLevel, font: infoFont, valueAttrs: riskAttrs)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.mohRiskLevel"), value: riskLevel, font: infoFont, valueAttrs: riskAttrs)
             
-            if riskLevel != "无风险" {
+            if riskLevel != noRisk {
                 currentY += 5
                 let adviceFont = UIFont.systemFont(ofSize: 10)
                 let adviceAttrs: [NSAttributedString.Key: Any] = [
                     .font: adviceFont,
                     .foregroundColor: UIColor.secondaryLabel
                 ]
-                let advice = "建议：请咨询医生，考虑预防性治疗方案，避免急性用药过度使用。"
+                let advice = String(localized: "report.moh.advice")
                 let adviceRect = CGRect(x: marginLeft, y: currentY, width: contentWidth, height: 50)
                 advice.draw(in: adviceRect, withAttributes: adviceAttrs)
                 currentY += 30
@@ -587,7 +589,7 @@ class MedicalReportGenerator {
                 .font: UIFont.systemFont(ofSize: 10, weight: .regular),
                 .foregroundColor: UIColor.secondaryLabel
             ]
-            "注：MOH评估需要完整的月度数据（28-31天）".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: noteAttrs)
+            String(localized: "report.moh.note").draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: noteAttrs)
             currentY += 20
         }
         
@@ -599,15 +601,18 @@ class MedicalReportGenerator {
     private func drawPainIntensityDistribution(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "疼痛强度分布")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.painIntensity"))
         
         let intensityDist = analyticsEngine.analyzePainIntensityDistribution(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
         
         if intensityDist.total > 0 {
-            currentY = drawInfoRow(context: context, y: currentY, label: "轻度 (1-3)：", value: "\(intensityDist.mild)次 (\(String(format: "%.1f%%", intensityDist.mildPercentage)))", font: infoFont)
-            currentY = drawInfoRow(context: context, y: currentY, label: "中度 (4-6)：", value: "\(intensityDist.moderate)次 (\(String(format: "%.1f%%", intensityDist.moderatePercentage)))", font: infoFont)
-            currentY = drawInfoRow(context: context, y: currentY, label: "重度 (7-10)：", value: "\(intensityDist.severe)次 (\(String(format: "%.1f%%", intensityDist.severePercentage)))", font: infoFont)
+            let mildValue = String(format: String(localized: "report.format.countAndPercent"), String(format: String(localized: "report.format.count"), intensityDist.mild), String(format: String(localized: "report.format.percent"), intensityDist.mildPercentage))
+            let moderateValue = String(format: String(localized: "report.format.countAndPercent"), String(format: String(localized: "report.format.count"), intensityDist.moderate), String(format: String(localized: "report.format.percent"), intensityDist.moderatePercentage))
+            let severeValue = String(format: String(localized: "report.format.countAndPercent"), String(format: String(localized: "report.format.count"), intensityDist.severe), String(format: String(localized: "report.format.percent"), intensityDist.severePercentage))
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.mild"), value: mildValue, font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.moderate"), value: moderateValue, font: infoFont)
+            currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.severe"), value: severeValue, font: infoFont)
         } else {
             currentY = drawNoDataNote(context: context, y: currentY)
         }
@@ -620,7 +625,7 @@ class MedicalReportGenerator {
     private func drawPainLocationFrequency(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "疼痛部位统计 (Top 5)")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.painLocation"))
         
         let locationFreq = analyticsEngine.analyzePainLocationFrequency(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
@@ -629,11 +634,13 @@ class MedicalReportGenerator {
             currentY = drawNoDataNote(context: context, y: currentY)
         } else {
             for location in locationFreq.prefix(5) {
+                let countStr = String(format: String(localized: "report.format.count"), location.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), location.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "\(location.locationName)：",
-                    value: "\(location.count)次 (\(String(format: "%.1f%%", location.percentage)))",
+                    label: "\(location.locationName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -647,7 +654,7 @@ class MedicalReportGenerator {
     private func drawPainQualityFrequency(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "疼痛性质统计")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.painQuality"))
         
         let qualityFreq = analyticsEngine.analyzePainQualityFrequency(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
@@ -656,11 +663,13 @@ class MedicalReportGenerator {
             currentY = drawNoDataNote(context: context, y: currentY)
         } else {
             for quality in qualityFreq {
+                let countStr = String(format: String(localized: "report.format.count"), quality.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), quality.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "\(quality.qualityName)：",
-                    value: "\(quality.count)次 (\(String(format: "%.1f%%", quality.percentage)))",
+                    label: "\(quality.qualityName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -674,7 +683,7 @@ class MedicalReportGenerator {
     private func drawTriggerAnalysis(context: UIGraphicsPDFRendererContext, y: CGFloat, attacks: [AttackRecord]) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "诱因分析 (Top 10)")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.triggerAnalysis"))
         
         // 统计诱因频次
         var triggerCounts: [String: Int] = [:]
@@ -696,11 +705,13 @@ class MedicalReportGenerator {
             for (index, trigger) in sortedTriggers.enumerated() {
                 let percentage = totalCount > 0 ? (Double(trigger.value) / Double(totalCount) * 100) : 0
                 let rankEmoji = index < 3 ? ["🥇", "🥈", "🥉"][index] : "\(index + 1)."
+                let countStr = String(format: String(localized: "report.format.count"), trigger.value)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "\(rankEmoji) \(trigger.key)：",
-                    value: "\(trigger.value)次 (\(String(format: "%.1f", percentage))%)",
+                    label: "\(rankEmoji) \(trigger.key)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -714,7 +725,7 @@ class MedicalReportGenerator {
     private func drawSymptomFrequency(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "伴随症状统计")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.symptomFrequency"))
         
         let symptomFreq = analyticsEngine.analyzeSymptomFrequency(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
@@ -723,11 +734,13 @@ class MedicalReportGenerator {
             currentY = drawNoDataNote(context: context, y: currentY)
         } else {
             for symptom in symptomFreq {
+                let countStr = String(format: String(localized: "report.format.count"), symptom.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), symptom.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "\(symptom.symptomName)：",
-                    value: "\(symptom.count)次 (\(String(format: "%.1f%%", symptom.percentage)))",
+                    label: "\(symptom.symptomName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -741,14 +754,14 @@ class MedicalReportGenerator {
     private func drawAuraStatistics(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "先兆统计")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.auraStats"))
         
         let auraStats = analyticsEngine.analyzeAuraStatistics(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "总发作次数：", value: "\(auraStats.totalAttacks)次", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "有先兆次数：", value: "\(auraStats.attacksWithAura)次", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "有先兆占比：", value: String(format: "%.1f%%", auraStats.auraPercentage), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.auraTotalAttacks"), value: String(format: String(localized: "report.format.count"), auraStats.totalAttacks), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.auraWithAura"), value: String(format: String(localized: "report.format.count"), auraStats.attacksWithAura), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.auraPercentage"), value: String(format: String(localized: "report.format.percent"), auraStats.auraPercentage), font: infoFont)
         
         if !auraStats.auraTypeFrequency.isEmpty {
             currentY += 5
@@ -757,15 +770,17 @@ class MedicalReportGenerator {
                 .font: subtitleFont,
                 .foregroundColor: UIColor.secondaryLabel
             ]
-            "先兆类型分布：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            String(localized: "report.label.auraTypeDistribution").draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
             currentY += 18
             
             for auraType in auraStats.auraTypeFrequency {
+                let countStr = String(format: String(localized: "report.format.count"), auraType.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), auraType.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "  \(auraType.typeName)：",
-                    value: "\(auraType.count)次 (\(String(format: "%.1f%%", auraType.percentage)))",
+                    label: "  \(auraType.typeName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -779,13 +794,13 @@ class MedicalReportGenerator {
     private func drawMedicationUsage(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "用药统计")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.medicationUsage"))
         
         let medicationStats = analyticsEngine.analyzeMedicationUsage(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "总用药次数：", value: "\(medicationStats.totalMedicationUses)次", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "用药天数：", value: "\(medicationStats.medicationDays)天", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.totalMedicationUses"), value: String(format: String(localized: "report.format.count"), medicationStats.totalMedicationUses), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.medicationDays"), value: String(format: String(localized: "report.format.days"), medicationStats.medicationDays), font: infoFont)
         
         // 药物分类统计
         if !medicationStats.categoryBreakdown.isEmpty {
@@ -795,15 +810,17 @@ class MedicalReportGenerator {
                 .font: subtitleFont,
                 .foregroundColor: UIColor.secondaryLabel
             ]
-            "药物分类统计：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            String(localized: "report.label.medicationCategoryBreakdown").draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
             currentY += 18
             
             for category in medicationStats.categoryBreakdown {
+                let countStr = String(format: String(localized: "report.format.count"), category.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), category.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "  \(category.categoryName)：",
-                    value: "\(category.count)次 (\(String(format: "%.1f%%", category.percentage)))",
+                    label: "  \(category.categoryName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -817,15 +834,17 @@ class MedicalReportGenerator {
                 .font: subtitleFont,
                 .foregroundColor: UIColor.secondaryLabel
             ]
-            "常用药物排名：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            String(localized: "report.label.topMedications").draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
             currentY += 18
             
             for (index, medication) in medicationStats.topMedications.prefix(5).enumerated() {
+                let countStr = String(format: String(localized: "report.format.count"), medication.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), medication.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "  \(index + 1). \(medication.medicationName)：",
-                    value: "\(medication.count)次 (\(String(format: "%.1f%%", medication.percentage)))",
+                    label: "  \(index + 1). \(medication.medicationName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -839,15 +858,15 @@ class MedicalReportGenerator {
     private func drawMedicationAdherence(context: UIGraphicsPDFRendererContext, y: CGFloat, dateRange: (Date, Date)) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "用药依从性")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.adherence"))
         
         let adherenceStats = analyticsEngine.analyzeMedicationAdherence(in: dateRange)
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "统计天数：", value: "\(adherenceStats.totalDays)天", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "用药天数：", value: "\(adherenceStats.medicationDays)天", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "遗漏天数：", value: "\(adherenceStats.missedDays)天", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "依从率：", value: String(format: "%.1f%%", adherenceStats.adherenceRate), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.statisticsDays"), value: String(format: String(localized: "report.format.days"), adherenceStats.totalDays), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.medicationDays"), value: String(format: String(localized: "report.format.days"), adherenceStats.medicationDays), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.missedDays"), value: String(format: String(localized: "report.format.days"), adherenceStats.missedDays), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.adherenceRate"), value: String(format: String(localized: "report.format.percent"), adherenceStats.adherenceRate), font: infoFont)
         
         currentY += 15
         return currentY
@@ -860,12 +879,12 @@ class MedicalReportGenerator {
         let tcmStats = analyticsEngine.analyzeTCMTreatment(in: dateRange)
         guard tcmStats.totalTreatments > 0 else { return currentY }
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "中医治疗统计")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.tcmTreatment"))
         
         let infoFont = UIFont.systemFont(ofSize: 11)
         
-        currentY = drawInfoRow(context: context, y: currentY, label: "总治疗次数：", value: "\(tcmStats.totalTreatments)次", font: infoFont)
-        currentY = drawInfoRow(context: context, y: currentY, label: "平均治疗时长：", value: "\(tcmStats.averageDurationMinutes)分钟", font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.totalTreatments"), value: String(format: String(localized: "report.format.count"), tcmStats.totalTreatments), font: infoFont)
+        currentY = drawInfoRow(context: context, y: currentY, label: String(localized: "report.label.avgTreatmentDuration"), value: String(format: String(localized: "report.format.minutes"), tcmStats.averageDurationMinutes), font: infoFont)
         
         if !tcmStats.treatmentTypes.isEmpty {
             currentY += 5
@@ -874,15 +893,17 @@ class MedicalReportGenerator {
                 .font: subtitleFont,
                 .foregroundColor: UIColor.secondaryLabel
             ]
-            "治疗类型分布：".draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
+            String(localized: "report.label.treatmentTypeDistribution").draw(at: CGPoint(x: marginLeft, y: currentY), withAttributes: subtitleAttrs)
             currentY += 18
             
             for type in tcmStats.treatmentTypes {
+                let countStr = String(format: String(localized: "report.format.count"), type.count)
+                let valueStr = String(format: String(localized: "report.format.countAndPercent"), countStr, String(format: String(localized: "report.format.percent"), type.percentage))
                 currentY = drawInfoRow(
                     context: context,
                     y: currentY,
-                    label: "  \(type.typeName)：",
-                    value: "\(type.count)次 (\(String(format: "%.1f%%", type.percentage)))",
+                    label: "  \(type.typeName)\(String(localized: "report.format.labelSuffix"))",
+                    value: valueStr,
                     font: infoFont
                 )
             }
@@ -896,7 +917,7 @@ class MedicalReportGenerator {
     private func drawDetailedRecordsTable(context: UIGraphicsPDFRendererContext, y: CGFloat, attacks: [AttackRecord]) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "详细发作记录")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.detailedRecords"))
         
         // 表头
         let headerFont = UIFont.systemFont(ofSize: 9, weight: .medium)
@@ -904,13 +925,13 @@ class MedicalReportGenerator {
         let rowHeight: CGFloat = 25
         
         let columns: [(title: String, width: CGFloat)] = [
-            ("日期", 60),
-            ("时长", 45),
-            ("强度", 30),
-            ("部位", 70),
-            ("主要诱因", 100),
-            ("用药", 80),
-            ("疗效", 40)
+            (String(localized: "report.table.date"), 60),
+            (String(localized: "report.table.duration"), 45),
+            (String(localized: "report.table.intensity"), 30),
+            (String(localized: "report.table.location"), 70),
+            (String(localized: "report.table.mainTriggers"), 100),
+            (String(localized: "report.table.medication"), 80),
+            (String(localized: "report.table.effectiveness"), 40)
         ]
         
         // 绘制表头
@@ -938,7 +959,7 @@ class MedicalReportGenerator {
             xOffset += columns[0].width
             
             // 时长
-            let durationText = attack.duration != nil ? formatDuration(attack.duration!) : "进行中"
+            let durationText = attack.duration != nil ? formatDuration(attack.duration!) : String(localized: "report.info.inProgress")
             drawTableCell(context: context, x: xOffset, y: currentY, width: columns[1].width, height: rowHeight, text: durationText, font: cellFont)
             xOffset += columns[1].width
             
@@ -963,18 +984,7 @@ class MedicalReportGenerator {
             
             // 疗效
             let effectiveness = attack.medications.first?.effectiveness
-            let effectivenessText: String
-            if let eff = effectiveness {
-                switch eff {
-                case .none: effectivenessText = "无效"
-                case .poor: effectivenessText = "轻微"
-                case .moderate: effectivenessText = "部分"
-                case .good: effectivenessText = "明显"
-                case .excellent: effectivenessText = "完全"
-                }
-            } else {
-                effectivenessText = "-"
-            }
+            let effectivenessText: String = effectiveness?.localizedName ?? "-"
             drawTableCell(context: context, x: xOffset, y: currentY, width: columns[6].width, height: rowHeight, text: effectivenessText, font: cellFont)
             
             currentY += rowHeight
@@ -987,18 +997,18 @@ class MedicalReportGenerator {
     private func drawHealthEventsSection(context: UIGraphicsPDFRendererContext, y: CGFloat, healthEvents: [HealthEvent]) -> CGFloat {
         var currentY = y
         
-        currentY = drawSectionTitle(context: context, y: currentY, title: "健康事件记录")
+        currentY = drawSectionTitle(context: context, y: currentY, title: String(localized: "report.section.healthEvents"))
         
         let headerFont = UIFont.systemFont(ofSize: 9, weight: .medium)
         let cellFont = UIFont.systemFont(ofSize: 8)
         let rowHeight: CGFloat = 25
         
         let columns: [(title: String, width: CGFloat)] = [
-            ("日期", 65),
-            ("类型", 50),
-            ("内容", 130),
-            ("详情", 130),
-            ("备注", 120)
+            (String(localized: "report.table.date"), 65),
+            (String(localized: "report.table.type"), 50),
+            (String(localized: "report.table.content"), 130),
+            (String(localized: "report.table.detail"), 130),
+            (String(localized: "report.table.notes"), 120)
         ]
         
         // 绘制表头
@@ -1035,9 +1045,9 @@ class MedicalReportGenerator {
             case .medication:
                 contentText = event.displayTitle
             case .tcmTreatment:
-                contentText = event.tcmTreatmentType ?? "中医治疗"
+                contentText = event.tcmTreatmentType ?? String(localized: "report.info.tcmTreatment")
             case .surgery:
-                contentText = event.surgeryName ?? "手术"
+                contentText = event.surgeryName ?? String(localized: "report.info.surgery")
             }
             drawTableCell(context: context, x: xOffset, y: currentY, width: columns[2].width, height: rowHeight, text: contentText, font: cellFont)
             xOffset += columns[2].width
@@ -1049,7 +1059,7 @@ class MedicalReportGenerator {
                 detailText = event.displayDetail ?? "-"
             case .tcmTreatment:
                 if let duration = event.tcmDuration, duration > 0 {
-                    detailText = "\(Int(duration / 60))分钟"
+                    detailText = String(format: String(localized: "report.format.minutes"), Int(duration / 60))
                 } else {
                     detailText = "-"
                 }
@@ -1121,18 +1131,18 @@ class MedicalReportGenerator {
         ]
         
         // 生成时间
-        let timestamp = "生成时间：\(Date().reportDateTime())"
+        let timestamp = String(format: String(localized: "report.footer.generated"), Date().reportDateTime())
         timestamp.draw(at: CGPoint(x: marginLeft, y: footerY), withAttributes: footerAttrs)
         
         // 页码
-        let pageText = "第 \(pageNumber) 页"
+        let pageText = String(format: String(localized: "report.footer.page"), pageNumber)
         let pageSize = pageText.size(withAttributes: footerAttrs)
         let pageX = pageWidth - marginRight - pageSize.width
         pageText.draw(at: CGPoint(x: pageX, y: footerY), withAttributes: footerAttrs)
         
         // 免责声明
         let disclaimerY = footerY + 15
-        let disclaimer = "本报告仅供参考，不构成医疗建议。请咨询专业医生进行诊断和治疗。"
+        let disclaimer = String(localized: "report.footer.disclaimer")
         let disclaimerAttrs: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 8),
             .foregroundColor: UIColor.tertiaryLabel
@@ -1182,7 +1192,7 @@ class MedicalReportGenerator {
             .font: UIFont.systemFont(ofSize: 11),
             .foregroundColor: UIColor.secondaryLabel
         ]
-        "暂无数据".draw(at: CGPoint(x: marginLeft, y: y), withAttributes: noteAttrs)
+        String(localized: "report.info.noData").draw(at: CGPoint(x: marginLeft, y: y), withAttributes: noteAttrs)
         return y + 20
     }
     
@@ -1192,9 +1202,9 @@ class MedicalReportGenerator {
         let minutes = (Int(duration) % 3600) / 60
         
         if hours > 0 {
-            return "\(hours)小时\(minutes)分钟"
+            return String(format: String(localized: "report.format.duration.hoursMinutes"), hours, minutes)
         } else {
-            return "\(minutes)分钟"
+            return String(format: String(localized: "report.format.duration.minutesOnly"), minutes)
         }
     }
 }
@@ -1217,8 +1227,8 @@ struct PDFMonthlyTrendChart: View {
         Chart {
             ForEach(data) { item in
                 BarMark(
-                    x: .value("月份", item.monthName),
-                    y: .value("发作天数", item.attackDays)
+                    x: .value(String(localized: "report.chart.axis.month"), item.monthName),
+                    y: .value(String(localized: "report.chart.axis.attackDays"), item.attackDays)
                 )
                 .foregroundStyle(
                     item.attackDays >= 15 ? Color.red : Color.blue
@@ -1231,7 +1241,7 @@ struct PDFMonthlyTrendChart: View {
                 }
             }
         }
-        .chartYAxisLabel("发作天数")
+        .chartYAxisLabel(String(localized: "report.chart.axis.attackDays"))
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisValueLabel {
@@ -1266,9 +1276,9 @@ struct PDFCircadianChart: View {
         Chart {
             ForEach(data) { item in
                 AreaMark(
-                    x: .value("小时", item.hour),
-                    yStart: .value("起点", 0),
-                    yEnd: .value("次数", item.count)
+                    x: .value(String(localized: "report.chart.axis.hour"), item.hour),
+                    yStart: .value(String(localized: "report.chart.axis.count"), 0),
+                    yEnd: .value(String(localized: "report.chart.axis.count"), item.count)
                 )
                 .foregroundStyle(
                     LinearGradient(
@@ -1280,8 +1290,8 @@ struct PDFCircadianChart: View {
                 .interpolationMethod(.catmullRom)
                 
                 LineMark(
-                    x: .value("小时", item.hour),
-                    y: .value("次数", item.count)
+                    x: .value(String(localized: "report.chart.axis.hour"), item.hour),
+                    y: .value(String(localized: "report.chart.axis.count"), item.count)
                 )
                 .foregroundStyle(Color.blue)
                 .lineStyle(StrokeStyle(lineWidth: 2))
@@ -1289,13 +1299,13 @@ struct PDFCircadianChart: View {
             }
         }
         .chartXScale(domain: 0...23)
-        .chartXAxisLabel("时间（小时）")
-        .chartYAxisLabel("发作次数")
+        .chartXAxisLabel(String(localized: "report.chart.axis.timeHours"))
+        .chartYAxisLabel(String(localized: "report.chart.axis.attackDays"))
         .chartXAxis {
             AxisMarks(values: [0, 3, 6, 9, 12, 15, 18, 21]) { value in
                 AxisValueLabel {
                     if let hour = value.as(Int.self) {
-                        Text("\(hour)时")
+                        Text(String(format: String(localized: "report.chart.hourSuffix"), hour))
                             .font(.system(size: 8))
                     }
                 }
@@ -1324,9 +1334,9 @@ struct PDFPainIntensityChart: View {
     
     private var chartData: [(name: String, count: Int, color: Color)] {
         [
-            ("轻度(1-3)", distribution.mild, .green),
-            ("中度(4-6)", distribution.moderate, .orange),
-            ("重度(7-10)", distribution.severe, .red)
+            (String(localized: "report.chart.intensity.mild"), distribution.mild, .green),
+            (String(localized: "report.chart.intensity.moderate"), distribution.moderate, .orange),
+            (String(localized: "report.chart.intensity.severe"), distribution.severe, .red)
         ]
     }
     
@@ -1334,21 +1344,21 @@ struct PDFPainIntensityChart: View {
         Chart {
             ForEach(chartData, id: \.name) { item in
                 BarMark(
-                    x: .value("级别", item.name),
-                    y: .value("次数", item.count)
+                    x: .value(String(localized: "report.chart.axis.level"), item.name),
+                    y: .value(String(localized: "report.chart.axis.count"), item.count)
                 )
                 .foregroundStyle(item.color)
                 .cornerRadius(4)
                 .annotation(position: .top) {
                     if item.count > 0 {
-                        Text("\(item.count)次")
+                        Text(String(format: String(localized: "report.format.count"), item.count))
                             .font(.system(size: 9, weight: .semibold))
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .chartYAxisLabel("发作次数")
+        .chartYAxisLabel(String(localized: "report.chart.axis.attackDays"))
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisValueLabel {
@@ -1383,8 +1393,8 @@ struct PDFWeekdayChart: View {
         Chart {
             ForEach(data) { item in
                 BarMark(
-                    x: .value("星期", item.weekdayName),
-                    y: .value("次数", item.count)
+                    x: .value(String(localized: "report.chart.axis.weekday"), item.weekdayName),
+                    y: .value(String(localized: "report.chart.axis.count"), item.count)
                 )
                 .foregroundStyle(Color.blue.gradient)
                 .cornerRadius(4)
@@ -1397,7 +1407,7 @@ struct PDFWeekdayChart: View {
                 }
             }
         }
-        .chartYAxisLabel("发作次数")
+        .chartYAxisLabel(String(localized: "report.chart.axis.attackDays"))
         .chartYAxis {
             AxisMarks(position: .leading) { value in
                 AxisValueLabel {

@@ -17,13 +17,13 @@ struct SettingsView: View {
                         SettingRow(
                             icon: themeManager.currentTheme.icon,
                             iconColor: Color.accentPrimary,
-                            title: "主题设置",
-                            subtitle: themeManager.currentTheme.rawValue
+                            title: String(localized: "settings.theme"),
+                            subtitle: themeManager.currentTheme.localizedName
                         )
                     }
                     .buttonStyle(.plain)
                 } header: {
-                    Text("外观")
+                    Text(String(localized: "settings.appearance"))
                 }
                 
                 // 数据与隐私
@@ -34,8 +34,8 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "location.fill",
                             iconColor: .blue,
-                            title: "位置服务",
-                            subtitle: "追踪天气诱因"
+                            title: String(localized: "settings.location"),
+                            subtitle: String(localized: "settings.location.subtitle")
                         )
                     }
                     .buttonStyle(.plain)
@@ -46,15 +46,15 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "icloud.fill",
                             iconColor: .cyan,
-                            title: "iCloud 同步",
-                            subtitle: "多设备协同"
+                            title: String(localized: "settings.icloud.sync"),
+                            subtitle: String(localized: "settings.icloud.subtitle")
                         )
                     }
                     .buttonStyle(.plain)
                 } header: {
-                    Text("数据与隐私")
+                    Text(String(localized: "settings.data.privacy"))
                 } footer: {
-                    Text("所有数据存储在您的iCloud私有数据库，仅您本人可访问。")
+                    Text(String(localized: "settings.data.privacy.footer"))
                 }
                 
                 // 功能设置
@@ -65,8 +65,8 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "tag.fill",
                             iconColor: Color.accentPrimary,
-                            title: "标签管理",
-                            subtitle: "自定义症状、诱因、药物标签"
+                            title: String(localized: "settings.label.management"),
+                            subtitle: String(localized: "settings.label.subtitle")
                         )
                     }
                     .buttonStyle(.plain)
@@ -77,13 +77,13 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "slider.horizontal.3",
                             iconColor: .purple,
-                            title: "个性化配置",
-                            subtitle: "定制专属体验"
+                            title: String(localized: "settings.personalization"),
+                            subtitle: String(localized: "settings.personalization.subtitle")
                         )
                     }
                     .buttonStyle(.plain)
                 } header: {
-                    Text("功能设置")
+                    Text(String(localized: "settings.features"))
                 }
                 
                 // 关于
@@ -94,16 +94,16 @@ struct SettingsView: View {
                         SettingRow(
                             icon: "info.circle.fill",
                             iconColor: .gray,
-                            title: "关于应用",
-                            subtitle: "版本与帮助"
+                            title: String(localized: "settings.about.app"),
+                            subtitle: String(localized: "settings.about.subtitle")
                         )
                     }
                     .buttonStyle(.plain)
                 } header: {
-                    Text("关于")
+                    Text(String(localized: "settings.about"))
                 }
             }
-            .navigationTitle("设置")
+            .navigationTitle(String(localized: "settings.title"))
         }
     }
 }
@@ -157,30 +157,30 @@ struct LocationSettingsView: View {
             Section {
                 InfoCard {
                     VStack(alignment: .leading, spacing: AppSpacing.small) {
-                        Text("位置服务")
+                        Text(String(localized: "settings.location.title"))
                             .font(.headline)
                             .foregroundColor(Color.accentPrimary)
-                        Text("允许访问位置信息以获取天气数据，帮助分析环境诱因。")
+                        Text(String(localized: "settings.location.desc"))
                             .font(.body)
                             .foregroundColor(.secondary)
                     }
                 }
             }
             
-            Section("功能说明") {
-                Label("记录发作时的天气状况", systemImage: "cloud.sun.fill")
-                Label("气压变化趋势分析", systemImage: "gauge.high")
-                Label("湿度和温度追踪", systemImage: "thermometer.medium")
+            Section(String(localized: "settings.location.features")) {
+                Label(String(localized: "settings.location.feature.weather"), systemImage: "cloud.sun.fill")
+                Label(String(localized: "settings.location.feature.pressure"), systemImage: "gauge.high")
+                Label(String(localized: "settings.location.feature.temp"), systemImage: "thermometer.medium")
             }
             
             Section {
                 Link(destination: URL(string: UIApplication.openSettingsURLString)!) {
-                    Label("打开系统设置", systemImage: "gear")
+                    Label(String(localized: "settings.open.settings"), systemImage: "gear")
                         .frame(maxWidth: .infinity)
                 }
             }
         }
-        .navigationTitle("位置服务")
+        .navigationTitle(String(localized: "settings.location.title"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -199,16 +199,16 @@ struct CloudSyncSettingsView: View {
             Section {
                 Toggle(isOn: $syncSettingsManager.isSyncEnabled) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("启用iCloud同步")
+                        Text(String(localized: "settings.icloud.enable"))
                             .font(.body)
-                        Text("关闭后数据仅保存在本地设备")
+                        Text(String(localized: "settings.icloud.off.desc"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
                 .tint(Color.accentPrimary)
             } footer: {
-                Text("更改此设置后需要重启应用才能生效")
+                Text(String(localized: "settings.icloud.restart.hint"))
                     .font(.caption)
                     .foregroundColor(.orange)
             }
@@ -241,7 +241,7 @@ struct CloudSyncSettingsView: View {
             if SyncSettingsManager.isSyncCurrentlyEnabled() {
                 Section {
                     HStack {
-                        Label("上次同步", systemImage: "clock.arrow.circlepath")
+                        Label(String(localized: "settings.sync.last"), systemImage: "clock.arrow.circlepath")
                             .foregroundColor(.secondary)
                         Spacer()
                         if let lastSync = cloudKitManager.lastSyncDate {
@@ -254,7 +254,7 @@ struct CloudSyncSettingsView: View {
                                     .foregroundStyle(.tertiary)
                             }
                         } else {
-                            Text("等待首次同步")
+                            Text(String(localized: "settings.sync.waiting"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -266,32 +266,32 @@ struct CloudSyncSettingsView: View {
             Section {
                 InfoCard {
                     VStack(alignment: .leading, spacing: AppSpacing.small) {
-                        Text("iCloud同步")
+                        Text(String(localized: "settings.icloud.title"))
                             .font(.headline)
                             .foregroundColor(Color.accentPrimary)
-                        Text("您的所有数据通过iCloud自动同步到您的所有Apple设备，并保存在您的私有数据库中。")
+                        Text(String(localized: "settings.icloud.desc"))
                             .font(.body)
                             .foregroundColor(.secondary)
                     }
                 }
             }
             
-            Section("同步说明") {
-                Label("自动跨设备同步", systemImage: "icloud.fill")
-                Label("端到端加密", systemImage: "lock.shield.fill")
-                Label("私有数据库存储", systemImage: "externaldrive.fill.badge.person.crop")
-                Label("离线优先设计", systemImage: "wifi.slash")
+            Section(String(localized: "settings.sync.features")) {
+                Label(String(localized: "settings.sync.cross.device"), systemImage: "icloud.fill")
+                Label(String(localized: "settings.sync.encrypted"), systemImage: "lock.shield.fill")
+                Label(String(localized: "settings.sync.private"), systemImage: "externaldrive.fill.badge.person.crop")
+                Label(String(localized: "settings.sync.offline"), systemImage: "wifi.slash")
             }
             
-            Section("隐私保护") {
+            Section(String(localized: "settings.privacy")) {
                 VStack(alignment: .leading, spacing: AppSpacing.small) {
-                    Text("✓ 数据仅存储在您的iCloud账户")
+                    Text("✓ \(String(localized: "settings.privacy.icloud"))")
                         .font(.caption)
-                    Text("✓ 开发者无法访问您的数据")
+                    Text("✓ \(String(localized: "settings.privacy.no.access"))")
                         .font(.caption)
-                    Text("✓ 未经授权的第三方无法访问")
+                    Text("✓ \(String(localized: "settings.privacy.no.third"))")
                         .font(.caption)
-                    Text("✓ 符合医疗数据隐私要求")
+                    Text("✓ \(String(localized: "settings.privacy.medical"))")
                         .font(.caption)
                 }
                 .foregroundColor(.secondary)
@@ -307,7 +307,7 @@ struct CloudSyncSettingsView: View {
                                 Image(systemName: "doc.text.magnifyingglass")
                                     .font(.title2)
                                     .foregroundStyle(.tertiary)
-                                Text("暂无同步记录")
+                                Text(String(localized: "settings.sync.empty"))
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
@@ -321,10 +321,10 @@ struct CloudSyncSettingsView: View {
                     }
                 } header: {
                     HStack {
-                        Text("同步日志")
+                        Text(String(localized: "settings.sync.log"))
                         Spacer()
                         if !cloudKitManager.syncLogs.isEmpty {
-                            Button("清除") {
+                            Button(String(localized: "settings.sync.clear")) {
                                 withAnimation {
                                     cloudKitManager.clearSyncLogs()
                                 }
@@ -345,13 +345,13 @@ struct CloudSyncSettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: "gear")
-                            Text("打开系统设置")
+                            Text(String(localized: "settings.open.settings"))
                         }
                     }
                 }
             }
         }
-        .navigationTitle("iCloud同步")
+        .navigationTitle(String(localized: "settings.icloud.title"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             cloudKitManager.checkICloudStatus()
@@ -366,14 +366,14 @@ struct CloudSyncSettingsView: View {
                 cloudKitManager.checkICloudStatus()
             }
         }
-        .alert("需要重启应用", isPresented: $showRestartAlert) {
-            Button("稍后", role: .cancel) { }
-            Button("立即重启") {
+        .alert(String(localized: "settings.restart.required"), isPresented: $showRestartAlert) {
+            Button(String(localized: "settings.restart.later"), role: .cancel) { }
+            Button(String(localized: "settings.restart.now")) {
                 // 退出应用，用户需要手动重启
                 exit(0)
             }
         } message: {
-            Text("更改同步设置后需要重启应用才能生效。您可以稍后手动重启，或现在立即重启。")
+            Text(String(localized: "settings.restart.message"))
         }
     }
     
@@ -382,34 +382,34 @@ struct CloudSyncSettingsView: View {
     @ViewBuilder
     private var syncStatusSubtitle: some View {
         if cloudKitManager.syncStatus == .disabled {
-            Text("数据仅保存在本地设备")
+            Text(String(localized: "settings.sync.local.only"))
                 .font(.caption)
                 .foregroundColor(.secondary)
         } else if cloudKitManager.syncStatus == .syncFailed {
-            Text(cloudKitManager.errorMessage ?? "同步时遇到问题，将自动重试")
+            Text(cloudKitManager.errorMessage ?? String(localized: "settings.sync.retry"))
                 .font(.caption)
                 .foregroundColor(.red)
                 .lineLimit(2)
         } else if cloudKitManager.syncStatus == .syncing {
-            Text("正在与iCloud同步数据...")
+            Text(String(localized: "settings.sync.syncing"))
                 .font(.caption)
                 .foregroundColor(.blue)
         } else if cloudKitManager.syncStatus == .notSignedIn {
-            Text("请在系统设置中登录iCloud")
+            Text(String(localized: "settings.sync.signin"))
                 .font(.caption)
                 .foregroundColor(.orange)
         } else if cloudKitManager.isICloudAvailable {
             if let lastSync = cloudKitManager.lastSyncDate {
-                Text("上次同步：\(lastSync.syncRelativeString)")
+                Text(String(format: String(localized: "settings.sync.last.prefix"), lastSync.syncRelativeString))
                     .font(.caption)
                     .foregroundColor(.secondary)
             } else {
-                Text("已就绪，等待首次同步...")
+                Text(String(localized: "settings.sync.ready"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         } else {
-            Text("检查iCloud状态中...")
+            Text(String(localized: "settings.sync.checking"))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -440,7 +440,7 @@ struct SyncLogRow: View {
                         .font(.subheadline.weight(.medium))
                     
                     if !entry.succeeded {
-                        Text("失败")
+                        Text(String(localized: "settings.sync.failed"))
                             .font(.caption2.weight(.medium))
                             .foregroundColor(.white)
                             .padding(.horizontal, 4)
@@ -491,12 +491,12 @@ struct FeatureSettingsView: View {
     
     var body: some View {
         List {
-            Section("功能开关") {
+            Section(String(localized: "settings.features.toggle")) {
                 Toggle(isOn: $enableTCMFeatures) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("中医功能")
+                        Text(String(localized: "settings.tcm.features"))
                             .font(.body)
-                        Text("显示中医症状、诱因和证候分析")
+                        Text(String(localized: "settings.tcm.desc"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -518,9 +518,9 @@ struct FeatureSettingsView: View {
                 )) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("天气追踪")
+                            Text(String(localized: "settings.weather.tracking"))
                                 .font(.body)
-                            Text("自动记录发作时的天气状况")
+                            Text(String(localized: "settings.weather.desc"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -532,18 +532,18 @@ struct FeatureSettingsView: View {
             }
             
             Section {
-                Picker("评分标准", selection: $painScoreStyle) {
-                    Text("VAS视觉模拟评分（0-10）").tag(PainScoreStyle.vas)
-                    Text("NRS数字评分（0-10）").tag(PainScoreStyle.nrs)
+                Picker(String(localized: "settings.pain.score.standard"), selection: $painScoreStyle) {
+                    Text(String(localized: "settings.pain.vas")).tag(PainScoreStyle.vas)
+                    Text(String(localized: "settings.pain.nrs")).tag(PainScoreStyle.nrs)
                 }
                 .pickerStyle(.inline)
             } header: {
-                Text("疼痛评分方式")
+                Text(String(localized: "settings.pain.score"))
             } footer: {
-                Text("VAS和NRS都是国际通用的疼痛评分标准，范围均为0-10分。")
+                Text(String(localized: "settings.pain.footer"))
             }
         }
-        .navigationTitle("功能配置")
+        .navigationTitle(String(localized: "settings.features.title"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let profile = userProfile {
@@ -595,16 +595,16 @@ struct AboutView: View {
                         .sensoryFeedback(.impact, trigger: logoTapCount)
                         #endif
                     
-                    Text("头痛管家")
+                    Text(String(localized: "app.name"))
                         .font(.title2.bold())
                     
-                    Text("版本 \(appVersion) (\(buildNumber))")
+                    Text(String(format: String(localized: "about.version"), appVersion, buildNumber))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
                     #if DEBUG
                     if showDevModeHint {
-                        Text("💡 连续点击图标3次可进入测试模式")
+                        Text("💡 \(String(localized: "about.dev.hint"))")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                             .transition(.opacity)
@@ -615,69 +615,69 @@ struct AboutView: View {
                 .padding(.vertical, AppSpacing.large)
             }
             
-            Section("应用介绍") {
-                Text("一款专业的头痛管理工具，基于国际头痛学会（IHS）ICHD-3诊断标准和《中国偏头痛诊断与治疗指南2024版》开发。")
+            Section(String(localized: "about.intro.section")) {
+                Text(String(localized: "about.intro"))
                     .font(.body)
                     .foregroundColor(.secondary)
             }
             
-            Section("主要特性") {
-                Label("完整的发作记录流程", systemImage: "pencil.and.list.clipboard")
-                Label("WeatherKit天气追踪", systemImage: "cloud.sun.fill")
-                Label("MOH风险智能检测", systemImage: "exclamationmark.triangle.fill")
-                Label("专业的数据分析", systemImage: "chart.bar.fill")
-                Label("医疗报告PDF导出", systemImage: "doc.fill")
-                Label("iCloud跨设备同步", systemImage: "icloud.fill")
+            Section(String(localized: "about.features")) {
+                Label(String(localized: "about.feature.records"), systemImage: "pencil.and.list.clipboard")
+                Label(String(localized: "about.feature.weather"), systemImage: "cloud.sun.fill")
+                Label(String(localized: "about.feature.moh"), systemImage: "exclamationmark.triangle.fill")
+                Label(String(localized: "about.feature.analytics"), systemImage: "chart.bar.fill")
+                Label(String(localized: "about.feature.export"), systemImage: "doc.fill")
+                Label(String(localized: "about.feature.icloud"), systemImage: "icloud.fill")
             }
             
-            Section("天气数据来源") {
+            Section(String(localized: "about.weather.source")) {
                 WeatherAttribution(style: .full)
             }
             
-            Section("技术栈") {
+            Section(String(localized: "about.tech.section")) {
                 HStack {
-                    Text("UI框架")
+                    Text(String(localized: "about.tech.ui"))
                     Spacer()
                     Text("SwiftUI")
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
-                    Text("数据持久化")
+                    Text(String(localized: "about.tech.data"))
                     Spacer()
                     Text("SwiftData")
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
-                    Text("最低系统要求")
+                    Text(String(localized: "about.tech.min"))
                     Spacer()
                     Text("iOS 17.0+")
                         .foregroundColor(.secondary)
                 }
             }
             
-            Section("隐私承诺") {
-                Text("您的所有健康数据仅存储在您的iCloud私有数据库，开发者和任何第三方都无法访问您的数据。本应用不含任何广告和追踪代码。")
+            Section(String(localized: "about.privacy")) {
+                Text(String(localized: "about.privacy.desc"))
                     .font(.body)
                     .foregroundColor(.secondary)
             }
             
             Section {
                 Link(destination: URL(string: "https://harrysxu.github.io/MigraineNoteIOS/pages/support.html")!) {
-                    Label("使用指南", systemImage: "book.fill")
+                    Label(String(localized: "about.guide"), systemImage: "book.fill")
                 }
                 
                 Link(destination: URL(string: "https://github.com/harrysxu/MigraineNoteIOS")!) {
-                    Label("开源代码", systemImage: "chevron.left.forwardslash.chevron.right")
+                    Label(String(localized: "about.source"), systemImage: "chevron.left.forwardslash.chevron.right")
                 }
                 
                 Link(destination: URL(string: "mailto:ailehuoquan@163.com")!) {
-                    Label("联系我们", systemImage: "envelope.fill")
+                    Label(String(localized: "about.contact"), systemImage: "envelope.fill")
                 }
             }
         }
-        .navigationTitle("关于")
+        .navigationTitle(String(localized: "about.title"))
         .navigationBarTitleDisplayMode(.inline)
         #if DEBUG
         .navigationDestination(isPresented: $showTestView) {

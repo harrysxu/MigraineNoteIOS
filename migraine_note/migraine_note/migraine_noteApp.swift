@@ -59,7 +59,6 @@ struct migraine_noteApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
-                .environment(\.locale, Locale(identifier: "zh_CN"))
                 .environment(themeManager)  // 将主题管理器注入环境
                 .applyAppTheme(themeManager.currentTheme)  // 应用主题设置
                 .onAppear {

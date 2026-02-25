@@ -122,8 +122,15 @@ struct AnalyticsView: View {
     }
     
     enum DataViewType: String, CaseIterable {
-        case analytics = "图表"
-        case calendar = "日历"
+        case analytics
+        case calendar
+        
+        var displayName: String {
+            switch self {
+            case .analytics: return String(localized: "analytics.view.chart")
+            case .calendar: return String(localized: "calendar.title")
+            }
+        }
     }
     
     // 计算属性：获取当前选择的日期范围
@@ -135,9 +142,9 @@ struct AnalyticsView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // 视图切换器
-                Picker("数据视图", selection: $selectedView) {
+                Picker(String(localized: "analytics.view.data"), selection: $selectedView) {
                     ForEach(DataViewType.allCases, id: \.self) { viewType in
-                        Text(viewType.rawValue).tag(viewType)
+                        Text(viewType.displayName).tag(viewType)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -181,7 +188,7 @@ struct AnalyticsView: View {
                         Button(action: {
                             calendarViewModel?.moveToToday()
                         }) {
-                            Text("今天")
+                            Text(String(localized: "calendar.today"))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.accentPrimary)
                         }
@@ -207,8 +214,8 @@ struct AnalyticsView: View {
                     }
                 }
             }
-            .alert("导出失败", isPresented: $showExportErrorAlert) {
-                Button("确定", role: .cancel) { }
+            .alert(String(localized: "analytics.export.failed"), isPresented: $showExportErrorAlert) {
+                Button(String(localized: "common.ok"), role: .cancel) { }
             } message: {
                 Text(exportErrorMessage)
             }
@@ -268,16 +275,16 @@ struct AnalyticsView: View {
             }
             
             VStack(spacing: 8) {
-                Text("记录3次以上")
+                Text(String(localized: "analytics.empty.record.3"))
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
                 
-                Text("解锁数据统计")
+                Text(String(localized: "analytics.empty.unlock"))
                     .font(.title3.weight(.medium))
                     .foregroundStyle(Color.textPrimary)
             }
             
-            Text("记录更多数据，获得更完整的统计信息")
+            Text(String(localized: "analytics.empty.hint"))
                 .font(.body)
                 .foregroundStyle(Color.textSecondary)
                 .multilineTextAlignment(.center)
@@ -384,7 +391,7 @@ struct AnalyticsView: View {
             VStack(alignment: .leading, spacing: Spacing.md) {
                 // 标题行
                 HStack {
-                    Text("整体概况")
+                    Text(String(localized: "analytics.overview"))
                         .font(.title3.weight(.semibold))
                     
                     Spacer()
@@ -410,28 +417,28 @@ struct AnalyticsView: View {
                 ], spacing: Spacing.md) {
                     // 核心指标
                     StatItem(
-                        title: "发作天数",
+                        title: String(localized: "stats.attack.days"),
                         value: "\(attackDays)",
                         icon: "calendar.badge.exclamationmark",
                         color: Color.statusWarning
                     )
                     
                     StatItem(
-                        title: "发作次数",
+                        title: String(localized: "stats.attack.count"),
                         value: "\(getTotalAttacksCount())",
                         icon: "exclamationmark.triangle.fill",
                         color: Color.statusError
                     )
                     
                     StatItem(
-                        title: "平均持续时长",
+                        title: String(localized: "stats.avg.duration"),
                         value: String(format: "%.1fh", durationStats.averageDurationHours),
                         icon: "clock.fill",
                         color: Color.accentSecondary
                     )
                     
                     StatItem(
-                        title: "平均强度",
+                        title: String(localized: "stats.avg.intensity"),
                         value: String(format: "%.1f", getAveragePainIntensity()),
                         icon: "waveform.path.ecg",
                         color: Color.painCategoryColor(for: Int(getAveragePainIntensity()))
@@ -439,14 +446,14 @@ struct AnalyticsView: View {
                     
                     // 急性用药（始终显示）
                     StatItem(
-                        title: "急性用药天数",
+                        title: String(localized: "stats.acute.days"),
                         value: "\(stats.acuteMedicationDays)",
                         icon: "calendar.badge.clock",
                         color: hasMOHRisk ? Color.statusWarning : Color.statusSuccess
                     )
                     
                     StatItem(
-                        title: "急性用药次数",
+                        title: String(localized: "stats.acute.count"),
                         value: "\(stats.acuteMedicationCount)",
                         icon: "pills.fill",
                         color: hasMOHRisk ? Color.statusWarning : Color.accentPrimary
@@ -455,14 +462,14 @@ struct AnalyticsView: View {
                     // 日常用药（有数据时显示）
                     if stats.hasPreventiveMedication {
                         StatItem(
-                            title: "日常用药天数",
+                            title: String(localized: "stats.preventive.days"),
                             value: "\(stats.preventiveMedicationDays)",
                             icon: "calendar.badge.plus",
                             color: Color.accentPrimary
                         )
                         
                         StatItem(
-                            title: "日常用药次数",
+                            title: String(localized: "stats.preventive.count"),
                             value: "\(stats.preventiveMedicationCount)",
                             icon: "pills.circle.fill",
                             color: Color.accentPrimary
@@ -472,7 +479,7 @@ struct AnalyticsView: View {
                     // 中医治疗（有数据时显示）
                     if stats.hasTCMTreatment {
                         StatItem(
-                            title: "中医治疗次数",
+                            title: String(localized: "stats.tcm.count"),
                             value: "\(stats.tcmTreatmentCount)",
                             icon: "leaf.circle.fill",
                             color: Color.statusSuccess
@@ -482,7 +489,7 @@ struct AnalyticsView: View {
                     // 手术（有数据时显示）
                     if stats.hasSurgery {
                         StatItem(
-                            title: "手术次数",
+                            title: String(localized: "stats.surgery.count"),
                             value: "\(stats.surgeryCount)",
                             icon: "cross.case.circle.fill",
                             color: Color.statusInfo
@@ -504,11 +511,11 @@ struct AnalyticsView: View {
         let displayDays = isMultiMonth ? Int(round(monthlyAvg)) : totalDays
         let isWarning = monthlyAvg >= 10.0
         
-        let rangeLabel = isMultiMonth ? "月均急性用药天数" : "本月急性用药天数"
-        let thresholdText = isMultiMonth ? "建议不超过 10 天/月" : "建议不超过 10 天"
+        let rangeLabel = isMultiMonth ? String(localized: "analytics.moh.range.monthly") : String(localized: "analytics.moh.range.this.month")
+        let thresholdText = isMultiMonth ? String(localized: "analytics.moh.threshold.monthly") : String(localized: "analytics.moh.threshold.this.month")
         let warningText = isMultiMonth
-            ? "月均用药天数已达到或超过10天，建议就医咨询专业医生"
-            : "当月用药天数已达到或超过10天，建议就医咨询专业医生"
+            ? String(localized: "analytics.moh.warning.multi")
+            : String(localized: "analytics.moh.warning.single")
         
         return EmotionalCard(style: isWarning ? .warning : .default) {
             VStack(alignment: .leading, spacing: 16) {
@@ -517,7 +524,7 @@ struct AnalyticsView: View {
                     Image(systemName: "pills.circle.fill")
                         .font(.title3)
                         .foregroundStyle(isWarning ? Color.statusWarning : Color.accentPrimary)
-                    Text("用药频次提醒")
+                    Text(String(localized: "analytics.moh.reminder.title"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                     
@@ -537,7 +544,7 @@ struct AnalyticsView: View {
                                 .font(.system(size: 36, weight: .bold))
                                 .foregroundStyle(isWarning ? Color.statusWarning : Color.accentPrimary)
                             
-                            Text("天")
+                            Text(String(localized: "form.unit.day"))
                                 .font(.title3)
                                 .foregroundStyle(Color.textSecondary)
                         }
@@ -617,7 +624,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("月度趋势")
+                    Text(String(localized: "analytics.monthly.trend"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -625,15 +632,15 @@ struct AnalyticsView: View {
                 let monthlyData = getMonthlyTrendData()
                 
                 if monthlyData.isEmpty {
-                    Text("数据不足")
+                    Text(String(localized: "analytics.data.insufficient"))
                         .font(.body)
                         .foregroundStyle(Color.textSecondary)
                 } else {
                     Chart {
                         ForEach(monthlyData) { item in
                             BarMark(
-                                x: .value("月份", item.monthName),
-                                y: .value("发作天数", item.attackDays)
+                                x: .value(String(localized: "chart.month"), item.monthName),
+                                y: .value(String(localized: "chart.attack.days"), item.attackDays)
                             )
                             .foregroundStyle(
                                 LinearGradient(
@@ -681,7 +688,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(Color.statusWarning)
-                    Text("诱因频次统计")
+                    Text(String(localized: "analytics.trigger.freq"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -689,7 +696,7 @@ struct AnalyticsView: View {
                 let triggerData = cachedBatchAnalytics?.triggerFrequency ?? []
                 
                 if triggerData.isEmpty {
-                    Text("暂无诱因数据")
+                    Text(String(localized: "analytics.no.trigger.data"))
                         .font(.body)
                         .foregroundStyle(Color.textSecondary)
                 } else {
@@ -716,7 +723,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("发作时间分布")
+                    Text(String(localized: "analytics.attack.time.dist"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -724,16 +731,16 @@ struct AnalyticsView: View {
                 let circadianData = cachedBatchAnalytics?.circadianPattern ?? []
                 
                 if circadianData.isEmpty {
-                    Text("数据不足")
+                    Text(String(localized: "analytics.data.insufficient"))
                         .font(.body)
                         .foregroundStyle(Color.textSecondary)
                 } else {
                     Chart {
                         ForEach(circadianData) { item in
                             AreaMark(
-                                x: .value("小时", item.hour),
-                                yStart: .value("起点", 0),
-                                yEnd: .value("次数", item.count)
+                                x: .value(String(localized: "chart.hour"), item.hour),
+                                yStart: .value(String(localized: "chart.start"), 0),
+                                yEnd: .value(String(localized: "chart.count"), item.count)
                             )
                             .foregroundStyle(
                                 LinearGradient(
@@ -748,16 +755,16 @@ struct AnalyticsView: View {
                             .interpolationMethod(.catmullRom)
                             
                             LineMark(
-                                x: .value("小时", item.hour),
-                                y: .value("次数", item.count)
+                                x: .value(String(localized: "chart.hour"), item.hour),
+                                y: .value(String(localized: "chart.count"), item.count)
                             )
                             .foregroundStyle(Color.accentPrimary)
                             .lineStyle(StrokeStyle(lineWidth: 2.5))
                             .interpolationMethod(.catmullRom)
                             
                             PointMark(
-                                x: .value("小时", item.hour),
-                                y: .value("次数", item.count)
+                                x: .value(String(localized: "chart.hour"), item.hour),
+                                y: .value(String(localized: "chart.count"), item.count)
                             )
                             .foregroundStyle(Color.accentPrimary)
                             .symbolSize(60)
@@ -769,7 +776,7 @@ struct AnalyticsView: View {
                         AxisMarks(values: [0, 6, 12, 18, 23]) { value in
                             AxisValueLabel {
                                 if let hour = value.as(Int.self) {
-                                    Text("\(hour)时")
+                                    Text(String(format: String(localized: "chart.hour.format"), hour))
                                         .font(.caption)
                                         .foregroundStyle(Color.textSecondary)
                                 }
@@ -790,7 +797,7 @@ struct AnalyticsView: View {
                     
                     // 高发时段提示
                     if let peakHour = circadianData.max(by: { $0.count < $1.count }) {
-                        Text("高发时段：\(peakHour.hour)时-\(peakHour.hour + 1)时")
+                        Text(String(format: String(localized: "analytics.peak.hour"), peakHour.hour, peakHour.hour + 1))
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                             .padding(Spacing.xs)
@@ -811,7 +818,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "waveform.path.ecg")
                         .foregroundStyle(Color.statusError)
-                    Text("疼痛评估统计")
+                    Text(String(localized: "analytics.pain.assessment"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -822,35 +829,35 @@ struct AnalyticsView: View {
                 
                 // 疼痛强度分布
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("疼痛强度分布")
+                    Text(String(localized: "analytics.pain.intensity.dist"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.textPrimary)
                     
                     if intensityDist.total > 0 {
                         VStack(spacing: 8) {
                             IntensityBar(
-                                label: "轻度 (1-3)",
+                                label: String(localized: "analytics.pain.mild"),
                                 count: intensityDist.mild,
                                 percentage: intensityDist.mildPercentage,
                                 color: .statusSuccess
                             )
                             
                             IntensityBar(
-                                label: "中度 (4-6)",
+                                label: String(localized: "analytics.pain.moderate"),
                                 count: intensityDist.moderate,
                                 percentage: intensityDist.moderatePercentage,
                                 color: .statusWarning
                             )
                             
                             IntensityBar(
-                                label: "重度 (7-10)",
+                                label: String(localized: "analytics.pain.severe"),
                                 count: intensityDist.severe,
                                 percentage: intensityDist.severePercentage,
                                 color: .statusError
                             )
                         }
                     } else {
-                        Text("暂无数据")
+                        Text(String(localized: "analytics.no.data"))
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
@@ -862,7 +869,7 @@ struct AnalyticsView: View {
                     
                     // 疼痛部位频次 Top 5
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("疼痛部位频次 (Top 5)")
+                        Text(String(localized: "analytics.pain.location.freq"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
@@ -884,7 +891,7 @@ struct AnalyticsView: View {
                     
                     // 疼痛性质频次
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("疼痛性质频次")
+                        Text(String(localized: "analytics.pain.quality.freq"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
@@ -911,7 +918,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "heart.text.square.fill")
                         .foregroundStyle(Color.statusInfo)
-                    Text("症状统计")
+                    Text(String(localized: "analytics.symptom.stats"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -922,8 +929,8 @@ struct AnalyticsView: View {
                 // 伴随症状频次
                 if !symptomFreq.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("伴随症状频次")
-                            .font(.subheadline.weight(.semibold))
+Text(String(localized: "analytics.symptom.freq"))
+                        .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
                         VStack(spacing: 8) {
@@ -937,7 +944,7 @@ struct AnalyticsView: View {
                         }
                     }
                 } else {
-                    Text("暂无症状数据")
+                    Text(String(localized: "analytics.no.symptom.data"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
@@ -948,18 +955,18 @@ struct AnalyticsView: View {
                         .padding(.vertical, 4)
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("先兆统计")
-                            .font(.subheadline.weight(.semibold))
+Text(String(localized: "analytics.aura.stats"))
+                        .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Color.textPrimary)
                         
                         HStack {
-                            Text("有先兆发作")
+                            Text(String(localized: "analytics.aura.attacks"))
                                 .font(.body)
                                 .foregroundStyle(Color.textPrimary)
                             
                             Spacer()
                             
-                            Text("\(auraStats.attacksWithAura) 次")
+                            Text(String(format: String(localized: "form.unit.count.short"), auraStats.attacksWithAura))
                                 .font(.body.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                             
@@ -993,7 +1000,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "cross.case.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("用药统计")
+                    Text(String(localized: "analytics.medication.stats"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -1011,7 +1018,7 @@ struct AnalyticsView: View {
                             Image(systemName: "bolt.heart.fill")
                                 .font(.caption)
                                 .foregroundStyle(Color.statusWarning)
-                            Text("急性用药（发作期间）")
+                            Text(String(localized: "analytics.acute.medication"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                         }
@@ -1019,10 +1026,10 @@ struct AnalyticsView: View {
                         if hasAcute {
                             HStack(spacing: 20) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("用药次数")
+                                    Text(String(localized: "analytics.medication.count"))
                                         .font(.caption)
                                         .foregroundStyle(Color.textSecondary)
-                                    Text("\(acuteStats.totalMedicationUses) 次")
+                                    Text(String(format: String(localized: "form.unit.count.short"), acuteStats.totalMedicationUses))
                                         .font(.title3.weight(.bold))
                                         .foregroundStyle(Color.statusWarning)
                                 }
@@ -1030,10 +1037,10 @@ struct AnalyticsView: View {
                                 Spacer()
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("用药天数")
+                                    Text(String(localized: "analytics.medication.days"))
                                         .font(.caption)
                                         .foregroundStyle(Color.textSecondary)
-                                    Text("\(acuteStats.medicationDays) 天")
+                                    Text("\(acuteStats.medicationDays) \(String(localized: "form.unit.day"))")
                                         .font(.title3.weight(.bold))
                                         .foregroundStyle(Color.statusWarning)
                                 }
@@ -1065,7 +1072,7 @@ struct AnalyticsView: View {
                                 }
                             }
                         } else {
-                            Text("暂无急性用药记录")
+                            Text(String(localized: "analytics.no.acute.med"))
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
                         }
@@ -1080,7 +1087,7 @@ struct AnalyticsView: View {
                             Image(systemName: "pills.circle.fill")
                                 .font(.caption)
                                 .foregroundStyle(Color.accentPrimary)
-                            Text("日常用药")
+                            Text(String(localized: "analytics.daily.medication"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.textPrimary)
                         }
@@ -1088,10 +1095,10 @@ struct AnalyticsView: View {
                         if hasDaily {
                             HStack(spacing: 20) {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("用药次数")
+                                    Text(String(localized: "analytics.medication.count"))
                                         .font(.caption)
                                         .foregroundStyle(Color.textSecondary)
-                                    Text("\(healthEventStats.dailyMedicationCount) 次")
+                                    Text(String(format: String(localized: "form.unit.count.short"), healthEventStats.dailyMedicationCount))
                                         .font(.title3.weight(.bold))
                                         .foregroundStyle(Color.accentPrimary)
                                 }
@@ -1099,10 +1106,10 @@ struct AnalyticsView: View {
                                 Spacer()
                                 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text("用药天数")
+                                    Text(String(localized: "analytics.medication.days"))
                                         .font(.caption)
                                         .foregroundStyle(Color.textSecondary)
-                                    Text("\(healthEventStats.dailyMedicationDays) 天")
+                                    Text("\(healthEventStats.dailyMedicationDays) \(String(localized: "form.unit.day"))")
                                         .font(.title3.weight(.bold))
                                         .foregroundStyle(Color.accentPrimary)
                                 }
@@ -1134,13 +1141,13 @@ struct AnalyticsView: View {
                                 }
                             }
                         } else {
-                            Text("暂无日常用药记录")
+                            Text(String(localized: "analytics.no.daily.med"))
                                 .font(.caption)
                                 .foregroundStyle(Color.textSecondary)
                         }
                     }
                 } else {
-                    Text("暂无用药数据")
+                    Text(String(localized: "analytics.no.medication.data"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
@@ -1160,7 +1167,7 @@ struct AnalyticsView: View {
                         HStack {
                             Image(systemName: "heart.text.square.fill")
                                 .foregroundStyle(Color.accentPrimary)
-                            Text("健康事件统计")
+                            Text(String(localized: "analytics.health.event.stats"))
                                 .font(.headline)
                                 .foregroundStyle(Color.textPrimary)
                         }
@@ -1170,8 +1177,8 @@ struct AnalyticsView: View {
                             if healthStats.hasDailyMedication {
                                 HealthEventSummaryItem(
                                     icon: "pills.circle.fill",
-                                    label: "日常用药",
-                                    value: "\(healthStats.dailyMedicationCount)次",
+                                    label: String(localized: "analytics.daily.medication"),
+                                    value: "\(healthStats.dailyMedicationCount)\(String(localized: "form.unit.count"))",
                                     color: .accentPrimary
                                 )
                             }
@@ -1179,8 +1186,8 @@ struct AnalyticsView: View {
                             if healthStats.hasTCMTreatment {
                                 HealthEventSummaryItem(
                                     icon: "leaf.circle.fill",
-                                    label: "中医治疗",
-                                    value: "\(healthStats.tcmTreatmentCount)次",
+                                    label: String(localized: "health.event.type.tcmTreatment"),
+                                    value: "\(healthStats.tcmTreatmentCount)\(String(localized: "form.unit.count"))",
                                     color: .statusSuccess
                                 )
                             }
@@ -1188,8 +1195,8 @@ struct AnalyticsView: View {
                             if healthStats.hasSurgery {
                                 HealthEventSummaryItem(
                                     icon: "cross.case.circle.fill",
-                                    label: "手术",
-                                    value: "\(healthStats.surgeryCount)次",
+                                    label: String(localized: "health.event.type.surgery"),
+                                    value: "\(healthStats.surgeryCount)\(String(localized: "form.unit.count"))",
                                     color: .statusInfo
                                 )
                             }
@@ -1205,18 +1212,18 @@ struct AnalyticsView: View {
                                     Image(systemName: "leaf.circle.fill")
                                         .font(.caption)
                                         .foregroundStyle(Color.statusSuccess)
-                                    Text("中医治疗详情")
+                                    Text(String(localized: "analytics.tcm.detail"))
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(Color.textPrimary)
                                 }
                                 
                                 if healthStats.averageTcmDurationMinutes > 0 {
                                     HStack {
-                                        Text("平均治疗时长")
+                                        Text(String(localized: "analytics.avg.treatment.duration"))
                                             .font(.caption)
                                             .foregroundStyle(Color.textSecondary)
                                         Spacer()
-                                        Text("\(healthStats.averageTcmDurationMinutes) 分钟")
+                                        Text("\(healthStats.averageTcmDurationMinutes)\(String(localized: "form.duration.minute"))")
                                             .font(.body.weight(.semibold))
                                             .foregroundStyle(Color.textPrimary)
                                     }
@@ -1246,7 +1253,7 @@ struct AnalyticsView: View {
                                     Image(systemName: "cross.case.circle.fill")
                                         .font(.caption)
                                         .foregroundStyle(Color.statusInfo)
-                                    Text("手术记录")
+                                    Text(String(localized: "analytics.surgery.record"))
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(Color.textPrimary)
                                 }
@@ -1395,7 +1402,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "leaf.circle.fill")
                         .foregroundStyle(Color.statusSuccess)
-                    Text("中医治疗统计")
+                    Text(String(localized: "analytics.tcm.title"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -1406,22 +1413,22 @@ struct AnalyticsView: View {
                     VStack(spacing: 12) {
                         // 总治疗次数
                         HStack {
-                            Text("总治疗次数")
+                            Text(String(localized: "analytics.tcm.total.treatments"))
                                 .font(.subheadline)
                                 .foregroundStyle(Color.textSecondary)
                             Spacer()
-                            Text("\(tcmStats.totalTreatments) 次")
+                            Text("\(tcmStats.totalTreatments)\(String(localized: "analytics.tcm.count.suffix"))")
                                 .font(.title3.weight(.bold))
                                 .foregroundStyle(Color.textPrimary)
                         }
                         
                         if tcmStats.averageDurationMinutes > 0 {
                             HStack {
-                                Text("平均治疗时长")
+                                Text(String(localized: "analytics.tcm.avg.duration"))
                                     .font(.subheadline)
                                     .foregroundStyle(Color.textSecondary)
                                 Spacer()
-                                Text("\(tcmStats.averageDurationMinutes) 分钟")
+                                Text("\(tcmStats.averageDurationMinutes)\(String(localized: "analytics.treatment.minute.suffix"))")
                                     .font(.title3.weight(.bold))
                                     .foregroundStyle(Color.textPrimary)
                             }
@@ -1432,7 +1439,7 @@ struct AnalyticsView: View {
                             Divider()
                             
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("治疗类型分布")
+                                Text(String(localized: "analytics.tcm.type.distribution"))
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(Color.textPrimary)
                                 
@@ -1447,7 +1454,7 @@ struct AnalyticsView: View {
                         }
                     }
                 } else {
-                    Text("暂无中医治疗记录")
+                    Text(String(localized: "analytics.tcm.no.records"))
                         .font(.caption)
                         .foregroundStyle(Color.textSecondary)
                 }
@@ -1463,7 +1470,7 @@ struct AnalyticsView: View {
                 HStack {
                     Image(systemName: "chart.line.uptrend.xyaxis")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("治疗效果分析")
+                    Text(String(localized: "analytics.effectiveness.title"))
                         .font(.headline)
                         .foregroundStyle(Color.textPrimary)
                 }
@@ -1475,16 +1482,16 @@ struct AnalyticsView: View {
                     afterDays: 30
                 ) {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("开始日常用药治疗后")
+                        Text(String(localized: "analytics.effectiveness.after.medication"))
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(Color.textSecondary)
                         
                         HStack(spacing: 20) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("治疗前30天")
+                                Text(String(localized: "analytics.effectiveness.before.30days"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
-                                Text("\(medicationCorrelation.beforeAttackDays) 天发作")
+                                Text("\(medicationCorrelation.beforeAttackDays)\(String(localized: "analytics.effectiveness.attack.days.suffix"))")
                                     .font(.body.weight(.semibold))
                                     .foregroundStyle(Color.textPrimary)
                             }
@@ -1493,10 +1500,10 @@ struct AnalyticsView: View {
                                 .foregroundStyle(Color.textTertiary)
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("治疗后30天")
+                                Text(String(localized: "analytics.effectiveness.after.30days"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
-                                Text("\(medicationCorrelation.afterAttackDays) 天发作")
+                                Text("\(medicationCorrelation.afterAttackDays)\(String(localized: "analytics.effectiveness.attack.days.suffix"))")
                                     .font(.body.weight(.semibold))
                                     .foregroundStyle(medicationCorrelation.hasImprovement ? Color.statusSuccess : Color.textPrimary)
                             }
@@ -1506,7 +1513,7 @@ struct AnalyticsView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(Color.statusSuccess)
-                                Text("发作天数减少 \(medicationCorrelation.attackDaysReduction) 天")
+                                Text(String(format: String(localized: "analytics.effectiveness.reduction.format"), medicationCorrelation.attackDaysReduction))
                                     .font(.caption)
                                     .foregroundStyle(Color.statusSuccess)
                             }
@@ -1527,16 +1534,16 @@ struct AnalyticsView: View {
                     Divider()
                     
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("开始中医治疗后")
+                        Text(String(localized: "analytics.effectiveness.after.tcm"))
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(Color.textSecondary)
                         
                         HStack(spacing: 20) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("治疗前30天")
+                                Text(String(localized: "analytics.effectiveness.before.30days"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
-                                Text("\(tcmCorrelation.beforeAttackDays) 天发作")
+                                Text("\(tcmCorrelation.beforeAttackDays)\(String(localized: "analytics.effectiveness.attack.days.suffix"))")
                                     .font(.body.weight(.semibold))
                                     .foregroundStyle(Color.textPrimary)
                             }
@@ -1545,10 +1552,10 @@ struct AnalyticsView: View {
                                 .foregroundStyle(Color.textTertiary)
                             
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("治疗后30天")
+                                Text(String(localized: "analytics.effectiveness.after.30days"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
-                                Text("\(tcmCorrelation.afterAttackDays) 天发作")
+                                Text("\(tcmCorrelation.afterAttackDays)\(String(localized: "analytics.effectiveness.attack.days.suffix"))")
                                     .font(.body.weight(.semibold))
                                     .foregroundStyle(tcmCorrelation.hasImprovement ? Color.statusSuccess : Color.textPrimary)
                             }
@@ -1558,7 +1565,7 @@ struct AnalyticsView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(Color.statusSuccess)
-                                Text("发作天数减少 \(tcmCorrelation.attackDaysReduction) 天")
+                                Text(String(format: String(localized: "analytics.effectiveness.reduction.format"), tcmCorrelation.attackDaysReduction))
                                     .font(.caption)
                                     .foregroundStyle(Color.statusSuccess)
                             }
@@ -1648,7 +1655,7 @@ struct IntensityBar: View {
             
             // 次数和百分比
             HStack(spacing: 6) {
-                Text("\(count)次")
+                Text(String(format: String(localized: "form.unit.count.short"), count))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
                     .frame(minWidth: 40, alignment: .trailing)
@@ -1702,7 +1709,7 @@ struct FrequencyRow: View {
             
             // 次数和百分比
             HStack(spacing: 6) {
-                Text("\(count)次")
+                Text(String(format: String(localized: "form.unit.count.short"), count))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
                     .frame(minWidth: 40, alignment: .trailing)
@@ -1751,15 +1758,23 @@ struct HealthEventSummaryItem: View {
 // MARK: - Supporting Types
 
 enum TimeRange: String, CaseIterable, Identifiable {
-    case thisMonth = "本月"
-    case threeMonths = "近3个月"
-    case sixMonths = "近6个月"
-    case oneYear = "近1年"
-    case custom = "自定义"
+    case thisMonth
+    case threeMonths
+    case sixMonths
+    case oneYear
+    case custom
     
     var id: String { rawValue }
     
-    var displayName: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .thisMonth: return String(localized: "time.range.this.month")
+        case .threeMonths: return String(localized: "time.range.3months")
+        case .sixMonths: return String(localized: "time.range.6months")
+        case .oneYear: return String(localized: "time.range.1year")
+        case .custom: return String(localized: "time.range.custom")
+        }
+    }
     
     var systemImage: String {
         switch self {
@@ -1856,7 +1871,7 @@ struct TriggerFrequencyRow: View {
             
             // 次数和百分比
             HStack(spacing: 6) {
-                Text("\(count)次")
+                Text(String(format: String(localized: "form.unit.count.short"), count))
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.textPrimary)
                     .frame(minWidth: 40, alignment: .trailing)
@@ -1941,7 +1956,7 @@ struct CalendarGridSection: View {
     
     private var weekdayHeader: some View {
         HStack(spacing: 0) {
-            ForEach(["日", "一", "二", "三", "四", "五", "六"], id: \.self) { weekday in
+            ForEach([String(localized: "calendar.weekday.sun"), String(localized: "calendar.weekday.mon"), String(localized: "calendar.weekday.tue"), String(localized: "calendar.weekday.wed"), String(localized: "calendar.weekday.thu"), String(localized: "calendar.weekday.fri"), String(localized: "calendar.weekday.sat")], id: \.self) { weekday in
                 Text(weekday)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(Color.textSecondary)
@@ -2100,8 +2115,8 @@ struct TimeRangeSheetView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("时间范围") {
-                    Picker("筛选", selection: $selectedTimeRange) {
+                Section(String(localized: "filter.time.range")) {
+                    Picker(String(localized: "common.filter"), selection: $selectedTimeRange) {
                         ForEach(TimeRange.allCases) { range in
                             Label(range.displayName, systemImage: range.systemImage)
                                 .tag(range)
@@ -2112,10 +2127,10 @@ struct TimeRangeSheetView: View {
                     // 自定义日期范围选择器
                     if selectedTimeRange == .custom {
                         VStack(spacing: AppSpacing.small) {
-                            DatePicker("开始日期", 
+                            DatePicker(String(localized: "form.start.date"), 
                                        selection: $customStartDate, 
                                        displayedComponents: .date)
-                            DatePicker("结束日期", 
+                            DatePicker(String(localized: "form.end.date"), 
                                        selection: $customEndDate, 
                                        displayedComponents: .date)
                         }
@@ -2123,11 +2138,11 @@ struct TimeRangeSheetView: View {
                     }
                 }
             }
-            .navigationTitle("筛选和排序")
+            .navigationTitle(String(localized: "filter.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("完成") {
+                    Button(String(localized: "common.done")) {
                         dismiss()
                     }
                     .foregroundStyle(AppColors.primary)
@@ -2145,7 +2160,7 @@ struct PainIntensityLegend: View {
     var body: some View {
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("疼痛强度图例")
+                Text(String(localized: "calendar.pain.legend"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -2153,7 +2168,7 @@ struct PainIntensityLegend: View {
                     // 轻度疼痛 (1-3)
                     LegendItem(
                         intensity: 2,
-                        label: "轻度",
+                        label: String(localized: "analytics.pain.mild.short"),
                         range: "1-3",
                         isSelected: viewModel.showMildPain
                     ) {
@@ -2165,7 +2180,7 @@ struct PainIntensityLegend: View {
                     // 中度疼痛 (4-6)
                     LegendItem(
                         intensity: 5,
-                        label: "中度",
+                        label: String(localized: "analytics.pain.moderate.short"),
                         range: "4-6",
                         isSelected: viewModel.showModeratePain
                     ) {
@@ -2177,7 +2192,7 @@ struct PainIntensityLegend: View {
                     // 重度疼痛 (7-10)
                     LegendItem(
                         intensity: 8,
-                        label: "重度",
+                        label: String(localized: "analytics.pain.severe.short"),
                         range: "7-10",
                         isSelected: viewModel.showSeverePain
                     ) {
@@ -2189,14 +2204,14 @@ struct PainIntensityLegend: View {
                 
                 Divider()
                 
-                Text("健康事件图例")
+                Text(String(localized: "calendar.event.legend"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
                 HStack(spacing: 16) {
                     EventLegendItem(
                         color: .accentPrimary,
-                        label: "日常用药",
+                        label: String(localized: "analytics.daily.medication"),
                         isSelected: viewModel.showMedication
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -2206,7 +2221,7 @@ struct PainIntensityLegend: View {
                     
                     EventLegendItem(
                         color: .statusSuccess,
-                        label: "中医治疗",
+                        label: String(localized: "health.event.type.tcmTreatment"),
                         isSelected: viewModel.showTCMTreatment
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -2216,7 +2231,7 @@ struct PainIntensityLegend: View {
                     
                     EventLegendItem(
                         color: .statusInfo,
-                        label: "手术",
+                        label: String(localized: "health.event.type.surgery"),
                         isSelected: viewModel.showSurgery
                     ) {
                         withAnimation(.easeInOut(duration: 0.2)) {

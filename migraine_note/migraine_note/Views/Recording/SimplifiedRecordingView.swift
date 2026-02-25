@@ -109,7 +109,7 @@ struct SimplifiedRecordingView: View {
                     
                     // 疼痛评估（默认展开）
                     CollapsibleSection(
-                        title: "疼痛评估",
+                        title: String(localized: "form.pain.assessment"),
                         icon: "waveform.path.ecg",
                         isExpandedByDefault: true
                     ) {
@@ -221,26 +221,26 @@ struct SimplifiedRecordingView: View {
     
     private var symptomsSectionTitle: String {
         let count = viewModel.selectedSymptomNames.count + (viewModel.hasAura ? viewModel.selectedAuraTypeNames.count : 0)
-        return count > 0 ? "症状记录 (\(count)项)" : "症状记录"
+        return count > 0 ? "\(String(localized: "form.symptoms")) (\(count)项)" : String(localized: "form.symptoms")
     }
     
     private var triggersSectionTitle: String {
         let count = viewModel.selectedTriggers.count
-        return count > 0 ? "诱因分析 (\(count)项)" : "诱因分析"
+        return count > 0 ? "\(String(localized: "form.triggers")) (\(count)项)" : String(localized: "form.triggers")
     }
     
     private var medicationsSectionTitle: String {
         let count = viewModel.selectedMedications.count
-        return count > 0 ? "用药记录 (\(count)项)" : "用药记录"
+        return count > 0 ? "\(String(localized: "form.medications")) (\(count)项)" : String(localized: "form.medications")
     }
     
     private var nonPharmSectionTitle: String {
         let count = viewModel.selectedNonPharmacological.count
-        return count > 0 ? "非药物干预 (\(count)项)" : "非药物干预"
+        return count > 0 ? "\(String(localized: "form.interventions")) (\(count)项)" : String(localized: "form.interventions")
     }
     
     private var notesSectionTitle: String {
-        return viewModel.notes.isEmpty ? "备注" : "备注 (已填写)"
+        return viewModel.notes.isEmpty ? String(localized: "form.notes") : "\(String(localized: "form.notes")) (已填写)"
     }
     
     // MARK: - Time Section
@@ -252,7 +252,7 @@ struct SimplifiedRecordingView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "clock.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("开始时间")
+                    Text(String(localized: "form.start.time"))
                         .font(.subheadline.weight(.medium))
                     Spacer()
                     DatePicker(
@@ -273,7 +273,7 @@ struct SimplifiedRecordingView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "play.circle.fill")
-                            Text("进行中")
+                            Text(String(localized: "status.in.progress"))
                         }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(viewModel.isOngoing ? .white : Color.textPrimary)
@@ -292,7 +292,7 @@ struct SimplifiedRecordingView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "stop.circle.fill")
-                            Text("已结束")
+                            Text(String(localized: "status.ended"))
                         }
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(!viewModel.isOngoing ? .white : Color.textPrimary)
@@ -311,7 +311,7 @@ struct SimplifiedRecordingView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "flag.checkered.circle.fill")
                             .foregroundStyle(Color.statusSuccess)
-                        Text("结束时间")
+                        Text(String(localized: "form.end.time"))
                             .font(.subheadline.weight(.medium))
                         Spacer()
                         DatePicker(
@@ -347,7 +347,7 @@ struct SimplifiedRecordingView: View {
             
             // 疼痛部位
             VStack(alignment: .leading, spacing: 12) {
-                Text("疼痛部位")
+                Text(String(localized: "form.pain.location"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -358,7 +358,7 @@ struct SimplifiedRecordingView: View {
             
             // 疼痛性质
             VStack(alignment: .leading, spacing: 12) {
-                Text("疼痛性质")
+                Text(String(localized: "form.pain.quality"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -397,7 +397,7 @@ struct SimplifiedRecordingView: View {
         VStack(alignment: .leading, spacing: 16) {
             // 先兆
             VStack(alignment: .leading, spacing: 12) {
-                Text("先兆类型")
+                Text(String(localized: "form.aura.type"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -432,7 +432,7 @@ struct SimplifiedRecordingView: View {
             
             // 西医症状
             VStack(alignment: .leading, spacing: 12) {
-                Text("伴随症状")
+                Text(String(localized: "form.symptoms.western"))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(Color.textSecondary)
                 
@@ -468,7 +468,7 @@ struct SimplifiedRecordingView: View {
             // 中医症状
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("中医症状")
+                    Text(String(localized: "form.symptoms.tcm"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.textSecondary)
                     Spacer()
@@ -570,7 +570,7 @@ struct SimplifiedRecordingView: View {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("添加用药")
+                    Text(String(localized: "form.add.medication"))
                         .font(.subheadline.weight(.medium))
                         .foregroundStyle(Color.accentPrimary)
                 }
@@ -613,7 +613,7 @@ struct SimplifiedRecordingView: View {
                     }
                 }
             } else {
-                Text("未记录用药")
+                Text(String(localized: "form.no.medication"))
                     .font(.subheadline)
                     .foregroundStyle(Color.textTertiary)
             }
@@ -672,7 +672,7 @@ struct SimplifiedRecordingView: View {
         HStack(spacing: 10) {
             Image(systemName: "info.circle.fill")
                 .foregroundStyle(Color.statusInfo)
-            Text("建议填写疼痛强度和部位以获得更准确的分析")
+            Text(String(localized: "form.fill.suggestion"))
                 .font(.subheadline)
                 .foregroundStyle(Color.textPrimary)
         }
@@ -732,7 +732,7 @@ struct SimplifiedRecordingView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "gear")
                         .font(.caption)
-                    Text("管理")
+                    Text(String(localized: "action.manage"))
                         .font(.caption)
                 }
                 .foregroundStyle(Color.accentPrimary)

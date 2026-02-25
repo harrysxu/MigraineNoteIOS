@@ -22,10 +22,19 @@ struct WeatherEditSheet: View {
     @State private var location: String
     @State private var pressureTrend: PressureTrend
     
-    // 天气状况选项
-    private let weatherConditions = [
-        "晴天", "多云", "阴天", "小雨", "中雨", "大雨",
-        "雷阵雨", "雪", "雾", "霾", "沙尘暴"
+    // 天气状况选项：(存储值, 本地化key)
+    private static let weatherConditions: [(storage: String, key: String)] = [
+        ("晴天", "weather.condition.sunny"),
+        ("多云", "weather.condition.cloudy"),
+        ("阴天", "weather.condition.overcast"),
+        ("小雨", "weather.condition.lightRain"),
+        ("中雨", "weather.condition.moderateRain"),
+        ("大雨", "weather.condition.heavyRain"),
+        ("雷阵雨", "weather.condition.thunderstorm"),
+        ("雪", "weather.condition.snow"),
+        ("雾", "weather.condition.fog"),
+        ("霾", "weather.condition.haze"),
+        ("沙尘暴", "weather.condition.dustStorm")
     ]
     
     init(isPresented: Binding<Bool>, originalWeather: WeatherSnapshot?, onSave: @escaping (WeatherSnapshot) -> Void) {
@@ -48,7 +57,7 @@ struct WeatherEditSheet: View {
             _pressure = State(initialValue: 1013.0)
             _humidity = State(initialValue: 60.0)
             _windSpeed = State(initialValue: 3.0)
-            _condition = State(initialValue: "晴天")
+            _condition = State(initialValue: Self.weatherConditions[0].storage)
             _location = State(initialValue: "")
             _pressureTrend = State(initialValue: .steady)
         }
@@ -61,7 +70,7 @@ struct WeatherEditSheet: View {
                     // 温度
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("温度")
+                            Text("weather.temperature")
                                 .foregroundStyle(Color.textSecondary)
                             Spacer()
                             Text("\(String(format: "%.1f", temperature))°C")
@@ -74,7 +83,7 @@ struct WeatherEditSheet: View {
                     // 气压
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("气压")
+                            Text("weather.pressure")
                                 .foregroundStyle(Color.textSecondary)
                             Spacer()
                             Text("\(String(format: "%.1f", pressure)) hPa")
@@ -85,11 +94,11 @@ struct WeatherEditSheet: View {
                     }
                     
                     // 气压趋势
-                    Picker("气压趋势", selection: $pressureTrend) {
+                    Picker("weather.pressure.trend", selection: $pressureTrend) {
                         ForEach(PressureTrend.allCases, id: \.self) { trend in
                             HStack {
                                 Image(systemName: trend.icon)
-                                Text(trend.rawValue)
+                                Text(trend.localizedName)
                             }
                             .tag(trend)
                         }
@@ -98,7 +107,7 @@ struct WeatherEditSheet: View {
                     // 湿度
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("湿度")
+                            Text("weather.humidity")
                                 .foregroundStyle(Color.textSecondary)
                             Spacer()
                             Text("\(String(format: "%.0f", humidity))%")
@@ -111,7 +120,7 @@ struct WeatherEditSheet: View {
                     // 风速
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("风速")
+                            Text("weather.windSpeed")
                                 .foregroundStyle(Color.textSecondary)
                             Spacer()
                             Text("\(String(format: "%.1f", windSpeed)) m/s")
@@ -121,44 +130,44 @@ struct WeatherEditSheet: View {
                         Slider(value: $windSpeed, in: 0...30, step: 0.5)
                     }
                 } header: {
-                    Text("气象参数")
+                    Text("weather.params")
                 }
                 
                 Section {
                     // 天气状况
-                    Picker("天气状况", selection: $condition) {
-                        ForEach(weatherConditions, id: \.self) { cond in
-                            Text(cond).tag(cond)
+                    Picker("weather.condition", selection: $condition) {
+                        ForEach(Self.weatherConditions, id: \.storage) { cond in
+                            Text(String(localized: String.LocalizationValue(cond.key))).tag(cond.storage)
                         }
                     }
                     
                     // 位置
-                    TextField("位置（可选）", text: $location)
+                    TextField("weather.location", text: $location)
                 } header: {
-                    Text("其他信息")
+                    Text("weather.other")
                 }
                 
                 Section {
                     HStack {
                         Image(systemName: "info.circle")
                             .foregroundStyle(Color.statusInfo)
-                        Text("手动编辑后，保存时不会自动更新天气数据")
+                        Text("weather.manualEditHint")
                             .font(.caption)
                             .foregroundStyle(Color.textSecondary)
                     }
                 }
             }
-            .navigationTitle("编辑天气")
+            .navigationTitle("weather.edit.title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button("common.cancel") {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button("common.save") {
                         saveWeather()
                     }
                 }

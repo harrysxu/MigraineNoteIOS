@@ -65,6 +65,13 @@ final class CustomLabelConfig {
         self.createdAt = Date()
         self.updatedAt = Date()
     }
+    
+    // MARK: - 本地化说明
+    
+    /// displayName 在App首次启动时根据系统语言一次性初始化
+    /// - 默认标签：从 Localizable.xcstrings 获取当前语言的翻译
+    /// - 自定义标签：直接使用用户输入的内容
+    /// 注意：不支持动态语言切换，简化架构，符合个人健康管理App的实际使用场景
 }
 
 // MARK: - 标签类别枚举
@@ -116,9 +123,9 @@ enum SymptomSubcategory: String {
     var displayName: String {
         switch self {
         case .western:
-            return "西医症状"
+            return String(localized: "label.symptomSubcategory.western")
         case .tcm:
-            return "中医症状"
+            return String(localized: "label.symptomSubcategory.tcm")
         }
     }
 }

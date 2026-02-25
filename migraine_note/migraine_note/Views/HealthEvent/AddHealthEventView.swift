@@ -38,21 +38,21 @@ struct AddHealthEventView: View {
             Form {
                 // 事件类型选择
                 Section {
-                    Picker("事件类型", selection: $eventType) {
+                    Picker(String(localized: "health.event.type.picker"), selection: $eventType) {
                         ForEach(HealthEventType.allCases, id: \.self) { type in
                             Text(type.rawValue).tag(type)
                         }
                     }
                     .pickerStyle(.segmented)
                 } header: {
-                    Text("选择事件类型")
+                    Text(String(localized: "health.event.type.select"))
                 }
                 
                 // 日期时间
                 Section {
-                    DatePicker("日期时间", selection: $eventDate, displayedComponents: [.date, .hourAndMinute])
+                    DatePicker(String(localized: "health.event.datetime"), selection: $eventDate, displayedComponents: [.date, .hourAndMinute])
                 } header: {
-                    Text("发生时间")
+                    Text(String(localized: "health.event.occurred.time"))
                 }
                 
                 // 根据事件类型显示不同的表单
@@ -67,23 +67,23 @@ struct AddHealthEventView: View {
                 
                 // 备注（所有类型通用）
                 Section {
-                    TextField("记录备注（可选）", text: $notes, axis: .vertical)
+                    TextField(String(localized: "health.event.notes.placeholder"), text: $notes, axis: .vertical)
                         .lineLimit(3...6)
                 } header: {
-                    Text("备注")
+                    Text(String(localized: "form.notes"))
                 }
             }
-            .navigationTitle("添加健康事件")
+            .navigationTitle(String(localized: "health.event.add.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
+                    Button(String(localized: "common.save")) {
                         saveHealthEvent()
                     }
                     .disabled(!canSave)
@@ -118,7 +118,7 @@ struct AddHealthEventView: View {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(Color.accentPrimary)
                             .font(.title3)
-                        Text("添加用药")
+                        Text(String(localized: "health.event.add.medication"))
                             .foregroundStyle(Color.textPrimary)
                         Spacer()
                     }
@@ -129,7 +129,7 @@ struct AddHealthEventView: View {
                     ForEach(Array(viewModel.selectedMedications.enumerated()), id: \.offset) { index, medInfo in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text(medInfo.medication?.name ?? medInfo.customName ?? "未知药物")
+                                Text(medInfo.medication?.name ?? medInfo.customName ?? String(localized: "health.event.unknown.medication"))
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(Color.textPrimary)
                                 Text("\(String(format: "%.0f", medInfo.dosage))\(medInfo.unit) - \(medInfo.timeTaken.shortTime())")
@@ -147,10 +147,10 @@ struct AddHealthEventView: View {
                     }
                 }
             } header: {
-                Text("药物信息")
+                Text(String(localized: "health.event.medication.info"))
             } footer: {
                 if let viewModel = medicationViewModel, !viewModel.selectedMedications.isEmpty {
-                    Text("已添加 \(viewModel.selectedMedications.count) 种药物")
+                    Text(String(format: String(localized: "health.event.medication.count"), viewModel.selectedMedications.count))
                         .foregroundStyle(Color.textSecondary)
                 }
             }
@@ -162,7 +162,7 @@ struct AddHealthEventView: View {
     private var tcmTreatmentSection: some View {
         Group {
             Section {
-                Picker("治疗类型", selection: $tcmTreatmentType) {
+                Picker(String(localized: "health.event.treatment.type"), selection: $tcmTreatmentType) {
                     ForEach(TCMTreatmentType.allCases, id: \.rawValue) { type in
                         Text(type.rawValue).tag(type.rawValue)
                     }
@@ -170,23 +170,23 @@ struct AddHealthEventView: View {
                 
                 // 如果选择了"其他"，显示自定义输入
                 if tcmTreatmentType == TCMTreatmentType.other.rawValue {
-                    TextField("请输入治疗类型", text: $customTcmType)
+                    TextField(String(localized: "health.event.treatment.type.placeholder"), text: $customTcmType)
                 }
             } header: {
-                Text("治疗类型")
+                Text(String(localized: "health.event.treatment.type"))
             }
             
             Section {
                 HStack {
-                    Text("治疗时长")
+                    Text(String(localized: "health.event.duration"))
                     Spacer()
-                    Text("\(Int(tcmDuration))分钟")
+                    Text("\(Int(tcmDuration))\(String(localized: "form.duration.minute"))")
                         .foregroundStyle(Color.textSecondary)
                 }
                 
                 Slider(value: $tcmDuration, in: 5...120, step: 5)
             } header: {
-                Text("治疗时长（可选）")
+                Text(String(localized: "health.event.duration.optional"))
             }
         }
     }
@@ -196,16 +196,16 @@ struct AddHealthEventView: View {
     private var surgerySection: some View {
         Group {
             Section {
-                TextField("手术名称", text: $surgeryName)
+                TextField(String(localized: "health.event.surgery.name"), text: $surgeryName)
             } header: {
-                Text("手术信息")
+                Text(String(localized: "health.event.surgery.info"))
             }
             
             Section {
-                TextField("医院名称（可选）", text: $hospitalName)
-                TextField("医生姓名（可选）", text: $doctorName)
+                TextField(String(localized: "health.event.hospital.optional"), text: $hospitalName)
+                TextField(String(localized: "health.event.doctor.optional"), text: $doctorName)
             } header: {
-                Text("医疗机构")
+                Text(String(localized: "health.event.medical.facility"))
             }
         }
     }

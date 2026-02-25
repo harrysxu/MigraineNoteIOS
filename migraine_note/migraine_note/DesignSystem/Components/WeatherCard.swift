@@ -25,7 +25,7 @@ struct WeatherCard: View {
                 HStack {
                     Image(systemName: "cloud.sun.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("天气信息")
+                    Text(String(localized: "weather.info"))
                         .font(.subheadline.weight(.medium))
                     Spacer()
                     
@@ -63,7 +63,7 @@ struct WeatherCard: View {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.caption)
                                     .foregroundStyle(.orange)
-                                Text("开始时间已改变，建议刷新天气")
+                                Text(String(localized: "weather.time.changed.warning"))
                                     .font(.caption)
                                     .foregroundStyle(.orange)
                             }
@@ -78,7 +78,7 @@ struct WeatherCard: View {
                         HStack(spacing: 16) {
                             // 温度
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("温度")
+                                Text(String(localized: "weather.temperature"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textTertiary)
                                 Text("\(String(format: "%.1f", weather.temperature))°C")
@@ -92,7 +92,7 @@ struct WeatherCard: View {
                             // 气压
                             VStack(alignment: .leading, spacing: 4) {
                                 HStack(spacing: 4) {
-                                    Text("气压")
+                                    Text(String(localized: "weather.pressure"))
                                         .font(.caption)
                                         .foregroundStyle(Color.textTertiary)
                                     Image(systemName: weather.pressureTrend.icon)
@@ -112,11 +112,11 @@ struct WeatherCard: View {
                             Divider()
                             
                             VStack(spacing: 8) {
-                                weatherDetailRow(icon: "humidity.fill", label: "湿度", value: "\(String(format: "%.0f", weather.humidity))%")
-                                weatherDetailRow(icon: "wind", label: "风速", value: "\(String(format: "%.1f", weather.windSpeed)) m/s")
-                                weatherDetailRow(icon: "cloud.fill", label: "天气", value: weather.condition)
+                                weatherDetailRow(icon: "humidity.fill", label: String(localized: "weather.detail.humidity"), value: "\(String(format: "%.0f", weather.humidity))%")
+                                weatherDetailRow(icon: "wind", label: String(localized: "weather.detail.windSpeed"), value: "\(String(format: "%.1f", weather.windSpeed)) m/s")
+                                weatherDetailRow(icon: "cloud.fill", label: String(localized: "weather.detail.condition"), value: weather.condition)
                                 if !weather.location.isEmpty {
-                                    weatherDetailRow(icon: "location.fill", label: "位置", value: weather.location)
+                                    weatherDetailRow(icon: "location.fill", label: String(localized: "weather.detail.location"), value: weather.location)
                                 }
                             }
                         }
@@ -129,7 +129,7 @@ struct WeatherCard: View {
                         } label: {
                             HStack {
                                 Spacer()
-                                Text(isExpanded ? "收起" : "查看详情")
+                                Text(isExpanded ? String(localized: "component.collapse") : String(localized: "component.viewDetails"))
                                     .font(.caption)
                                     .foregroundStyle(Color.accentPrimary)
                                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -146,7 +146,7 @@ struct WeatherCard: View {
                                 Image(systemName: "pencil.circle.fill")
                                     .font(.caption)
                                     .foregroundStyle(Color.statusInfo)
-                                Text("已手动编辑")
+                                Text(String(localized: "weather.manually.edited"))
                                     .font(.caption)
                                     .foregroundStyle(Color.textSecondary)
                             }
@@ -167,7 +167,7 @@ struct WeatherCard: View {
                         Spacer()
                         ProgressView()
                             .progressViewStyle(.circular)
-                        Text("正在获取天气...")
+                        Text(String(localized: "weather.loading"))
                             .font(.subheadline)
                             .foregroundStyle(Color.textSecondary)
                             .padding(.leading, 8)
@@ -178,7 +178,7 @@ struct WeatherCard: View {
                 } else {
                     // 未获取天气
                     VStack(spacing: 12) {
-                        Text("未关联天气数据")
+                        Text(String(localized: "weather.no.data"))
                             .font(.subheadline)
                             .foregroundStyle(Color.textTertiary)
                         
@@ -188,7 +188,7 @@ struct WeatherCard: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "arrow.clockwise")
-                                    Text("获取天气")
+                                    Text(String(localized: "weather.fetch"))
                                 }
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.white)

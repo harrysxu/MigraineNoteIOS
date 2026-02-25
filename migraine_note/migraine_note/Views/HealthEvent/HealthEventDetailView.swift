@@ -40,11 +40,11 @@ struct HealthEventDetailView: View {
                 .padding(16)
             }
             .background(Color.backgroundPrimary.ignoresSafeArea())
-            .navigationTitle("事件详情")
+            .navigationTitle("health.event.detail")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("完成") {
+                    Button("health.event.done") {
                         dismiss()
                     }
                 }
@@ -94,14 +94,14 @@ struct HealthEventDetailView: View {
                 HStack {
                     Image(systemName: "pills.fill")
                         .foregroundStyle(Color.accentPrimary)
-                    Text("用药信息")
+                    Text("health.event.medicationInfo")
                         .font(.headline)
                 }
                 
                 Divider()
                 
                 if event.medicationLogs.isEmpty {
-                    Text("暂无用药信息")
+                    Text("health.event.noMedication")
                         .font(.subheadline)
                         .foregroundStyle(Color.textTertiary)
                 } else {
@@ -110,19 +110,19 @@ struct HealthEventDetailView: View {
                             VStack(spacing: 12) {
                                 if event.medicationLogs.count > 1 {
                                     HStack {
-                                        Text("药物 \(index + 1)")
+                                        Text(String(format: String(localized: "health.event.medicationN"), index + 1))
                                             .font(.subheadline.weight(.semibold))
                                             .foregroundStyle(Color.textSecondary)
                                         Spacer()
                                     }
                                 }
                                 
-                                InfoRow(label: "药物名称", value: medLog.displayName)
-                                InfoRow(label: "剂量", value: medLog.dosageString)
-                                InfoRow(label: "服用时间", value: medLog.timeTaken.formatted(date: .omitted, time: .shortened))
+                                InfoRow(label: String(localized: "health.event.medicationName"), value: medLog.displayName)
+                                InfoRow(label: String(localized: "health.event.dosage"), value: medLog.dosageString)
+                                InfoRow(label: String(localized: "health.event.timeTaken"), value: medLog.timeTaken.formatted(date: .omitted, time: .shortened))
                                 
                                 if let medication = medLog.medication {
-                                    InfoRow(label: "药物分类", value: medication.category.rawValue)
+                                    InfoRow(label: String(localized: "health.event.category"), value: medication.category.rawValue)
                                 }
                             }
                             
@@ -144,7 +144,7 @@ struct HealthEventDetailView: View {
                 HStack {
                     Image(systemName: "leaf.fill")
                         .foregroundStyle(Color.statusSuccess)
-                    Text("治疗信息")
+                    Text("health.event.treatmentInfo")
                         .font(.headline)
                 }
                 
@@ -152,12 +152,12 @@ struct HealthEventDetailView: View {
                 
                 VStack(spacing: 12) {
                     if let type = event.tcmTreatmentType {
-                        InfoRow(label: "治疗类型", value: type)
+                        InfoRow(label: String(localized: "health.event.treatmentType"), value: type)
                     }
                     
                     if let duration = event.tcmDuration, duration > 0 {
                         let minutes = Int(duration / 60)
-                        InfoRow(label: "治疗时长", value: "\(minutes)分钟")
+                        InfoRow(label: String(localized: "health.event.duration"), value: "\(minutes)\(String(localized: "form.duration.minute"))")
                     }
                 }
             }
@@ -172,7 +172,7 @@ struct HealthEventDetailView: View {
                 HStack {
                     Image(systemName: "cross.case.fill")
                         .foregroundStyle(Color.statusInfo)
-                    Text("手术信息")
+                    Text("health.event.surgeryInfo")
                         .font(.headline)
                 }
                 
@@ -180,15 +180,15 @@ struct HealthEventDetailView: View {
                 
                 VStack(spacing: 12) {
                     if let name = event.surgeryName {
-                        InfoRow(label: "手术名称", value: name)
+                        InfoRow(label: String(localized: "health.event.surgeryName"), value: name)
                     }
                     
                     if let hospital = event.hospitalName {
-                        InfoRow(label: "医院", value: hospital)
+                        InfoRow(label: String(localized: "health.event.hospital"), value: hospital)
                     }
                     
                     if let doctor = event.doctorName {
-                        InfoRow(label: "医生", value: doctor)
+                        InfoRow(label: String(localized: "health.event.doctor"), value: doctor)
                     }
                 }
             }
@@ -203,7 +203,7 @@ struct HealthEventDetailView: View {
                 HStack {
                     Image(systemName: "note.text")
                         .foregroundStyle(Color.accentSecondary)
-                    Text("备注")
+                    Text("health.event.notes")
                         .font(.headline)
                 }
                 

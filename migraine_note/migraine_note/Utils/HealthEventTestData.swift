@@ -21,22 +21,39 @@ struct HealthEventTestData {
     static func generateTestEvents(in context: ModelContext, count: Int = 30, dayRange: Int = 30) -> Int {
         let calendar = Calendar.current
         var generatedCount = 0
+        var usedTimestamps = Set<Date>()
         
         // 在指定的时间范围内随机分配事件
         for _ in 0..<count {
-            // 随机选择一个日期偏移量
-            let dayOffset = Int.random(in: 0..<dayRange)
-            guard let baseDate = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { continue }
+            var eventDate: Date?
+            var attempts = 0
             
-            // 添加随机的小时和分钟
-            let hourOffset = Int.random(in: 0...23)
-            let minuteOffset = Int.random(in: 0...59)
+            // 尝试生成不重复的时间戳（最多尝试 10 次）
+            while eventDate == nil && attempts < 10 {
+                attempts += 1
+                
+                // 随机选择一个日期偏移量
+                let dayOffset = Int.random(in: 0..<dayRange)
+                guard let baseDate = calendar.date(byAdding: .day, value: -dayOffset, to: Date()) else { continue }
+                
+                // 添加随机的小时、分钟和秒（增加秒数以减少碰撞）
+                let hourOffset = Int.random(in: 0...23)
+                let minuteOffset = Int.random(in: 0...59)
+                let secondOffset = Int.random(in: 0...59)
+                
+                var dateComponents = calendar.dateComponents([.year, .month, .day], from: baseDate)
+                dateComponents.hour = hourOffset
+                dateComponents.minute = minuteOffset
+                dateComponents.second = secondOffset
+                
+                if let candidate = calendar.date(from: dateComponents),
+                   !usedTimestamps.contains(candidate) {
+                    eventDate = candidate
+                    usedTimestamps.insert(candidate)
+                }
+            }
             
-            var dateComponents = calendar.dateComponents([.year, .month, .day], from: baseDate)
-            dateComponents.hour = hourOffset
-            dateComponents.minute = minuteOffset
-            
-            guard let eventDate = calendar.date(from: dateComponents) else { continue }
+            guard let eventDate = eventDate else { continue }
             
             // 随机选择事件类型
             let eventType = HealthEventType.allCases.randomElement() ?? .medication

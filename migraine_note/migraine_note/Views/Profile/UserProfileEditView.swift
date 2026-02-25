@@ -66,7 +66,7 @@ struct UserProfileEditView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color.backgroundPrimary.ignoresSafeArea())
-        .navigationTitle("我的信息")
+        .navigationTitle("profile.edit.title")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if !hasLoaded {
@@ -81,7 +81,7 @@ struct UserProfileEditView: View {
     private var completionCard: some View {
         let completion = userProfile.completionPercentage
         return ProgressCard(
-            title: "档案完整度",
+            title: String(localized: "profile.completion"),
             progress: completion,
             icon: "person.text.rectangle.fill",
             style: completion >= 0.8 ? .success : .elevated,
@@ -95,15 +95,15 @@ struct UserProfileEditView: View {
     private var basicInfoSection: some View {
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("基本信息")
+                Text("profile.basicInfo")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, Spacing.sm)
                 
                 // 姓名
-                ProfileFieldRow(icon: "person.fill", iconColor: .accentPrimary, title: "姓名") {
-                    TextField("请输入姓名", text: $name)
+                ProfileFieldRow(icon: "person.fill", iconColor: .accentPrimary, title: String(localized: "profile.name")) {
+                    TextField("profile.namePlaceholder", text: $name)
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(Color.textPrimary)
                         .onChange(of: name) { _, newValue in
@@ -114,7 +114,7 @@ struct UserProfileEditView: View {
                 Divider().padding(.leading, 44)
                 
                 // 出生日期
-                ProfileFieldRow(icon: "calendar", iconColor: .orange, title: "出生日期") {
+                ProfileFieldRow(icon: "calendar", iconColor: .orange, title: String(localized: "profile.birthDate")) {
                     if hasBirthDate {
                         HStack(spacing: 8) {
                             DatePicker("", selection: $birthDate, displayedComponents: .date)
@@ -136,7 +136,7 @@ struct UserProfileEditView: View {
                             }
                         }
                     } else {
-                        Button("点击设置") {
+                        Button("profile.setBirthDate") {
                             hasBirthDate = true
                             userProfile.birthDate = birthDate
                             userProfile.age = userProfile.calculatedAge
@@ -149,7 +149,7 @@ struct UserProfileEditView: View {
                 if hasBirthDate, let age = userProfile.calculatedAge {
                     HStack {
                         Spacer()
-                        Text("\(age)岁")
+                        Text("\(age)\(String(localized: "profile.age.suffix"))")
                             .font(.caption)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -160,11 +160,11 @@ struct UserProfileEditView: View {
                 Divider().padding(.leading, 44)
                 
                 // 性别
-                ProfileFieldRow(icon: "figure.stand", iconColor: .purple, title: "性别") {
+                ProfileFieldRow(icon: "figure.stand", iconColor: .purple, title: String(localized: "profile.gender")) {
                     Picker("", selection: $selectedGender) {
-                        Text("未设置").tag(nil as Gender?)
+                        Text("profile.notSet").tag(nil as Gender?)
                         ForEach(Gender.allCases, id: \.self) { gender in
-                            Text(gender.rawValue).tag(gender as Gender?)
+                            Text(gender.localizedName).tag(gender as Gender?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -177,11 +177,11 @@ struct UserProfileEditView: View {
                 Divider().padding(.leading, 44)
                 
                 // 血型
-                ProfileFieldRow(icon: "drop.fill", iconColor: .red, title: "血型") {
+                ProfileFieldRow(icon: "drop.fill", iconColor: .red, title: String(localized: "profile.bloodType")) {
                     Picker("", selection: $selectedBloodType) {
-                        Text("未设置").tag(nil as BloodType?)
+                        Text("profile.notSet").tag(nil as BloodType?)
                         ForEach(BloodType.allCases, id: \.self) { type in
-                            Text(type.rawValue).tag(type as BloodType?)
+                            Text(type.localizedName).tag(type as BloodType?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -201,16 +201,16 @@ struct UserProfileEditView: View {
     private var bodyInfoSection: some View {
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("身体信息")
+                Text("profile.bodyInfo")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, Spacing.sm)
                 
                 // 身高
-                ProfileFieldRow(icon: "ruler", iconColor: .blue, title: "身高") {
+                ProfileFieldRow(icon: "ruler", iconColor: .blue, title: String(localized: "profile.height")) {
                     HStack(spacing: 4) {
-                        TextField("请输入", text: $heightText)
+                        TextField("profile.enterPlaceholder", text: $heightText)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .foregroundStyle(Color.textPrimary)
@@ -227,9 +227,9 @@ struct UserProfileEditView: View {
                 Divider().padding(.leading, 44)
                 
                 // 体重
-                ProfileFieldRow(icon: "scalemass", iconColor: .green, title: "体重") {
+                ProfileFieldRow(icon: "scalemass", iconColor: .green, title: String(localized: "profile.weight")) {
                     HStack(spacing: 4) {
-                        TextField("请输入", text: $weightText)
+                        TextField("profile.enterPlaceholder", text: $weightText)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .foregroundStyle(Color.textPrimary)
@@ -285,16 +285,16 @@ struct UserProfileEditView: View {
     private var medicalHistorySection: some View {
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("病史信息")
+                Text("profile.medicalHistory")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.bottom, Spacing.sm)
                 
                 // 偏头痛首发年龄
-                ProfileFieldRow(icon: "clock.arrow.circlepath", iconColor: .orange, title: "首发年龄") {
+                ProfileFieldRow(icon: "clock.arrow.circlepath", iconColor: .orange, title: String(localized: "profile.onsetAge")) {
                     HStack(spacing: 4) {
-                        TextField("请输入", text: $migraineOnsetAgeText)
+                        TextField("profile.enterPlaceholder", text: $migraineOnsetAgeText)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
                             .foregroundStyle(Color.textPrimary)
@@ -302,7 +302,7 @@ struct UserProfileEditView: View {
                             .onChange(of: migraineOnsetAgeText) { _, newValue in
                                 userProfile.migraineOnsetAge = Int(newValue)
                             }
-                        Text("岁")
+                        Text(String(localized: "profile.age.suffix"))
                             .font(.body)
                             .foregroundStyle(Color.textTertiary)
                     }
@@ -311,11 +311,11 @@ struct UserProfileEditView: View {
                 Divider().padding(.leading, 44)
                 
                 // 偏头痛类型
-                ProfileFieldRow(icon: "brain.head.profile", iconColor: .purple, title: "诊断类型") {
+                ProfileFieldRow(icon: "brain.head.profile", iconColor: .purple, title: String(localized: "profile.diagnosisType")) {
                     Picker("", selection: $selectedMigraineType) {
-                        Text("未设置").tag(nil as MigraineType?)
+                        Text("profile.notSet").tag(nil as MigraineType?)
                         ForEach(MigraineType.allCases, id: \.self) { type in
-                            Text(type.rawValue).tag(type as MigraineType?)
+                            Text(type.localizedName).tag(type as MigraineType?)
                         }
                     }
                     .pickerStyle(.menu)
@@ -334,7 +334,7 @@ struct UserProfileEditView: View {
                         .foregroundStyle(.white)
                         .frame(width: 28)
                     
-                    Text("家族偏头痛史")
+                    Text("profile.familyHistory")
                         .font(.body.weight(.medium))
                         .foregroundStyle(Color.textPrimary)
                     
@@ -358,7 +358,7 @@ struct UserProfileEditView: View {
     private var otherInfoSection: some View {
         EmotionalCard(style: .default) {
             VStack(alignment: .leading, spacing: Spacing.md) {
-                Text("其他信息")
+                Text("profile.otherInfo")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.textSecondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -369,12 +369,12 @@ struct UserProfileEditView: View {
                         Image(systemName: "allergens")
                             .font(.subheadline)
                             .foregroundStyle(Color.statusWarning)
-                        Text("药物过敏史")
+                        Text("profile.allergies")
                             .font(.body.weight(.medium))
                             .foregroundStyle(Color.textPrimary)
                     }
                     
-                    TextField("如：青霉素、磺胺类药物等", text: $allergies, axis: .vertical)
+                    TextField("profile.allergiesPlaceholder", text: $allergies, axis: .vertical)
                         .lineLimit(2...4)
                         .padding(Spacing.sm)
                         .background(Color.backgroundPrimary)
@@ -391,12 +391,12 @@ struct UserProfileEditView: View {
                         Image(systemName: "note.text")
                             .font(.subheadline)
                             .foregroundStyle(Color.accentPrimary)
-                        Text("医疗备注")
+                        Text("profile.medicalNotes")
                             .font(.body.weight(.medium))
                             .foregroundStyle(Color.textPrimary)
                     }
                     
-                    TextField("其他需要记录的医疗信息", text: $medicalNotes, axis: .vertical)
+                    TextField("profile.medicalNotesPlaceholder", text: $medicalNotes, axis: .vertical)
                         .lineLimit(2...4)
                         .padding(Spacing.sm)
                         .background(Color.backgroundPrimary)
@@ -448,10 +448,10 @@ struct UserProfileEditView: View {
     
     private func bmiColor(_ description: String) -> Color {
         switch description {
-        case "偏瘦": return .blue
-        case "正常": return .statusSuccess
-        case "偏胖": return .statusWarning
-        case "肥胖": return .statusError
+        case String(localized: "profile.bmi.underweight"): return .blue
+        case String(localized: "profile.bmi.normal"): return .statusSuccess
+        case String(localized: "profile.bmi.overweight"): return .statusWarning
+        case String(localized: "profile.bmi.obese"): return .statusError
         default: return .textSecondary
         }
     }

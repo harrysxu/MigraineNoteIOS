@@ -34,58 +34,12 @@ enum PainLocation: String, Codable, CaseIterable, Identifiable {
     
     /// 显示名称
     var displayName: String {
-        switch self {
-        case .forehead:
-            return "前额"
-        case .leftTemple:
-            return "左侧太阳穴"
-        case .leftOrbit:
-            return "左眼眶后"
-        case .leftParietal:
-            return "左侧顶部"
-        case .rightTemple:
-            return "右侧太阳穴"
-        case .rightOrbit:
-            return "右眼眶后"
-        case .rightParietal:
-            return "右侧顶部"
-        case .vertex:
-            return "头顶"
-        case .occipital:
-            return "后脑勺"
-        case .neck:
-            return "颈部"
-        case .wholehead:
-            return "全头"
-        }
+        String(localized: String.LocalizationValue("pain.location.\(rawValue)"))
     }
     
     /// 简短描述
     var shortDescription: String {
-        switch self {
-        case .forehead:
-            return "额头正中"
-        case .leftTemple:
-            return "左侧"
-        case .leftOrbit:
-            return "左眼后"
-        case .leftParietal:
-            return "左顶"
-        case .rightTemple:
-            return "右侧"
-        case .rightOrbit:
-            return "右眼后"
-        case .rightParietal:
-            return "右顶"
-        case .vertex:
-            return "头顶"
-        case .occipital:
-            return "后脑"
-        case .neck:
-            return "颈部"
-        case .wholehead:
-            return "全头"
-        }
+        String(localized: String.LocalizationValue("pain.location.short.\(rawValue)"))
     }
 }
 
@@ -99,16 +53,7 @@ enum HeadViewDirection: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     
     var displayName: String {
-        switch self {
-        case .front:
-            return "正面"
-        case .back:
-            return "背面"
-        case .left:
-            return "左侧"
-        case .right:
-            return "右侧"
-        }
+        String(localized: String.LocalizationValue("head.view.\(rawValue)"))
     }
     
     /// 该视图方向下可选择的疼痛部位

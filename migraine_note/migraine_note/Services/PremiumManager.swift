@@ -21,14 +21,14 @@ enum PremiumFeature: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .advancedAnalytics: return "高级数据分析"
-        case .dataExport: return "数据导出"
-        case .medicalReport: return "医疗报告"
-        case .iCloudSync: return "iCloud 同步"
-        case .menstrualAnalysis: return "经期关联分析"
-        case .customLabels: return "自定义标签"
-        case .medicationReminder: return "用药提醒"
-        case .weatherTracking: return "天气追踪"
+        case .advancedAnalytics: return String(localized: "premium.feature.advancedAnalytics")
+        case .dataExport: return String(localized: "premium.feature.dataExport")
+        case .medicalReport: return String(localized: "premium.feature.medicalReport")
+        case .iCloudSync: return String(localized: "premium.feature.icloudSync")
+        case .menstrualAnalysis: return String(localized: "premium.feature.menstrualAnalysis")
+        case .customLabels: return String(localized: "premium.feature.customLabels")
+        case .medicationReminder: return String(localized: "premium.feature.medicationReminder")
+        case .weatherTracking: return String(localized: "premium.feature.weatherTracking")
         }
     }
     
@@ -47,14 +47,14 @@ enum PremiumFeature: String, CaseIterable {
     
     var description: String {
         switch self {
-        case .advancedAnalytics: return "月趋势、昼夜节律、诱因分析等专业图表"
-        case .dataExport: return "CSV/PDF 数据导出，方便就诊使用"
-        case .medicalReport: return "生成专业 A4 医疗报告 PDF"
-        case .iCloudSync: return "多设备自动同步数据"
-        case .menstrualAnalysis: return "从 Apple 健康读取经期数据进行关联分析"
-        case .customLabels: return "自定义症状、诱因、疼痛性质标签"
-        case .medicationReminder: return "定时推送用药提醒通知"
-        case .weatherTracking: return "自动记录发作时的天气状况"
+        case .advancedAnalytics: return String(localized: "premium.feature.advancedAnalytics.desc")
+        case .dataExport: return String(localized: "premium.feature.dataExport.desc")
+        case .medicalReport: return String(localized: "premium.feature.medicalReport.desc")
+        case .iCloudSync: return String(localized: "premium.feature.icloudSync.desc")
+        case .menstrualAnalysis: return String(localized: "premium.feature.menstrualAnalysis.desc")
+        case .customLabels: return String(localized: "premium.feature.customLabels.desc")
+        case .medicationReminder: return String(localized: "premium.feature.medicationReminder.desc")
+        case .weatherTracking: return String(localized: "premium.feature.weatherTracking.desc")
         }
     }
 }
@@ -77,9 +77,9 @@ enum PurchaseType: String, CaseIterable, Identifiable {
     
     var displayName: String {
         switch self {
-        case .monthly: return "月度订阅"
-        case .yearly: return "年度订阅"
-        case .lifetime: return "终身买断"
+        case .monthly: return String(localized: "premium.purchase.monthly")
+        case .yearly: return String(localized: "premium.purchase.yearly")
+        case .lifetime: return String(localized: "premium.purchase.lifetime")
         }
     }
     
@@ -101,9 +101,9 @@ enum PurchaseType: String, CaseIterable, Identifiable {
     
     var subtitle: String {
         switch self {
-        case .monthly: return "按月付费，随时取消"
-        case .yearly: return "年付更划算，节省67%"
-        case .lifetime: return "一次付费，永久使用"
+        case .monthly: return String(localized: "premium.purchase.monthly.subtitle")
+        case .yearly: return String(localized: "premium.purchase.yearly.subtitle")
+        case .lifetime: return String(localized: "premium.purchase.lifetime.subtitle")
         }
     }
     
@@ -191,7 +191,7 @@ class PremiumManager {
         if isPremium {
             #if DEBUG
             if debugPremiumOverride == true {
-                return "高级版（测试模式）"
+                return "\(String(localized: "premium.status.premium"))（\(String(localized: "premium.testMode"))）"
             }
             #endif
             
@@ -208,8 +208,8 @@ class PremiumManager {
                     return type.displayName
                 }
             }
-            return "高级版"
+            return String(localized: "premium.status.premium")
         }
-        return "免费版"
+        return String(localized: "premium.status.free")
     }
 }
