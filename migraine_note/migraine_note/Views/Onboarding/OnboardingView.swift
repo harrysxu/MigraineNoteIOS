@@ -186,6 +186,11 @@ struct PrivacyPage: View {
                         icon: "location.fill",
                         text: "位置服务 - 记录天气诱因"
                     )
+                    
+                    PermissionRow(
+                        icon: "heart.fill",
+                        text: "Apple 健康 - 读取经期数据分析关联"
+                    )
                 }
                 .padding(.horizontal, 40)
             }

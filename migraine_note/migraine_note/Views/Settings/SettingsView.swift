@@ -51,6 +51,18 @@ struct SettingsView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    
+                    NavigationLink {
+                        HealthDataSettingsView()
+                    } label: {
+                        SettingRow(
+                            icon: "heart.fill",
+                            iconColor: .pink,
+                            title: "Apple 健康",
+                            subtitle: "经期数据读取（HealthKit）"
+                        )
+                    }
+                    .buttonStyle(.plain)
                 } header: {
                     Text("数据与隐私")
                 } footer: {
@@ -560,6 +572,122 @@ struct FeatureSettingsView: View {
 enum PainScoreStyle: String {
     case vas = "VAS"
     case nrs = "NRS"
+}
+
+// MARK: - Apple 健康数据设置
+
+struct HealthDataSettingsView: View {
+    @State private var cycleManager = MenstrualCycleManager.shared
+    @State private var premiumManager = PremiumManager.shared
+    @State private var showSubscription = false
+    
+    var body: some View {
+        List {
+            Section {
+                HStack(spacing: 12) {
+                    Image(systemName: "heart.circle.fill")
+                        .font(.largeTitle)
+                        .foregroundStyle(.pink)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Apple 健康集成")
+                            .font(.headline)
+                        Text("通过 HealthKit 读取您的经期数据")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            
+            Section("连接状态") {
+                HStack {
+                    Label("HealthKit 可用", systemImage: "checkmark.circle.fill")
+                        .foregroundStyle(cycleManager.isAvailable ? .green : .secondary)
+                    Spacer()
+                    Text(cycleManager.isAvailable ? "支持" : "不支持")
+                        .foregroundStyle(.secondary)
+                }
+                
+                HStack {
+                    Label("数据授权", systemImage: cycleManager.isAuthorized ? "lock.open.fill" : "lock.fill")
+                        .foregroundStyle(cycleManager.isAuthorized ? .green : .orange)
+                    Spacer()
+                    if cycleManager.isAuthorized {
+                        Text("已授权")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Button("授权访问") {
+                            Task {
+                                await cycleManager.requestAuthorization()
+                            }
+                        }
+                        .font(.subheadline)
+                    }
+                }
+            }
+            
+            Section {
+                Label("经期流量数据（只读）", systemImage: "calendar.circle")
+                
+                HStack {
+                    Text("用途")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("分析月经周期与偏头痛关联")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                }
+                
+                HStack {
+                    Text("数据写入")
+                        .foregroundStyle(.primary)
+                    Spacer()
+                    Text("不写入任何数据")
+                        .foregroundStyle(.secondary)
+                        .font(.subheadline)
+                }
+            } header: {
+                Text("读取的数据类型")
+            } footer: {
+                Text("本应用仅从 Apple 健康读取经期数据，用于分析月经性偏头痛。不会向 Apple 健康写入任何数据。")
+            }
+            
+            Section {
+                Label("所有数据仅在设备本地分析", systemImage: "iphone")
+                Label("不会上传至任何服务器", systemImage: "xmark.icloud")
+                Label("不包含任何广告和追踪代码", systemImage: "hand.raised.fill")
+            } header: {
+                Text("隐私保护")
+            } footer: {
+                Text("经期数据的分析完全在您的设备上进行，开发者和任何第三方都无法访问。")
+            }
+            
+            if !premiumManager.isPremium {
+                Section {
+                    Button {
+                        showSubscription = true
+                    } label: {
+                        HStack {
+                            Label("升级高级版查看分析结果", systemImage: "crown.fill")
+                                .foregroundStyle(.orange)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                } footer: {
+                    Text("经期关联分析功能需要高级版。升级后可在「数据」页面查看详细的经期与偏头痛关联分析。")
+                }
+            }
+        }
+        .navigationTitle("Apple 健康")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showSubscription) {
+            SubscriptionView()
+        }
+    }
 }
 
 // MARK: - 关于页面

@@ -114,6 +114,10 @@ struct PremiumGateView<Content: View>: View {
                     .font(.caption)
                     .foregroundStyle(Color.textTertiary)
                 
+                if feature == .advancedAnalytics {
+                    healthKitInfoCard
+                }
+                
                 Spacer()
             }
         }
@@ -121,6 +125,37 @@ struct PremiumGateView<Content: View>: View {
         .sheet(isPresented: $showSubscription) {
             SubscriptionView()
         }
+    }
+    
+    private var healthKitInfoCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "heart.circle.fill")
+                    .foregroundStyle(.pink)
+                Text("Apple 健康集成")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.textPrimary)
+            }
+            
+            Text("本应用通过 HealthKit 读取 Apple 健康中的经期数据，分析月经周期与偏头痛发作的关联，帮助识别月经性偏头痛。")
+                .font(.caption)
+                .foregroundStyle(Color.textSecondary)
+                .lineSpacing(3)
+            
+            HStack(spacing: 6) {
+                Image(systemName: "lock.shield.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.green)
+                Text("仅读取经期数据 · 不写入 · 本地分析")
+                    .font(.caption2)
+                    .foregroundStyle(Color.textTertiary)
+            }
+        }
+        .padding(Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.backgroundSecondary)
+        .cornerRadius(Spacing.cornerRadiusMedium)
+        .padding(.horizontal, Spacing.md)
     }
     
     /// 展示 3-4 个亮点功能（包含当前被锁的功能）
