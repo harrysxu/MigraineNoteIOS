@@ -753,9 +753,21 @@ struct AboutView: View {
                 Label("完整的发作记录流程", systemImage: "pencil.and.list.clipboard")
                 Label("WeatherKit天气追踪", systemImage: "cloud.sun.fill")
                 Label("MOH风险智能检测", systemImage: "exclamationmark.triangle.fill")
+                Label("Apple 健康经期数据关联分析", systemImage: "heart.circle.fill")
                 Label("专业的数据分析", systemImage: "chart.bar.fill")
                 Label("医疗报告PDF导出", systemImage: "doc.fill")
                 Label("iCloud跨设备同步", systemImage: "icloud.fill")
+            }
+            
+            Section("Apple 健康集成") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("本应用通过 HealthKit 读取 Apple 健康中的经期数据，分析月经周期与偏头痛发作的关联，帮助识别月经性偏头痛。")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                    Text("仅读取经期流量数据，不向 Apple 健康写入任何数据。所有数据仅在设备本地分析。")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Section("天气数据来源") {

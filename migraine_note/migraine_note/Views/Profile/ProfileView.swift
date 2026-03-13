@@ -26,6 +26,7 @@ struct ProfileView: View {
     @State private var isClearingData = false
     @State private var cachedMonthlyMedDays: Int = 0
     @State private var showSubscription = false
+    @State private var cycleManager = MenstrualCycleManager.shared
     
     var body: some View {
         NavigationStack {
@@ -39,6 +40,9 @@ struct ProfileView: View {
                     
                     // 药箱快速入口
                     medicationSummaryCard
+                    
+                    // Apple 健康集成（始终可见，不受 Premium 限制）
+                    appleHealthCard
                     
                     // 设置功能区域
                     settingsSections
@@ -299,6 +303,145 @@ struct ProfileView: View {
                     Image(systemName: "chevron.right")
                         .font(.caption)
                         .foregroundStyle(Color.textTertiary)
+                }
+            }
+        }
+        .buttonStyle(PlainButtonStyle())
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    // MARK: - Apple 健康卡片
+    
+    private var appleHealthCard: some View {
+        NavigationLink {
+            HealthDataSettingsView()
+        } label: {
+            EmotionalCard(style: .default) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "heart.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(
+                                LinearGradient(
+                                    colors: [.pink, .pink.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(Circle())
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Apple 健康")
+                                .font(.title3.weight(.semibold))
+                                .foregroundStyle(Color.textPrimary)
+                            
+                            Text("通过 HealthKit 读取经期数据")
+                                .font(.caption)
+                                .foregroundStyle(Color.textTertiary)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(Color.textTertiary)
+                    }
+                    
+                    // 连接状态
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: cycleManager.isAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(cycleManager.isAvailable ? Color.statusSuccess : Color.textTertiary)
+                                Text("HealthKit")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                            }
+                            
+                            Text(cycleManager.isAvailable ? "可用" : "不支持")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.textPrimary)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.backgroundPrimary)
+                        .cornerRadius(10)
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: cycleManager.isAuthorized ? "lock.open.fill" : "lock.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(cycleManager.isAuthorized ? Color.statusSuccess : Color.statusWarning)
+                                Text("数据授权")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.textSecondary)
+                            }
+                            
+                            Text(cycleManager.isAuthorized ? "已授权" : "未授权")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.textPrimary)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.backgroundPrimary)
+                        .cornerRadius(10)
+                    }
+                    
+                    if !cycleManager.isAuthorized && cycleManager.isAvailable {
+                        Button {
+                            Task {
+                                await cycleManager.requestAuthorization()
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "heart.text.square.fill")
+                                    .font(.subheadline)
+                                Text("授权读取经期数据")
+                                    .font(.subheadline.weight(.medium))
+                            }
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.pink)
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // 功能说明
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "calendar.circle")
+                                .font(.caption)
+                                .foregroundStyle(Color.textTertiary)
+                            Text("读取经期流量数据（只读，不写入）")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                        HStack(spacing: 6) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .font(.caption)
+                                .foregroundStyle(Color.textTertiary)
+                            Text("分析月经周期与偏头痛发作的关联")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                        HStack(spacing: 6) {
+                            Image(systemName: "lock.shield.fill")
+                                .font(.caption)
+                                .foregroundStyle(Color.statusSuccess)
+                            Text("所有数据仅在本地分析，不上传")
+                                .font(.caption)
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.backgroundPrimary)
+                    .cornerRadius(10)
                 }
             }
         }

@@ -32,7 +32,7 @@
 ### Promotional Text（推广文本，170 字符以内）
 
 ```
-专业偏头痛管理工具：记录发作、分析诱因、追踪天气与月经周期关联，生成 PDF 医疗报告，让每次就诊更高效。
+专业偏头痛管理工具：记录发作、分析诱因、追踪天气、通过 Apple 健康读取经期数据分析关联，生成 PDF 医疗报告。
 ```
 
 ### Description（描述，4000 字符以内）
@@ -62,7 +62,7 @@
 • 月度发作频次、平均强度统计
 • 用药频率分析与 MOH（药物过度使用性头痛）风险预警
 • 日历热力图直观展示发作规律
-• 月经周期与偏头痛关联分析
+• 通过 Apple 健康（HealthKit）读取经期数据，分析月经周期与偏头痛关联
 • 昼夜节律分析
 • 多维度诱因统计
 
@@ -89,11 +89,17 @@
 • 多种主题模式（浅色 / 深色 / 跟随系统）
 • 首次使用引导
 
+◆ Apple 健康集成
+• 通过 HealthKit 读取 Apple 健康中的经期数据（仅读取，不写入）
+• 自动分析月经周期与偏头痛发作的关联，帮助识别月经性偏头痛
+• 所有健康数据仅在设备本地分析，不会上传至任何服务器
+
 【高级版功能】
-本应用提供免费基础功能。升级高级版可解锁：高级数据分析、数据导出、医疗报告、iCloud 同步、经期关联分析、自定义标签、用药提醒、天气追踪。支持月度订阅（¥3/月）、年度订阅（¥8/年）和终身买断（¥18）。
+本应用提供免费基础功能。升级高级版可解锁：高级数据分析、数据导出、医疗报告、iCloud 同步、通过 Apple 健康（HealthKit）进行经期关联分析、自定义标签、用药提醒、天气追踪。支持月度订阅（¥3/月）、年度订阅（¥8/年）和终身买断（¥18）。
 
 【数据安全】
 • 所有数据仅存储在您的设备和私人 iCloud 中
+• Apple 健康（HealthKit）经期数据仅在本地读取和分析
 • 开发者无法访问您的任何数据
 • 支持 iCloud 多设备同步
 • 离线优先设计，无网络也可使用
@@ -209,50 +215,68 @@
 ### Review Notes（审核备注）
 
 ```
-感谢审核团队的时间！以下是关于本应用的补充说明：
+Thank you for reviewing our app! Below is supplementary information about this application.
 
-【应用概述】
-头痛管家是一款偏头痛患者的健康管理工具。用户可以记录每次偏头痛发作的详细信息（时间、疼痛强度、症状、诱因、用药等），并通过数据分析功能发现发作规律。
+【App Overview】
+头痛管家 (Headache Butler) is a professional health management tool for migraine patients. Users can record detailed information about each migraine attack (time, pain intensity, symptoms, triggers, medication, etc.) and discover patterns through data analytics.
 
-【应用内购买说明】
-本应用采用 Freemium 模式，基础记录功能免费，高级功能需要订阅或买断：
-1. 月度订阅（com.migrainenote.pro.monthly）— 自动续订，¥3/月
-2. 年度订阅（com.migrainenote.pro.yearly）— 自动续订，¥8/年
-3. 终身买断（com.migrainenote.pro.lifetime）— 非消耗型，¥18 一次性购买
+【HealthKit Integration - Guideline 2.5.1 Compliance】
+This app integrates with Apple Health (HealthKit) to read menstrual cycle data for analyzing the correlation between menstrual cycles and migraine attacks. Here is how HealthKit functionality is clearly identified in the UI:
 
-高级功能包括：高级数据分析、数据导出（CSV/PDF）、医疗报告生成、iCloud 同步、经期关联分析、自定义标签、用药提醒、天气追踪。
+1. "我的" (Profile) Tab → "Apple 健康" Card:
+   - Always visible (no Premium required)
+   - Shows HealthKit availability status and authorization status
+   - Provides "授权读取经期数据" (Authorize) button to trigger HealthKit authorization
+   - Explains data types read, purpose, and privacy protection
 
-购买页面（SubscriptionView）底部包含"使用条款"（Apple 标准 EULA）和"隐私政策"链接。
+2. "我的" (Profile) Tab → "Apple 健康" Card → Tap to navigate to Health Data Settings:
+   - Detailed HealthKit settings page showing connection status, data types, and privacy info
 
-【权限使用说明】
-1. 位置服务（NSLocationWhenInUseUsageDescription）：
-   - 用途：获取用户当前位置的天气数据（温度、气压、湿度）
-   - 目的：帮助分析天气因素（如气压骤降）与偏头痛发作的关联
-   - 数据处理：仅在本地设备使用，不上传至任何服务器
+3. "关于应用" (About) → "Apple 健康集成" Section:
+   - Explains HealthKit integration purpose and data handling
 
-2. HealthKit - 经期数据（NSHealthShareUsageDescription）：
-   - 用途：读取用户经期周期数据
-   - 目的：分析月经周期与偏头痛发作的关联（月经性偏头痛是常见类型）
-   - 数据处理：仅在本地设备分析，不上传至任何服务器
-   - 注意：仅读取，不写入 HealthKit
+4. "数据" (Data) Tab → "经期关联分析" (Menstrual Cycle Analysis) Card:
+   - Shows "来自 Apple 健康" (From Apple Health) subtitle
+   - Displays HealthKit authorization flow and analysis results
+   - Note: Full analysis requires Premium (sandbox purchases will succeed automatically)
 
-【法律链接位置】
-- App 描述末尾包含隐私政策和用户协议 URL
-- 订阅购买页面（SubscriptionView）底部包含"使用条款"和"隐私政策"链接
-- 隐私政策：https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html
-- 使用条款：https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+5. Onboarding → Privacy Page:
+   - Lists "Apple 健康 - 读取经期数据分析关联" as an optional permission
 
-【数据存储】
-- 所有数据存储在用户设备本地（SwiftData）
-- 可选的 iCloud 同步使用 CloudKit 私有数据库
-- 开发者无法访问任何用户数据
+HealthKit Data Usage:
+- READ ONLY: Menstrual flow data (HKCategoryTypeIdentifier.menstrualFlow)
+- DOES NOT write any data to Apple Health
+- All data is analyzed locally on the device, never uploaded to any server
 
-【测试建议】
-1. 首次启动会显示 Onboarding 引导页
-2. 点击首页"开始记录"按钮可以记录一次偏头痛发作
-3. 记录完成后可在"数据"标签页查看统计分析（需高级版）
-4. "我的"页面可以管理药箱、导出数据、生成 PDF 医疗报告（需高级版）
-5. 购买页面可从"我的"页面的"高级版"卡片进入
+Navigation Path for Testing HealthKit UI:
+Step 1: Launch app → Complete onboarding (or skip)
+Step 2: Tap "我的" (Profile) tab (4th tab)
+Step 3: Scroll to "Apple 健康" card → View HealthKit status and tap "授权读取经期数据"
+Step 4: Tap the card to see detailed Health Data Settings page
+Step 5: Tap "关于应用" (About) → Scroll to "Apple 健康集成" section
+
+【In-App Purchase】
+This app uses a Freemium model. Basic recording features are free; advanced features require subscription or one-time purchase:
+1. Monthly (com.migrainenote.pro.monthly) — Auto-renewable, ¥3/month
+2. Yearly (com.migrainenote.pro.yearly) — Auto-renewable, ¥8/year
+3. Lifetime (com.migrainenote.pro.lifetime) — Non-consumable, ¥18
+
+Note: In sandbox environment, subscriptions will complete successfully for testing advanced features including the detailed menstrual cycle analysis.
+
+The purchase page (SubscriptionView) includes "Terms of Use" (Apple Standard EULA) and "Privacy Policy" links at the bottom.
+
+【Permissions】
+1. Location Services: Records weather data (temperature, pressure, humidity) to analyze weather-related migraine triggers. Data processed locally only.
+2. HealthKit: Reads menstrual cycle data to analyze correlation with migraine attacks. Read-only, local analysis only.
+
+【Legal Links】
+- Privacy Policy: https://harrysxu.github.io/MigraineNoteIOS/pages/privacy-policy.html
+- Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+
+【Data Storage】
+- All data stored locally (SwiftData) and optionally synced via iCloud (CloudKit private database)
+- Developer cannot access any user data
+- No ads, no tracking
 ```
 
 ---

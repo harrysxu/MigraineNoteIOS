@@ -11,7 +11,7 @@
 	<key>NSHealthShareUsageDescription</key>
 	<string>「头痛管家」需要读取您的经期数据（通过 Apple 健康 HealthKit），以分析月经周期与偏头痛发作的关联，帮助识别月经性偏头痛。所有数据仅在本地分析，不会上传到任何服务器。</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>「头痛管家」可将您的偏头痛记录写入 Apple 健康（HealthKit），方便您在「健康」App 中统一管理和查看所有健康数据。</string>
+	<string>「头痛管家」当前仅读取 Apple 健康（HealthKit）中的经期数据，用于分析月经周期与偏头痛发作的关联。所有数据仅在本地分析，不会上传到任何服务器。</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>CFBundleDisplayName</key>
