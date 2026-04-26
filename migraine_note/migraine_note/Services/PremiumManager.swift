@@ -70,7 +70,7 @@ enum PurchaseType: String, CaseIterable, Identifiable {
     var productId: String {
         switch self {
         case .monthly: return "com.xxl.migraine_note.pro.monthly"
-        case .yearly: return "com.xxl.migraine_note.pro.yearly"
+        case .yearly: return "com.xxl.migraine_note.pro.yearly_2"
         case .lifetime: return "com.xxl.migraine_note.pro.lifetime"
         }
     }

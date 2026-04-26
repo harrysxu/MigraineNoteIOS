@@ -94,14 +94,19 @@ class StoreKitManager {
             switch result {
             case .success(let verification):
                 let transaction = try checkVerified(verification)
-                
-                // 更新高级版状态
-                await updatePurchaseStatus()
-                
-                // 完成交易
+
                 await transaction.finish()
-                
-                purchaseState = .purchased
+
+                // 重新读取当前权益，只有确认已解锁后才展示成功状态
+                await updatePurchaseStatus()
+
+                if PremiumManager.shared.isPremium,
+                   PremiumManager.shared.currentPurchaseType?.productId == transaction.productID {
+                    purchaseState = .purchased
+                } else {
+                    purchaseState = .idle
+                    errorMessage = "购买已处理，但尚未确认高级版权益。请稍后重试或使用恢复购买。"
+                }
                 
             case .userCancelled:
                 purchaseState = .idle
@@ -124,6 +129,7 @@ class StoreKitManager {
     @MainActor
     func purchase(type: PurchaseType) async {
         guard let product = products.first(where: { $0.id == type.productId }) else {
+            purchaseState = .idle
             errorMessage = "未找到对应产品"
             return
         }

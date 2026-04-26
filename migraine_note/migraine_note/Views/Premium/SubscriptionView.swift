@@ -64,16 +64,18 @@ struct SubscriptionView: View {
         } message: {
             Text("恭喜！您已成功升级为高级版，所有功能已解锁。")
         }
-        .alert("恢复购买", isPresented: $showRestoreAlert) {
-            Button("确定", role: .cancel) {}
+        .alert("恢复成功", isPresented: $showRestoreAlert) {
+            Button("好的") {
+                dismiss()
+            }
         } message: {
-            Text(storeManager.errorMessage ?? "恢复购买完成")
+            Text("已恢复您的高级版权益，所有功能已解锁。")
         }
         .onChange(of: storeManager.purchaseState) { _, newValue in
             if newValue == .purchased {
                 showSuccessAlert = true
             } else if newValue == .restored {
-                showSuccessAlert = true
+                showRestoreAlert = true
             }
         }
     }
@@ -259,11 +261,22 @@ struct SubscriptionView: View {
             )
             .cornerRadius(Spacing.cornerRadiusMedium)
         }
-        .disabled(storeManager.purchaseState == .purchasing)
+        .disabled(!canPurchaseSelectedPlan)
+        .opacity(canPurchaseSelectedPlan ? 1 : 0.6)
         
         // 错误信息
         if let error = storeManager.errorMessage {
             Text(error)
+                .font(.caption)
+                .foregroundStyle(Color.statusError)
+                .padding(.top, Spacing.xs)
+        } else if storeManager.isLoadingProducts {
+            Text("正在加载商品信息...")
+                .font(.caption)
+                .foregroundStyle(Color.textTertiary)
+                .padding(.top, Spacing.xs)
+        } else if storeManager.product(for: selectedPlan) == nil {
+            Text("该商品暂不可用，请稍后重试。")
                 .font(.caption)
                 .foregroundStyle(Color.statusError)
                 .padding(.top, Spacing.xs)
@@ -273,6 +286,14 @@ struct SubscriptionView: View {
     private var purchaseButtonTitle: String {
         if storeManager.purchaseState == .purchasing {
             return "处理中..."
+        }
+
+        if storeManager.isLoadingProducts {
+            return "正在加载商品信息..."
+        }
+
+        guard storeManager.product(for: selectedPlan) != nil else {
+            return "商品暂不可用"
         }
         
         let price = storeManager.localizedPrice(for: selectedPlan)
@@ -284,6 +305,12 @@ struct SubscriptionView: View {
         case .lifetime:
             return "以 \(price) 买断"
         }
+    }
+
+    private var canPurchaseSelectedPlan: Bool {
+        storeManager.purchaseState != .purchasing &&
+        !storeManager.isLoadingProducts &&
+        storeManager.product(for: selectedPlan) != nil
     }
     
     // MARK: - 底部区域
