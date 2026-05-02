@@ -2,7 +2,7 @@
 //  MedicalReportGeneratorTests.swift
 //  migraine_noteTests
 //
-//  医疗报告生成器单元测试
+//  PDF数据导出生成器单元测试
 //
 
 import XCTest

@@ -755,7 +755,7 @@ struct AboutView: View {
                 Label("MOH风险智能检测", systemImage: "exclamationmark.triangle.fill")
                 Label("Apple 健康经期数据关联分析", systemImage: "heart.circle.fill")
                 Label("专业的数据分析", systemImage: "chart.bar.fill")
-                Label("医疗报告PDF导出", systemImage: "doc.fill")
+                Label("PDF 数据导出", systemImage: "doc.fill")
                 Label("iCloud跨设备同步", systemImage: "icloud.fill")
             }
             

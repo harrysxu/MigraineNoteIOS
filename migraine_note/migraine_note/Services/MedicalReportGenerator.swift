@@ -4,9 +4,8 @@ import SwiftUI
 import SwiftData
 import Charts
 
-/// PDF医疗报告生成器
-/// 基于《中国偏头痛诊断与治疗指南2024版》
-/// 生成供医生参考的专业报告
+/// PDF数据导出生成器
+/// 生成用于查看和分享的PDF数据摘要
 @MainActor
 class MedicalReportGenerator {
     
@@ -33,7 +32,7 @@ class MedicalReportGenerator {
     
     // MARK: - 公开方法
     
-    /// 生成PDF医疗报告
+    /// 生成PDF数据导出文件
     /// - Parameters:
     ///   - attacks: 发作记录列表
     ///   - userProfile: 用户配置（可选）
@@ -55,9 +54,9 @@ class MedicalReportGenerator {
         // 创建PDF渲染器
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
-            kCGPDFContextTitle as String: "头痛医疗报告",
+            kCGPDFContextTitle as String: "头痛数据导出",
             kCGPDFContextAuthor as String: "头痛管家App",
-            kCGPDFContextSubject as String: "医疗数据分析报告",
+            kCGPDFContextSubject as String: "头痛数据导出",
             kCGPDFContextCreator as String: "头痛管家 iOS App"
         ]
         
@@ -305,7 +304,7 @@ class MedicalReportGenerator {
         
         // 主标题
         let titleFont = UIFont.systemFont(ofSize: 24, weight: .bold)
-        let titleText = "头痛医疗报告"
+        let titleText = "头痛数据导出"
         let titleAttrs: [NSAttributedString.Key: Any] = [
             .font: titleFont,
             .foregroundColor: UIColor.label
@@ -318,7 +317,7 @@ class MedicalReportGenerator {
         
         // 副标题
         let subtitleFont = UIFont.systemFont(ofSize: 12, weight: .regular)
-        let subtitleText = "Headache Medical Report"
+        let subtitleText = "Headache Data Export"
         let subtitleAttrs: [NSAttributedString.Key: Any] = [
             .font: subtitleFont,
             .foregroundColor: UIColor.secondaryLabel

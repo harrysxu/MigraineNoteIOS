@@ -366,7 +366,7 @@ struct DataExportView: View {
         let tempDirectory = FileManager.default.temporaryDirectory
         let startStr = formatDate(dateRange.start)
         let endStr = formatDate(dateRange.end)
-        let filename = "headache_butler_medical_report_\(startStr)_to_\(endStr).pdf"
+        let filename = "headache_butler_data_export_\(startStr)_to_\(endStr).pdf"
         let fileURL = tempDirectory.appendingPathComponent(filename)
         
         // 如果旧文件存在，先删除
@@ -429,7 +429,7 @@ enum ExportType: String, CaseIterable, Identifiable {
     var description: String {
         switch self {
         case .csv: return "包含统计数据和详细记录，适合Excel分析"
-        case .pdf: return "专业医疗报告，适合打印和就诊"
+        case .pdf: return "PDF 格式数据，适合打印和就诊沟通"
         }
     }
 }

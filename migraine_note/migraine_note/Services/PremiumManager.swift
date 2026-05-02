@@ -12,7 +12,6 @@ import SwiftUI
 enum PremiumFeature: String, CaseIterable {
     case advancedAnalytics = "advanced_analytics"    // 高级数据分析
     case dataExport = "data_export"                  // 数据导出
-    case medicalReport = "medical_report"            // 医疗报告
     case iCloudSync = "icloud_sync"                  // iCloud 同步
     case menstrualAnalysis = "menstrual_analysis"    // 经期关联分析
     case customLabels = "custom_labels"              // 自定义标签
@@ -23,7 +22,6 @@ enum PremiumFeature: String, CaseIterable {
         switch self {
         case .advancedAnalytics: return "高级数据分析"
         case .dataExport: return "数据导出"
-        case .medicalReport: return "医疗报告"
         case .iCloudSync: return "iCloud 同步"
         case .menstrualAnalysis: return "经期关联分析"
         case .customLabels: return "自定义标签"
@@ -36,7 +34,6 @@ enum PremiumFeature: String, CaseIterable {
         switch self {
         case .advancedAnalytics: return "chart.bar.fill"
         case .dataExport: return "square.and.arrow.up.fill"
-        case .medicalReport: return "doc.text.fill"
         case .iCloudSync: return "icloud.fill"
         case .menstrualAnalysis: return "heart.circle.fill"
         case .customLabels: return "tag.fill"
@@ -49,7 +46,6 @@ enum PremiumFeature: String, CaseIterable {
         switch self {
         case .advancedAnalytics: return "月趋势、昼夜节律、诱因分析等专业图表"
         case .dataExport: return "CSV/PDF 数据导出，方便就诊使用"
-        case .medicalReport: return "生成专业 A4 医疗报告 PDF"
         case .iCloudSync: return "多设备自动同步数据"
         case .menstrualAnalysis: return "从 Apple 健康读取经期数据进行关联分析"
         case .customLabels: return "自定义症状、诱因、疼痛性质标签"
